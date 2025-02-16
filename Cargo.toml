@@ -1,0 +1,10 @@
+[package]
+name = "al"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+derive_more = { version = "2.0.1", features = ["full"] }
+internment = "0.8.6"
+pest = "2.7.15"
+pest_derive = "2.7.15"
