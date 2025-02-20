@@ -1,4 +1,4 @@
-# Syntax for Al programs
+# Syntax for uncrustable programs
 
 **This document is work-in-progress:**
 - the type system will evolve throughout the project with user-defined types.
@@ -136,7 +136,6 @@ Here is the abstract syntax without the details:
 σ ∈ Symbol   -- this is the alphabet
 x ∈ Var
 f ∈ FnName
-n₀₊ ∈ ℕ
 n, m ∈ ℤ
 ⊕ ∈ Binop  -- this also includes the mod N part
 ⊞ ∈ Unop
@@ -148,7 +147,7 @@ action ∈ Action ::= on input x? s*
 
 fun ∈ Function ::= (x : τ)* -> τ = e
 
-τ ∈ Type ::= bool | int[n₀₊] | int[n..n]
+τ ∈ Type ::= bool | int[n..n]
 
 s ∈ Stmt ::= x = e
            | if e s* else s*
@@ -172,3 +171,5 @@ Some notes:
   a guard for a case, then the guard is `true`.
 - All `if` statements have an `else` block (an empty block is inserted
   automatically).
+- The concrete syntax for natural number types `int[n]` is normalized to
+  `int[0..n]` in the abstract syntax.

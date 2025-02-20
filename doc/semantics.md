@@ -1,8 +1,8 @@
-# Semantics of Al programs
+# Semantics of uncrustable programs
 
 ## Semantic domains
 
-Values in an Al program range over:
+Values in an uncrustable program range over:
 
 ```
 i ∈ Int[n..m]  -- Integers within a specified range
