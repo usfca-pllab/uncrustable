@@ -2,7 +2,7 @@
 //!
 //! The syntax for DFA descriptions is:
 //!
-//! ```
+//! ```ignore
 //! alphabet: { <symbol>, ... }
 //! start: <state>
 //! accepting: { <state>, ... }
