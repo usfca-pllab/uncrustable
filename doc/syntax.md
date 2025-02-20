@@ -36,6 +36,7 @@ accept ::= `accept` `if` expr
 type ::= `bool`
        | `int` `[` nonneg `]`            // integers mod N
        | `int` `[` num `..` num `]`      // integers with specific range
+       | `sym`                           // symbols
        
 stmt ::= id `=` expr `;`
        | `if` expr block (`else` block)?
@@ -53,7 +54,7 @@ expr ::= id                              // variables
        
 case ::= pattern (`if` expr)? `->` expr
 
-pattern ::= char | num | `true` | `false`
+pattern ::= char | num | `true` | `false` | id
        
 binop ::= `+` | `-` | `*` | `/` | `%`
         | `<<` | `>>`
@@ -147,7 +148,7 @@ action ∈ Action ::= on input x? s*
 
 fun ∈ Function ::= (x : τ)* -> τ = e
 
-τ ∈ Type ::= bool | int[n..n]
+τ ∈ Type ::= bool | int[n..n] | sym
 
 s ∈ Stmt ::= x = e
            | if e s* else s*
@@ -161,7 +162,7 @@ e ∈ Expr ::= x | σ | n | true | false
        
 case ∈ Case ::= pattern e -> e
 
-pattern ∈ Pattern ::= σ | n | true | false
+pattern ∈ Pattern ::= σ | n | true | false | x
 
 overf ∈ Overflow ::= wraparound | saturate | fail
 ```
