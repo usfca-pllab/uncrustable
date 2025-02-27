@@ -1,9 +1,10 @@
 //! The interpreter
 
 use crate::syntax::*;
+use std::collections::HashMap as Map;
 
 enum RuntimeError {
-    InvalidInput
+    InvalidInput,
 }
 
 fn eval(program: &Program, input: &str) -> Result<bool, RuntimeError> {
@@ -16,6 +17,9 @@ fn eval(program: &Program, input: &str) -> Result<bool, RuntimeError> {
 }
 
 // define the state type
+enum Value {}
+
+type Env = Map<Id, Value>;
 
 // eval. expr.
 

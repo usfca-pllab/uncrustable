@@ -1,7 +1,7 @@
 //! The abstract syntax for the imperative automaton language
 
-use std::ops::Range;
 pub use std::collections::{HashMap as Map, HashSet as Set};
+use std::ops::Range;
 
 use derive_more::Display;
 
@@ -54,10 +54,7 @@ struct Block(Vec<Stmt>);
 /// not change the state of the local variables.
 enum Expr {
     /// Function call.
-    Call {
-        callee: Id,
-        args: Vec<Expr>,
-    },
+    Call { callee: Id, args: Vec<Expr> },
     /// A literal numeric value of a given type
     Num(i64, Type),
     /// A Boolean literal.
@@ -68,26 +65,23 @@ enum Expr {
     Var(Id),
     /// Binary operation
     BinOp {
-	lhs: Box<Expr>,
-	op: BOp,
-	rhs: Box<Expr>,
+        lhs: Box<Expr>,
+        op: BOp,
+        rhs: Box<Expr>,
     },
     /// Unary operation
-    UOp {
-	op: BOp,
-	inner: Box<Expr>,
-    },
+    UOp { op: BOp, inner: Box<Expr> },
     /// Casting from one numerical type to another.
     Cast {
-	inner: Box<Expr>,
-	typ: Type,
-	overflow: Overflow,
+        inner: Box<Expr>,
+        typ: Type,
+        overflow: Overflow,
     },
     /// Pattern matching
     Match {
-	scrutinee: Box<Expr>,
-	cases: Vec<Case>,
-    }
+        scrutinee: Box<Expr>,
+        cases: Vec<Case>,
+    },
 }
 
 /// Pattern match cases.
@@ -111,12 +105,25 @@ enum Pattern {
 /// using other operators.  For example, `x > y` can be written as `x < y` so we
 /// don't need a `>` operator.
 enum BOp {
-    Add, Sub, Mul, Div, Rem, Shl, Shr, Lt, Lte, Eq, Ne, And, Or,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
+    Shl,
+    Shr,
+    Lt,
+    Lte,
+    Eq,
+    Ne,
+    And,
+    Or,
 }
 
 /// Unary operators.
 enum UOp {
-    Negate, Not,
+    Negate,
+    Not,
 }
 
 /// Overflow handling.
