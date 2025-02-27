@@ -20,7 +20,7 @@ pub struct Symbol(char);
 
 /// An automaton program.  Everything except the helpers describe the main
 /// program.
-struct Program {
+pub struct Program {
     /// The set of symbols the input can contain.
     alphabet: Set<Symbol>,
     /// Helper functions.

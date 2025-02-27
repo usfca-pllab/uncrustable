@@ -114,8 +114,10 @@ let remainder: int[3];
 remainder = 0;
 
 on input b {
-  remainder = remainder + to_trit(b)
+  remainder = 2 * remainder + to_trit(b)
 }
+
+accept if remainder == 0
 ```
 
 # Abstract syntax
