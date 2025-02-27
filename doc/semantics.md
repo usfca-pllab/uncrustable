@@ -16,7 +16,7 @@ v ∈ Value ::= i | σ | b
 The state of the program consists of the values of the locals (the environment):
 
 ```
-ρ ∈ Env = Var ⇀ Value
+env ∈ Env = Var ⇀ Value
 ```
 
 ### State for functions
@@ -43,27 +43,27 @@ Here are the definitions of both:
 ```
 # [[ e ]]
 
-[[ x ]] ρ = ρ(x)
-[[ σ ]] ρ = σ
-[[ n ]] ρ = n
-[[ true ]] ρ = true
-[[ false ]] ρ = false
-[[ e as τ overf ]] ρ = cast([[ e ]], τ, overf)
-[[ e₁ ⊕ e₂ ]] ρ = ([[ e₁ ]] ρ) [[⊕]] ([[ e₂ ]] ρ)
-[[ ⊞ e ]] ρ = [[⊞]] ([[ e ]] ρ)
-[[ f(e₁, …, eₙ) ]] ρ = [[ eFun ]] ρFun
+[[ x ]] env = env(x)
+[[ σ ]] env = σ
+[[ n ]] env = n
+[[ true ]] env = true
+[[ false ]] env = false
+[[ e as τ overf ]] env = cast([[ e ]], τ, overf)
+[[ e₁ ⊕ e₂ ]] env = ([[ e₁ ]] env) [[⊕]] ([[ e₂ ]] env)
+[[ ⊞ e ]] env = [[⊞]] ([[ e ]] env)
+[[ f(e₁, …, eₙ) ]] env = [[ eFun ]] envFun
   where
     "(x₁: τ₁, …, xₙ: τₙ) -> τᵣ = eFun" = F(f)
-    ρFun = [x₁ ↦ [[e₁]] ρ, …, xₙ ↦ [[eₙ]] ρ]   -- this is defining a function/map
-[[ match e { (pattern eGuard eOut) :: cases } ]] ρ =
-  let v = [[ e ]] ρ in
-    if v == pattern && [[ eGuard ]] ρ then [[ eOut ]] ρ
-                                      else [[ match e { cases } ]] ρ
+    envFun = [x₁ ↦ [[e₁]] env, …, xₙ ↦ [[eₙ]] env]   -- this is defining a function/map
+[[ match e { (pattern eGuard eOut) :: cases } ]] env =
+  let v = [[ e ]] env in
+    if v == pattern && [[ eGuard ]] env then [[ eOut ]] env
+                                      else [[ match e { cases } ]] env
     
 # [[ s* ]] -- this just runs statements in sequence
 
-[[ s₁ :: sᵣₑₛₜ ]] ρ = [[ sᵣₑₛₜ ]] ([[ s₁ ]] ρ)
-[[ ]] ρ = ρ
+[[ s₁ :: sᵣₑₛₜ ]] env = [[ sᵣₑₛₜ ]] ([[ s₁ ]] env)
+[[ ]] env = env
 ```
 
 Note that a match with 0 cases automatically fails (this would happen on a recursive call).
@@ -101,17 +101,17 @@ Overall, the evaluation function for a program does the following:
 ```
 [[ p ]] : Symbol* ⇀ Bool
 [[ F × LocalTypes × sᵢₙᵢₜ × action × eₐ ]](σ*) =
-  let ρ₀ = init(LocalTypes) in
-  let ρFinal = fold [[action]] ([[sᵢₙᵢₜ]] ρₒ) σ* in
-  [[ eₐ ]] ρFinal
+  let env₀ = init(LocalTypes) in
+  let envFinal = fold [[action]] ([[sᵢₙᵢₜ]] envₒ) σ* in
+  [[ eₐ ]] envFinal
 ```
 
 Here,
 - the helper `init` takes the types of each variable and initializes them to the
   smallest value in their respective types.
 - the helper `[[action]]` has the following meaning:
-  - `[[on input x s*]] = λ(ρ,σ). [[s*]] ρ[x ↦ σ]`
-  - `[[on input s*]] = λ(ρ,σ). [[s*]] ρ`
+  - `[[on input x s*]] = λ(env,σ). [[s*]] env[x ↦ σ]`
+  - `[[on input s*]] = λ(env,σ). [[s*]] env`
 - `fold f a [b₁, …, bₙ]` stands for `f(bₙ, … f(b₂, f(b₁, a)))`.
 - if any partial function fails, execution gets stuck.
 - if the final evaluation does not result in a boolean, execution gets stuck.
