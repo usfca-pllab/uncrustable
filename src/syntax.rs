@@ -14,31 +14,34 @@ pub fn id(name: &str) -> Id {
 }
 
 /// Symbols that the program operates on
-#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Display)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Hash, Display, Clone, Copy)]
 #[display("{}", self.0)]
-pub struct Symbol(char);
+pub struct Symbol(pub char);
 
 /// An automaton program.  Everything except the helpers describe the main
 /// program.
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Program {
     /// The set of symbols the input can contain.
-    alphabet: Set<Symbol>,
+    pub alphabet: Set<Symbol>,
     /// Helper functions.
-    helpers: Map<Id, Function>,
+    pub helpers: Map<Id, Function>,
     /// Local variables.
-    locals: Map<Id, Type>,
+    pub locals: Map<Id, Type>,
     /// Statements that are run in the beginning.
-    start: Stmt,
+    pub start: Stmt,
     /// Actions to execute for every input symbol.
     ///
     /// The optional `Id` is the name for the current input symbol.
-    action: (Option<Id>, Stmt),
+    pub action: (Option<Id>, Stmt),
     /// Acceptance condition
-    accept: Expr,
+    pub accept: Expr,
 }
 
 /// Statements that affect the local variables.
-enum Stmt {
+#[derive(PartialEq, Eq, Debug, Clone)]
+#[allow(missing_docs)]
+pub enum Stmt {
     Assign(Id, Expr),
     If {
         cond: Expr,
@@ -48,11 +51,13 @@ enum Stmt {
 }
 
 /// A sequence of statements
-struct Block(Vec<Stmt>);
+type Block = Vec<Stmt>;
 
 /// Expressions.  Unlike statements, expressions evaluate to a value and they do
 /// not change the state of the local variables.
-enum Expr {
+#[derive(PartialEq, Eq, Debug, Clone)]
+#[allow(missing_docs)]
+pub enum Expr {
     /// Function call.
     Call { callee: Id, args: Vec<Expr> },
     /// A literal numeric value of a given type
@@ -70,7 +75,7 @@ enum Expr {
         rhs: Box<Expr>,
     },
     /// Unary operation
-    UOp { op: BOp, inner: Box<Expr> },
+    UOp { op: UOp, inner: Box<Expr> },
     /// Casting from one numerical type to another.
     Cast {
         inner: Box<Expr>,
@@ -85,17 +90,26 @@ enum Expr {
 }
 
 /// Pattern match cases.
-struct Case {
-    pattern: Pattern,
-    guard: Expr,
-    result: Expr,
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct Case {
+    /// The pattern (value or variable) being matched.
+    pub pattern: Pattern,
+    /// Additional boolean condition on the pattern.
+    pub guard: Expr,
+    /// Right-hand side of the pattern match case.
+    pub result: Expr,
 }
 
 /// Patterns
-enum Pattern {
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum Pattern {
+    /// Match any value and create given variable.
     Var(Id),
+    /// Match given numeric constant.
     Num(i64),
+    /// Match given boolean constant.
     Bool(bool),
+    /// Match given symbol.
     Sym(Symbol),
 }
 
@@ -104,7 +118,9 @@ enum Pattern {
 /// Some concrete syntax operators are not here because we can represent them
 /// using other operators.  For example, `x > y` can be written as `x < y` so we
 /// don't need a `>` operator.
-enum BOp {
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[allow(missing_docs)]
+pub enum BOp {
     Add,
     Sub,
     Mul,
@@ -121,26 +137,36 @@ enum BOp {
 }
 
 /// Unary operators.
-enum UOp {
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[allow(missing_docs)]
+pub enum UOp {
     Negate,
     Not,
 }
 
 /// Overflow handling.
-enum Overflow {
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[allow(missing_docs)]
+pub enum Overflow {
     Wraparound,
     Saturate,
     Fail,
 }
 
 /// A pure helper function.
-struct Function {
-    params: Vec<Id>,
-    body: Expr,
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct Function {
+    /// Parameters of the function.
+    pub params: Vec<(Id, Type)>,
+    /// Return type of the function.
+    pub ret_typ: Type,
+    /// Return value of the function.
+    pub body: Expr,
 }
 
 /// Types.
-enum Type {
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Type {
     /// The boolean type
     BoolT,
     /// A numerical type with given bounds
