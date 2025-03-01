@@ -115,6 +115,8 @@ enum Token {
     Colon,
     #[token(";")]
     Semicolon,
+    #[token("=")]
+    Gets,
 
     // Literals
     #[regex(r"-?[0-9]+", |lex| lex.slice().parse().or(Err(LexError::InvalidNumber)))]
@@ -142,11 +144,13 @@ struct Parser {
 
 impl Parser {
     fn new(input: &str) -> Self {
-        let tokens: Vec<Token> = Token::lexer(input).spanned().map(|(tok, span)| match tok {
-            Ok(t) => t,
+        let tokens: Vec<Token> = Token::lexer(input)
+            .spanned()
+            .map(|(tok, span)| match tok {
+                Ok(t) => t,
                 Err(e) => panic!("Lexical error at {span:?}: {e:?}"),
-                
-        }).collect();
+            })
+            .collect();
         Parser { tokens, pos: 0 }
     }
 
@@ -233,7 +237,13 @@ impl Parser {
             }
         }
 
-        let start = self.parse_block()?;
+        let mut start = vec![];
+        while let Some(tok) = self.current() {
+            if let Token::On = tok {
+                break;
+            }
+            start.push(self.parse_stmt()?);
+        }
         let action = self.parse_action()?;
         let accept = self.parse_accept()?;
 
@@ -289,7 +299,7 @@ impl Parser {
         self.expect(Token::RParen)?;
         self.expect(Token::Arrow)?;
         let ret_typ = self.parse_type()?;
-        self.expect(Token::Eq)?;
+        self.expect(Token::Gets)?;
         let body = self.parse_expr()?;
         Ok((
             func_id,
@@ -358,8 +368,7 @@ impl Parser {
                         Ok(Type::NumT(start..end))
                     } else {
                         self.expect(Token::RBracket)?;
-                        // For an int-mod type, we use a dummy range.
-                        Ok(Type::NumT(0..0))
+                        Ok(Type::NumT(0..start))
                     }
                 }
                 Token::Sym => {
@@ -374,7 +383,7 @@ impl Parser {
     }
 
     // block ::= `{` stmt+ `}`
-    fn parse_block(&mut self) -> Result<Stmt, String> {
+    fn parse_block(&mut self) -> Result<Block, String> {
         self.expect(Token::LBrace)?;
         let mut stmts = Vec::new();
         while let Some(tok) = self.current() {
@@ -384,16 +393,11 @@ impl Parser {
             stmts.push(self.parse_stmt()?);
         }
         self.expect(Token::RBrace)?;
-        // In this example we wrap a block in a dummy If-statement.
-        Ok(Stmt::If {
-            cond: Expr::Bool(true),
-            true_branch: stmts,
-            false_branch: vec![],
-        })
+        Ok(stmts)
     }
 
     // action ::= `on` `input` id? block
-    fn parse_action(&mut self) -> Result<(Option<Id>, Stmt), String> {
+    fn parse_action(&mut self) -> Result<(Option<Id>, Block), String> {
         self.expect(Token::On)?;
         self.expect(Token::Input)?;
         let id_opt = if let Some(Token::Identifier(s)) = self.current() {
@@ -421,18 +425,10 @@ impl Parser {
                 Token::If => {
                     self.bump();
                     let cond = self.parse_expr()?;
-                    let true_branch = if let Stmt::If { true_branch, .. } = self.parse_block()? {
-                        true_branch
-                    } else {
-                        return Err("Expected block after if".to_string());
-                    };
+                    let true_branch = self.parse_block()?;
                     let false_branch = if let Some(Token::Else) = self.current() {
                         self.bump();
-                        if let Stmt::If { true_branch, .. } = self.parse_block()? {
-                            true_branch
-                        } else {
-                            return Err("Expected block after else".to_string());
-                        }
+                        self.parse_block()?
                     } else {
                         vec![]
                     };
@@ -445,7 +441,7 @@ impl Parser {
                 _ => {
                     let name = self.expect_identifier()?;
                     let var = id(&name);
-                    self.expect(Token::Eq)?;
+                    self.expect(Token::Gets)?;
                     let expr = self.parse_expr()?;
                     self.expect(Token::Semicolon)?;
                     Ok(Stmt::Assign(var, expr))
@@ -563,7 +559,7 @@ impl Parser {
                 }
                 Token::Number(_) => {
                     let n = self.expect_number()?;
-                    Ok(Expr::Num(n, Type::NumT(0..0)))
+                    Ok(Expr::Num(n, Type::NumT(n..(n+1))))
                 }
                 Token::True => {
                     self.bump();
@@ -736,13 +732,14 @@ pub fn parse(input: &str) -> Result<Program, String> {
 
 #[cfg(test)]
 mod tests {
+    use expect_test::expect;
+
     use super::*;
 
     #[test]
     fn empty_program() {
-        let input = r#"alphabet: {'a'}
-            {
-            }
+        let input = r#"
+            alphabet: {'a'}
             on input {
             }
             accept if true
@@ -751,25 +748,231 @@ mod tests {
         assert_eq!(program.alphabet, HashSet::from([Symbol('a')]));
         assert_eq!(program.helpers, HashMap::new());
         assert_eq!(program.locals, HashMap::new());
-        assert_eq!(
-            program.start,
-            Stmt::If {
-                cond: Expr::Bool(true),
-                true_branch: vec![],
-                false_branch: vec![],
-            }
-        );
-        assert_eq!(
-            program.action,
-            (
-                None,
-                Stmt::If {
-                    cond: Expr::Bool(true),
-                    true_branch: vec![],
-                    false_branch: vec![],
-                }
-            )
-        );
+        assert_eq!(program.start, vec![]);
+        assert_eq!(program.action, (None, vec![]));
         assert_eq!(program.accept, Expr::Bool(true));
     }
+
+    #[test]
+        fn simple_program() {
+                let input = r#"
+                alphabet: {'a'}
+                fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+                let x: int[3];
+                on input y {
+                        x = add(1, 2);
+                        x = 3 + - 4 as int[3];
+                        x = 3 + 4 as int[3] wraparound;
+                        if x < 3 {
+                                y = 'a';
+                        } else {
+                                x = match y {
+                                        'a' -> 1
+                                        x if true -> 2
+                                };
+                        }
+                }
+                accept if x == 3
+                "#;
+                let program = parse(input).unwrap();
+            let expected = expect![[r#"
+                Program {
+                    alphabet: {
+                        Symbol(
+                            'a',
+                        ),
+                    },
+                    helpers: {
+                        "add": Function {
+                            params: [
+                                (
+                                    "a",
+                                    NumT(
+                                        0..3,
+                                    ),
+                                ),
+                                (
+                                    "b",
+                                    NumT(
+                                        0..3,
+                                    ),
+                                ),
+                            ],
+                            ret_typ: NumT(
+                                0..3,
+                            ),
+                            body: BinOp {
+                                lhs: Var(
+                                    "a",
+                                ),
+                                op: Add,
+                                rhs: Var(
+                                    "b",
+                                ),
+                            },
+                        },
+                    },
+                    locals: {
+                        "x": NumT(
+                            0..3,
+                        ),
+                    },
+                    start: [],
+                    action: (
+                        Some(
+                            "y",
+                        ),
+                        [
+                            Assign(
+                                "x",
+                                Call {
+                                    callee: "add",
+                                    args: [
+                                        Num(
+                                            1,
+                                            NumT(
+                                                1..2,
+                                            ),
+                                        ),
+                                        Num(
+                                            2,
+                                            NumT(
+                                                2..3,
+                                            ),
+                                        ),
+                                    ],
+                                },
+                            ),
+                            Assign(
+                                "x",
+                                BinOp {
+                                    lhs: Num(
+                                        3,
+                                        NumT(
+                                            3..4,
+                                        ),
+                                    ),
+                                    op: Add,
+                                    rhs: Cast {
+                                        inner: UOp {
+                                            op: Negate,
+                                            inner: Num(
+                                                4,
+                                                NumT(
+                                                    4..5,
+                                                ),
+                                            ),
+                                        },
+                                        typ: NumT(
+                                            0..3,
+                                        ),
+                                        overflow: Fail,
+                                    },
+                                },
+                            ),
+                            Assign(
+                                "x",
+                                BinOp {
+                                    lhs: Num(
+                                        3,
+                                        NumT(
+                                            3..4,
+                                        ),
+                                    ),
+                                    op: Add,
+                                    rhs: Cast {
+                                        inner: Num(
+                                            4,
+                                            NumT(
+                                                4..5,
+                                            ),
+                                        ),
+                                        typ: NumT(
+                                            0..3,
+                                        ),
+                                        overflow: Wraparound,
+                                    },
+                                },
+                            ),
+                            If {
+                                cond: BinOp {
+                                    lhs: Var(
+                                        "x",
+                                    ),
+                                    op: Lt,
+                                    rhs: Num(
+                                        3,
+                                        NumT(
+                                            3..4,
+                                        ),
+                                    ),
+                                },
+                                true_branch: [
+                                    Assign(
+                                        "y",
+                                        Sym(
+                                            'a',
+                                        ),
+                                    ),
+                                ],
+                                false_branch: [
+                                    Assign(
+                                        "x",
+                                        Match {
+                                            scrutinee: Var(
+                                                "y",
+                                            ),
+                                            cases: [
+                                                Case {
+                                                    pattern: Sym(
+                                                        Symbol(
+                                                            'a',
+                                                        ),
+                                                    ),
+                                                    guard: Bool(
+                                                        true,
+                                                    ),
+                                                    result: Num(
+                                                        1,
+                                                        NumT(
+                                                            1..2,
+                                                        ),
+                                                    ),
+                                                },
+                                                Case {
+                                                    pattern: Var(
+                                                        "x",
+                                                    ),
+                                                    guard: Bool(
+                                                        true,
+                                                    ),
+                                                    result: Num(
+                                                        2,
+                                                        NumT(
+                                                            2..3,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ],
+                            },
+                        ],
+                    ),
+                    accept: BinOp {
+                        lhs: Var(
+                            "x",
+                        ),
+                        op: Eq,
+                        rhs: Num(
+                            3,
+                            NumT(
+                                3..4,
+                            ),
+                        ),
+                    },
+                }"#]];
+            expected.assert_eq(&format!("{:#?}", program));
+        }
 }

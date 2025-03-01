@@ -29,11 +29,11 @@ pub struct Program {
     /// Local variables.
     pub locals: Map<Id, Type>,
     /// Statements that are run in the beginning.
-    pub start: Stmt,
+    pub start: Block,
     /// Actions to execute for every input symbol.
     ///
     /// The optional `Id` is the name for the current input symbol.
-    pub action: (Option<Id>, Stmt),
+    pub action: (Option<Id>, Block),
     /// Acceptance condition
     pub accept: Expr,
 }
@@ -51,7 +51,7 @@ pub enum Stmt {
 }
 
 /// A sequence of statements
-type Block = Vec<Stmt>;
+pub type Block = Vec<Stmt>;
 
 /// Expressions.  Unlike statements, expressions evaluate to a value and they do
 /// not change the state of the local variables.
