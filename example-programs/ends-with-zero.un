@@ -1,0 +1,9 @@
+alphabet: { '0', '1' }
+
+let ends_with_zero: bool;
+
+on input x {
+  ends_with_zero = x == '0';
+}
+
+accept if ends_with_zero
