@@ -28,13 +28,15 @@ lower ≤ n < upper
 Γ ⊢ σ : sym
 
 
-Γ ⊢ e₁ : int[lower..upper]
-Γ ⊢ e₂ : int[lower..upper]
+Γ ⊢ e₁ : τᵢₙ
+Γ ⊢ e₂ : τᵢₙ
+τᵢₙ is the input type of ⊕
 τ is the output type of ⊕ (numeric, bool, etc.)
 ---------------------------------------------- [T-Binop]
 Γ ⊢ e₁ ⊕ e₂ : τ
 
-Γ ⊢ e : int[lower..upper]
+Γ ⊢ e : τᵢₙ
+τᵢₙ is the input type of ⊞
 τ is the output type of ⊞ (numeric, bool, etc.)
 ---------------------------------------------- [T-Unop]
 Γ ⊢ ⊞ e : τ
@@ -66,6 +68,12 @@ bounds.  The type system needs to infer the bounds somehow.  In the
 implementation, you can have a type for unknown bounds for constants, and coerce
 them immediately when they are used in an assignment/function call/binary
 operation.
+
+#### Input/output types for binary and unary operators
+
+- `+ - * / % << >>` and unary `-`: input is `int[lower..upper]`, output is also `int[lower..upper]`.
+- `< <= =`: input is `int[lower..upper]`, output is `bool`.
+- `&& ||` and unary `!`: both the input and the output are `bool`.
 
 ### Typing of statements and blocks
 
