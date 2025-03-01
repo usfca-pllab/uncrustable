@@ -6,7 +6,7 @@
 
 # Concrete syntax
 
-Terminals are `id`, `symbol` and everything between backticks (e.g. `` `if` ``). 
+Terminals are `id`, `num`, `symbol` and everything between backticks (e.g. `` `if` ``). 
 
 We use the shorthand `LIST(α)` for a comma-separated list of `α`s with a final
 optional comma (similar to Rust-style comma-separated lists).  Formally, it is
