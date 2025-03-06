@@ -66,17 +66,15 @@ impl std::fmt::Display for ParseError {
 pub fn parse(input: &str) -> Result<Dfa<char>, ParseError> {
     let mut dfa_tree = DfaParser::parse(Rule::dfa, input)
         .map_err(|e| ParseError::SyntaxError(format!("{e}")))?
-        .into_iter()
         .next()
         .unwrap()
         .into_inner();
 
     let mut name2state = Map::<String, State>::new();
     let mut get_state = |name: &str| {
-        name2state
+        *name2state
             .entry(name.to_owned())
             .or_insert_with(State::fresh)
-            .clone()
     };
 
     let alphabet: Set<char> = dfa_tree

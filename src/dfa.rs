@@ -115,7 +115,7 @@ impl<Symbol: Hash + Eq> Dfa<Symbol> {
         let states = accepting
             .iter()
             .copied()
-            .chain(Some(init).into_iter())
+            .chain(Some(init))
             .chain(trans.keys().copied())
             .chain(trans.values().flat_map(|m| m.values().copied()))
             .collect::<Set<State>>();
@@ -186,8 +186,8 @@ impl<Symbol: Hash + Eq + Ord + Debug> Dfa<Symbol> {
                         return Some(next_path);
                     }
 
-                    if !visited.contains_key(&next) {
-                        visited.insert(next, next_path.clone());
+                    if let std::collections::btree_map::Entry::Vacant(e) = visited.entry(next) {
+                        e.insert(next_path.clone());
                         changed = true;
                     }
                 }
