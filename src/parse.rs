@@ -559,7 +559,7 @@ impl Parser {
                 }
                 Token::Number(_) => {
                     let n = self.expect_number()?;
-                    Ok(Expr::Num(n, Type::NumT(n..(n+1))))
+                    Ok(Expr::Num(n, Type::NumT(n..(n + 1))))
                 }
                 Token::True => {
                     self.bump();
@@ -754,8 +754,8 @@ mod tests {
     }
 
     #[test]
-        fn simple_program() {
-                let input = r#"
+    fn simple_program() {
+        let input = r#"
                 alphabet: {'a'}
                 fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
                 let x: int[3];
@@ -774,8 +774,8 @@ mod tests {
                 }
                 accept if x == 3
                 "#;
-                let program = parse(input).unwrap();
-            let expected = expect![[r#"
+        let program = parse(input).unwrap();
+        let expected = expect![[r#"
                 Program {
                     alphabet: {
                         Symbol(
@@ -973,6 +973,6 @@ mod tests {
                         ),
                     },
                 }"#]];
-            expected.assert_eq(&format!("{:#?}", program));
-        }
+        expected.assert_eq(&format!("{:#?}", program));
+    }
 }
