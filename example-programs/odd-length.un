@@ -1,0 +1,10 @@
+alphabet: { '0', '1' }
+
+let length_parity: int[2];
+
+on input {
+  // this works because length_parity is a mod 2 integer.
+  length_parity = length_parity + 1;
+}
+
+accept if length_parity == 1

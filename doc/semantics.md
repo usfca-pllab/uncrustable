@@ -59,6 +59,13 @@ Here are the definitions of both:
   let v = [[ e ]] env in
     if v == pattern && [[ eGuard ]] env then [[ eOut ]] env
                                       else [[ match e { cases } ]] env
+                                      
+# [[ s ]]
+[[ x = e ]] env = env[x ↦ v]
+  where v = [[ e ]] env
+[[ if e sTrue* else sFalse* ]] env = case [[ e ]] env of
+  true -> [[ sTrue* ]] env
+  false -> [[ sFalse* ]] env
     
 # [[ s* ]] -- this just runs statements in sequence
 
@@ -66,7 +73,9 @@ Here are the definitions of both:
 [[ ]] env = env
 ```
 
-Note that a match with 0 cases automatically fails (this would happen on a recursive call).
+Note that a match with 0 cases automatically fails (this would happen on a
+recursive call).  Also, some rules fail if the program is not well-typed (e.g.,
+the guard of the if evaluates to something other than a boolean).
 
 Here are the definitions of the helpers:
 
@@ -77,12 +86,27 @@ Here are the definitions of the helpers:
 - `[[⊞]]` executes given binary operation.  It executes numeric operations based
   on the range of its input.  If the range cannot fit the result, the evaluation
   gets stuck.
+- `τ` in `cast(v, τ, overf)` has to be an integer type, `v` should also be an
+  integer.  Otherwise, casting would get stuck.
 - `cast(v, τ, fail)` converts `v` to type `τ` and fails if the result cannot fit in `τ`.
 - `cast(v, τ, wraparound)` converts `v` to type `τ` and wraps out-of-bounds values around.
 - `cast(v, τ, saturate)` converts `v` to type `τ` and returns the minimum/the
   maximum value for out-of-bounds values.
   
 All `cast` functions are defined on only numeric values and numeric types.
+
+### Casting wraparound
+
+Here is how casting should work in wraparound mode:
+
+```
+cast(n, int[lower..upper], wraparound) = (n - lower) % (upper - lower) + lower
+```
+
+All arithmetic should be done with unbounded integers.  In practice, doing
+everything with `i64` in Rust should suffice because we cannot handle large
+bounds when compiling anyway (the resulting automaton would have too many
+states).
 
 ## Execution of the program
 

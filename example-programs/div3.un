@@ -1,0 +1,21 @@
+// accept binary numbers that are divisible by 3
+
+alphabet: { '0', '1' }
+
+// an example helper function
+fn char_to_bit(c: sym) -> int[2] = match c {
+  '0' -> 0
+  '1' -> 1
+}
+
+// calculate remainder mod 3 while reading each bit.
+let rem: int[3];
+
+on input bit {
+  // later on, we might consider coercing the result of the function call so
+  // that the "as int[3]" part is not necessary.  we need to do this for
+  // number literals anyway.
+  rem = 2 * rem + (char_to_bit(bit) as int[3]);
+}
+
+accept if rem == 0

@@ -3,8 +3,8 @@
 
 pub mod codegen;
 pub mod dfa;
-pub mod eval;
 pub mod enumerate;
+pub mod eval;
 pub mod parse;
 pub mod syntax;
 pub mod typecheck;
