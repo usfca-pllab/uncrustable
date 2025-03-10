@@ -23,4 +23,8 @@ type Env = Map<Id, Value>;
 
 // eval. expr.
 
+fn eval_spr(exp: &Expr, env: &Env) -> Result<Value, RuntimeError> {
+    Err(RuntimeError::InvalidInput)
+}
+
 // eval. stmt.
