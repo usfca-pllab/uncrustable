@@ -1,6 +1,6 @@
 use crate::syntax::*;
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 /// Errors that can occur during type checking
 #[derive(Debug)]
@@ -25,7 +25,11 @@ impl fmt::Display for TypeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TypeError::TypeMismatch { expected, actual } => {
-                write!(f, "Type mismatch: expected {:?}, found {:?}", expected, actual)
+                write!(
+                    f,
+                    "Type mismatch: expected {:?}, found {:?}",
+                    expected, actual
+                )
             }
             TypeError::UndefinedVariable(id) => {
                 write!(f, "Undefined variable: '{}'", id)
