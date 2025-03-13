@@ -29,7 +29,7 @@ type TypeEnv = Map<Id, Type>;
 /// Type check an expression in a given environment
 pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
     match expr {
-    // Variables are always of the type of the variable in the environment
+        // Variables are always of the type of the variable in the environment
         Expr::Var(id) => {
             // Get the type of the variable from the environment
             env.get(id)
@@ -179,9 +179,15 @@ mod tests {
         let large_expr = Expr::Var(id("large"));
         let signed_expr = Expr::Var(id("signed"));
 
-        assert!(matches!(typeck_expr(&small_expr, &env), Ok(Type::NumT(range)) if range == (0..10)));
-        assert!(matches!(typeck_expr(&large_expr, &env), Ok(Type::NumT(range)) if range == (0..1000)));
-        assert!(matches!(typeck_expr(&signed_expr, &env), Ok(Type::NumT(range)) if range == (-100..100)));
+        assert!(
+            matches!(typeck_expr(&small_expr, &env), Ok(Type::NumT(range)) if range == (0..10))
+        );
+        assert!(
+            matches!(typeck_expr(&large_expr, &env), Ok(Type::NumT(range)) if range == (0..1000))
+        );
+        assert!(
+            matches!(typeck_expr(&signed_expr, &env), Ok(Type::NumT(range)) if range == (-100..100))
+        );
 
         // Test numeric literal in the same context
         let num_expr = Expr::Num(5, Type::NumT(0..10));
