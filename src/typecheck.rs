@@ -52,7 +52,7 @@ type TypeEnv = Map<Id, Type>;
 
 impl Expr {
     /// Type check an expression in a given environment
-    fn typeck_expr(&self, env: &TypeEnv) -> Result<Type, TypeError> {
+    pub fn typeck_expr(&self, env: &TypeEnv) -> Result<Type, TypeError> {
         match self {
             // Variables are always of the type of the variable in the environment
             Expr::Var(id) => {
