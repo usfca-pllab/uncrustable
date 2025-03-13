@@ -1,4 +1,6 @@
 use crate::syntax::*;
+use std::fmt;
+use std::error::Error;
 
 /// Errors that can occur during type checking
 #[derive(Debug)]
@@ -17,6 +19,29 @@ pub enum TypeError {
     /// Symbol not in alphabet
     SymbolNotInAlphabet(char),
 }
+
+// Implement Display for TypeError
+impl fmt::Display for TypeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TypeError::TypeMismatch { expected, actual } => {
+                write!(f, "Type mismatch: expected {:?}, found {:?}", expected, actual)
+            }
+            TypeError::UndefinedVariable(id) => {
+                write!(f, "Undefined variable: '{}'", id)
+            }
+            TypeError::UndefinedFunction(id) => {
+                write!(f, "Undefined function: '{}'", id)
+            }
+            TypeError::SymbolNotInAlphabet(c) => {
+                write!(f, "Symbol '{}' is not in the alphabet", c)
+            }
+        }
+    }
+}
+
+// Implement Error for TypeError
+impl Error for TypeError {}
 
 /// Type environment mapping variables to their types
 type TypeEnv = Map<Id, Type>;
