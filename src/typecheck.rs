@@ -184,75 +184,208 @@ mod tests {
     }
 
     #[test]
-    fn booleans() {
-        // Create a type environment
+    fn literals() {
         let env = Map::new();
 
         // Test boolean literals
-        let true_expr = Expr::Bool(true);
-        let false_expr = Expr::Bool(false);
+        assert!(matches!(typeck_expr(&Expr::Bool(true), &env), Ok(Type::BoolT)));
+        assert!(matches!(typeck_expr(&Expr::Bool(false), &env), Ok(Type::BoolT)));
 
-        // Both should be of type BoolT
-        assert!(matches!(typeck_expr(&true_expr, &env), Ok(Type::BoolT)));
-        assert!(matches!(typeck_expr(&false_expr, &env), Ok(Type::BoolT)));
+        // Test numeric literals with different ranges
+        let ranges = [(0..10), (0..100), (-10..10)];
+        let values = [5, 42, -5];
+
+        for (_i, (range, value)) in ranges.iter().zip(values.iter()).enumerate() {
+            let num = Expr::Num(*value, Type::NumT(range.clone()));
+            assert!(matches!(typeck_expr(&num, &env), Ok(Type::NumT(r)) if r == *range));
+        }
+
+        // Test symbol literals
+        assert!(matches!(typeck_expr(&Expr::Sym('a'), &env), Ok(Type::SymT)));
     }
 
     #[test]
-    fn booleans_in_context() {
-        // Create a type environment with a boolean variable
-        let mut env = Map::new();
-        env.insert(id("flag"), Type::BoolT);
-
-        // Test variable lookup for boolean variable
-        let flag_expr = Expr::Var(id("flag"));
-        assert!(matches!(typeck_expr(&flag_expr, &env), Ok(Type::BoolT)));
-
-        // Test boolean literal in the same context
-        let bool_expr = Expr::Bool(true);
-        assert!(matches!(typeck_expr(&bool_expr, &env), Ok(Type::BoolT)));
-    }
-
-    #[test]
-    fn numbers() {
+    fn binary_operations() {
         // Create a type environment
         let env = Map::new();
 
-        // Test numeric literals with different ranges
-        let num1 = Expr::Num(5, Type::NumT(0..10));
-        let num2 = Expr::Num(42, Type::NumT(0..100));
-        let num3 = Expr::Num(-5, Type::NumT(-10..10));
+        // Define test types and expressions
+        let num_type1 = Type::NumT(0..1);
+        let num_type2 = Type::NumT(0..10);
+        let num_type3 = Type::NumT(-5..5);
 
-        // Each should have the type specified in its constructor
-        assert!(matches!(typeck_expr(&num1, &env), Ok(Type::NumT(range)) if range == (0..10)));
-        assert!(matches!(typeck_expr(&num2, &env), Ok(Type::NumT(range)) if range == (0..100)));
-        assert!(matches!(typeck_expr(&num3, &env), Ok(Type::NumT(range)) if range == (-10..10)));
+        let num1 = Expr::Num(0, num_type1.clone());
+        let num2 = Expr::Num(5, num_type2.clone());
+        let num3 = Expr::Num(-2, num_type3.clone());
+        let bool_expr = Expr::Bool(true);
+        let false_expr = Expr::Bool(false);
+
+        // Test arithmetic operations
+        let arithmetic_ops = [BOp::Add, BOp::Sub, BOp::Mul, BOp::Div, BOp::Rem, BOp::Shl, BOp::Shr];
+        let test_cases = [
+            (&num1, &num_type1, &Expr::Num(1, num_type1.clone())),
+            (&num2, &num_type2, &Expr::Num(3, num_type2.clone())),
+            (&num3, &num_type3, &Expr::Num(0, num_type3.clone())),
+        ];
+
+        for op in &arithmetic_ops {
+            for (lhs, expected_type, rhs) in &test_cases {
+                let bin_op = Expr::BinOp {
+                    lhs: Box::new((*lhs).clone()),
+                    op: op.clone(),
+                    rhs: Box::new((*rhs).clone()),
+                };
+
+                let expected_range = match expected_type {
+                    Type::NumT(range) => range.clone(),
+                    _ => panic!("Expected numeric type"),
+                };
+
+                assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(range)) if range == expected_range));
+            }
+        }
+
+        // Test comparison operations
+        let comparison_ops = [BOp::Lt, BOp::Lte, BOp::Eq, BOp::Ne];
+
+        for op in &comparison_ops {
+            for (lhs, _, rhs) in &test_cases {
+                let bin_op = Expr::BinOp {
+                    lhs: Box::new((*lhs).clone()),
+                    op: op.clone(),
+                    rhs: Box::new((*rhs).clone()),
+                };
+
+                assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::BoolT)));
+            }
+        }
+
+        // Test logical operations
+        let logical_ops = [BOp::And, BOp::Or];
+
+        for op in &logical_ops {
+            let bin_op = Expr::BinOp {
+                lhs: Box::new(bool_expr.clone()),
+                op: op.clone(),
+                rhs: Box::new(false_expr.clone()),
+            };
+
+            assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::BoolT)));
+        }
+
+        // Test type mismatches
+        let invalid_add = Expr::BinOp {
+            lhs: Box::new(num1.clone()),
+            op: BOp::Add,
+            rhs: Box::new(bool_expr.clone()),
+        };
+        assert!(typeck_expr(&invalid_add, &env).is_err());
+
+        let invalid_type_add = Expr::BinOp {
+            lhs: Box::new(num1.clone()),
+            op: BOp::Add,
+            rhs: Box::new(num2.clone()),
+        };
+        assert!(typeck_expr(&invalid_type_add, &env).is_err());
+
+        let invalid_and = Expr::BinOp {
+            lhs: Box::new(bool_expr.clone()),
+            op: BOp::And,
+            rhs: Box::new(num1.clone()),
+        };
+        assert!(typeck_expr(&invalid_and, &env).is_err());
+
+        // Create a type environment with variables
+        let mut env = Map::new();
+        env.insert(id("x"), Type::NumT(0..10));
+        env.insert(id("y"), Type::NumT(0..10));
+        env.insert(id("z"), Type::NumT(-5..5));
+        env.insert(id("flag1"), Type::BoolT);
+        env.insert(id("flag2"), Type::BoolT);
+
+        // Create variable expressions
+        let x_expr = Expr::Var(id("x"));
+        let y_expr = Expr::Var(id("y"));
+        let z_expr = Expr::Var(id("z"));
+        let flag1_expr = Expr::Var(id("flag1"));
+        let flag2_expr = Expr::Var(id("flag2"));
+
+        // Test arithmetic, comparison, and logical operations
+        let operations: [(Box<Expr>, BOp, Box<Expr>, Result<Type, TypeError>); 4] = [
+            // Arithmetic with same range (x + y)
+            (Box::new(x_expr.clone()), BOp::Add, Box::new(y_expr.clone()), Ok(Type::NumT(0..10))),
+            // Arithmetic with same range (z - z)
+            (Box::new(z_expr.clone()), BOp::Sub, Box::new(z_expr.clone()), Ok(Type::NumT(-5..5))),
+            // Comparison (x < y)
+            (Box::new(x_expr.clone()), BOp::Lt, Box::new(y_expr.clone()), Ok(Type::BoolT)),
+            // Logical (flag1 && flag2)
+            (Box::new(flag1_expr.clone()), BOp::And, Box::new(flag2_expr.clone()), Ok(Type::BoolT)),
+        ];
+
+        for (lhs, op, rhs, expected) in operations {
+            let bin_op = Expr::BinOp { lhs, op, rhs };
+
+            match expected {
+                Ok(Type::BoolT) => assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::BoolT))),
+                Ok(Type::NumT(range)) => assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(r)) if r == range)),
+                _ => panic!("Unexpected expected type"),
+            }
+        }
+
+        // Test type errors
+        let invalid_operations: [(Box<Expr>, BOp, Box<Expr>); 2] = [
+            // Type mismatch (x + flag1)
+            (Box::new(x_expr.clone()), BOp::Add, Box::new(flag1_expr.clone())),
+            // Different ranges (x + z)
+            (Box::new(x_expr.clone()), BOp::Add, Box::new(z_expr.clone())),
+        ];
+
+        for (lhs, op, rhs) in invalid_operations {
+            let bin_op = Expr::BinOp { lhs, op, rhs };
+            assert!(typeck_expr(&bin_op, &env).is_err());
+        }
     }
 
     #[test]
-    fn numbers_in_context() {
-        // Create a type environment with numeric variables
+    fn unary_operations() {
+        // Create a type environment with variables
         let mut env = Map::new();
-        env.insert(id("small"), Type::NumT(0..10));
-        env.insert(id("large"), Type::NumT(0..1000));
-        env.insert(id("signed"), Type::NumT(-100..100));
+        env.insert(id("x"), Type::NumT(0..10));
+        env.insert(id("flag"), Type::BoolT);
 
-        // Test variable lookup for numeric variables
-        let small_expr = Expr::Var(id("small"));
-        let large_expr = Expr::Var(id("large"));
-        let signed_expr = Expr::Var(id("signed"));
+        // Create variable expressions
+        let x_expr = Expr::Var(id("x"));
+        let flag_expr = Expr::Var(id("flag"));
 
-        assert!(
-            matches!(typeck_expr(&small_expr, &env), Ok(Type::NumT(range)) if range == (0..10))
-        );
-        assert!(
-            matches!(typeck_expr(&large_expr, &env), Ok(Type::NumT(range)) if range == (0..1000))
-        );
-        assert!(
-            matches!(typeck_expr(&signed_expr, &env), Ok(Type::NumT(range)) if range == (-100..100))
-        );
+        // Test valid unary operations
+        let valid_operations: [(UOp, Box<Expr>, Result<Type, TypeError>); 2] = [
+            // Not with boolean
+            (UOp::Not, Box::new(flag_expr.clone()), Ok(Type::BoolT)),
+            // Negate with numeric
+            (UOp::Negate, Box::new(x_expr.clone()), Ok(Type::NumT(0..10))),
+        ];
 
-        // Test numeric literal in the same context
-        let num_expr = Expr::Num(5, Type::NumT(0..10));
-        assert!(matches!(typeck_expr(&num_expr, &env), Ok(Type::NumT(range)) if range == (0..10)));
+        for (op, inner, expected) in valid_operations {
+            let unary_op = Expr::UOp { op, inner };
+
+            match expected {
+                Ok(Type::BoolT) => assert!(matches!(typeck_expr(&unary_op, &env), Ok(Type::BoolT))),
+                Ok(Type::NumT(range)) => assert!(matches!(typeck_expr(&unary_op, &env), Ok(Type::NumT(r)) if r == range)),
+                _ => panic!("Unexpected expected type"),
+            }
+        }
+
+        // Test invalid unary operations
+        let invalid_operations: [(UOp, Box<Expr>); 2] = [
+            // Not with numeric
+            (UOp::Not, Box::new(x_expr.clone())),
+            // Negate with boolean
+            (UOp::Negate, Box::new(flag_expr.clone())),
+        ];
+
+        for (op, inner) in invalid_operations {
+            let unary_op = Expr::UOp { op, inner };
+            assert!(typeck_expr(&unary_op, &env).is_err());
+        }
     }
 }
