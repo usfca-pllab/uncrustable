@@ -118,11 +118,42 @@ pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
         Expr::Cast {
             inner,
             typ,
-            overflow,
+            overflow: _overflow,
         } => {
-            todo!()
+            // First, type check the inner expression
+            let inner_type = typeck_expr(inner, env)?;
+
+            // According to the [T-Cast] rule, both the inner expression and the target type
+            // must be numeric types with bounds
+            match (&inner_type, typ) {
+                (Type::NumT(_), Type::NumT(_)) => {
+                    // The cast is valid, return the target type
+                    Ok(typ.clone())
+                },
+                (_, Type::NumT(_)) => {
+                    // The inner expression is not a numeric type
+                    Err(TypeError::TypeMismatch {
+                        expected: Type::NumT(0..1), // Example numeric type
+                        actual: inner_type,
+                    })
+                },
+                (Type::NumT(_), _) => {
+                    // The target type is not a numeric type
+                    Err(TypeError::TypeMismatch {
+                        expected: Type::NumT(0..1), // Example numeric type
+                        actual: typ.clone(),
+                    })
+                },
+                _ => {
+                    // Neither the inner expression nor the target type are numeric types
+                    Err(TypeError::TypeMismatch {
+                        expected: Type::NumT(0..1), // Example numeric type
+                        actual: inner_type,
+                    })
+                }
+            }
         }
-        // Pattern matching is always of the type of the scrutinee
+        // Call expressions are always of the type of the function
         Expr::Call { callee, args } => {
             todo!()
         }
