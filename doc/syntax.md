@@ -6,7 +6,7 @@
 
 # Concrete syntax
 
-Terminals are `id`, `num`, `symbol` and everything between backticks (e.g. `` `if` ``). 
+Terminals are `id`, `num`, `symbol` and everything between backticks (e.g. `` `if` ``).
 
 We use the shorthand `LIST(α)` for a comma-separated list of `α`s with a final
 optional comma (similar to Rust-style comma-separated lists).  Formally, it is
@@ -37,7 +37,7 @@ type ::= `bool`
        | `int` `[` nonneg `]`            // integers mod N
        | `int` `[` num `..` num `]`      // integers with specific range
        | `sym`                           // symbols
-       
+
 stmt ::= id `=` expr `;`
        | `if` expr block (`else` block)?
 
@@ -51,11 +51,11 @@ expr ::= id                              // variables
        | expr `as` type overflow?        // casting with overflow specification
        | `match` expr `{` case+ `}`      // pattern matching
        | id `(` LIST(expr)? `)`          // function calls
-       
+
 case ::= pattern (`if` expr)? `->` expr
 
 pattern ::= char | num | `true` | `false` | id
-       
+
 binop ::= `+` | `-` | `*` | `/` | `%`
         | `<<` | `>>`
         | `<=` | `>=` | `<` | `>` | `!=` | `==`
@@ -74,7 +74,7 @@ overflow ::= `wraparound` | `saturate`
 
 - Valid symbols are any single character other than `:{}()->_'`.  There are two
   versions in the language:
-  
+
   ```
   // this is a "naked" symbol without surrounding quotes, used in the alphabet
   // declaration.
@@ -161,7 +161,7 @@ e ∈ Expr ::= x | σ | n | true | false
            | e as τ overf
            | match e { case+ }
            | f(e*)
-       
+
 case ∈ Case ::= pattern e -> e
 
 pattern ∈ Pattern ::= σ | n | true | false | x

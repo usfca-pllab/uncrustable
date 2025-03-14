@@ -37,7 +37,7 @@ We will define the following semantic relations:
   stuck.
 - In both these relations, the function definitions and the alphabet are
   available as global constants.
-  
+
 Here are the definitions of both:
 
 ```
@@ -59,14 +59,14 @@ Here are the definitions of both:
   let v = [[ e ]] env in
     if v == pattern && [[ eGuard ]] env then [[ eOut ]] env
                                       else [[ match e { cases } ]] env
-                                      
+
 # [[ s ]]
 [[ x = e ]] env = env[x ↦ v]
   where v = [[ e ]] env
 [[ if e sTrue* else sFalse* ]] env = case [[ e ]] env of
   true -> [[ sTrue* ]] env
   false -> [[ sFalse* ]] env
-    
+
 # [[ s* ]] -- this just runs statements in sequence
 
 [[ s₁ :: sᵣₑₛₜ ]] env = [[ sᵣₑₛₜ ]] ([[ s₁ ]] env)
@@ -92,7 +92,7 @@ Here are the definitions of the helpers:
 - `cast(v, τ, wraparound)` converts `v` to type `τ` and wraps out-of-bounds values around.
 - `cast(v, τ, saturate)` converts `v` to type `τ` and returns the minimum/the
   maximum value for out-of-bounds values.
-  
+
 All `cast` functions are defined on only numeric values and numeric types.
 
 ### Casting wraparound
