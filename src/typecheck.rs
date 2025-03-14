@@ -41,16 +41,78 @@ pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
         // Numeric literals are always of the type they are given
         Expr::Num(_n, t) => Ok(t.clone()),
         // Function calls are always of the type of the function
-        Expr::Sym(c) => {
-            todo!()
-        }
+        Expr::Sym(_) => Ok(Type::SymT),
         // Binary operations are always of the type of the left hand side
         Expr::BinOp { lhs, op, rhs } => {
-            todo!()
+            let lhs_type = typeck_expr(lhs, env)?;
+            let rhs_type = typeck_expr(rhs, env)?;
+            if lhs_type != rhs_type {
+                return Err(TypeError::TypeMismatch {
+                    expected: lhs_type,
+                    actual: rhs_type,
+                });
+            }
+            match op {
+                // Arithmetic operations are always of type NumT(0..1)
+                BOp::Add | BOp::Sub | BOp::Mul | BOp::Div | BOp::Rem | BOp::Shl | BOp::Shr => {
+                    if let Type::NumT(_) = lhs_type {
+                        Ok(lhs_type)
+                    } else {
+                        Err(TypeError::TypeMismatch {
+                            expected: Type::NumT(0..1),
+                            actual: lhs_type,
+                        })
+                    }
+                }
+                // Comparison operations are always of type BoolT
+                BOp::Lt | BOp::Lte | BOp::Eq | BOp::Ne => {
+                    if let Type::NumT(_) = lhs_type {
+                        Ok(Type::BoolT)
+                    } else {
+                        Err(TypeError::TypeMismatch {
+                            expected: Type::NumT(0..1),
+                            actual: lhs_type,
+                        })
+                    }
+                }
+                // Logical operations are always of type BoolT
+                BOp::And | BOp::Or => {
+                    if lhs_type == Type::BoolT {
+                        Ok(Type::BoolT)
+                    } else {
+                        Err(TypeError::TypeMismatch {
+                            expected: Type::BoolT,
+                            actual: lhs_type,
+                        })
+                    }
+                }
+            }
         }
         // Unary operations are always of the type of the inner expression
         Expr::UOp { op, inner } => {
-            todo!()
+            let inner_type = typeck_expr(inner, env)?;
+            match op {
+                UOp::Not => {
+                    if inner_type == Type::BoolT {
+                        Ok(Type::BoolT)
+                    } else {
+                        Err(TypeError::TypeMismatch {
+                            expected: Type::BoolT,
+                            actual: inner_type,
+                        })
+                    }
+                }
+                UOp::Negate => {
+                    if let Type::NumT(range) = inner_type {
+                        Ok(Type::NumT(range))
+                    } else {
+                        Err(TypeError::TypeMismatch {
+                            expected: Type::NumT(0..1),
+                            actual: inner_type,
+                        })
+                    }
+                }
+            }
         }
         // Casting is always of the type of the inner expression
         Expr::Cast {
