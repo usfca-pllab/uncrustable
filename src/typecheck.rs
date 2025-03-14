@@ -188,8 +188,14 @@ mod tests {
         let env = Map::new();
 
         // Test boolean literals
-        assert!(matches!(typeck_expr(&Expr::Bool(true), &env), Ok(Type::BoolT)));
-        assert!(matches!(typeck_expr(&Expr::Bool(false), &env), Ok(Type::BoolT)));
+        assert!(matches!(
+            typeck_expr(&Expr::Bool(true), &env),
+            Ok(Type::BoolT)
+        ));
+        assert!(matches!(
+            typeck_expr(&Expr::Bool(false), &env),
+            Ok(Type::BoolT)
+        ));
 
         // Test numeric literals with different ranges
         let ranges = [(0..10), (0..100), (-10..10)];
@@ -221,7 +227,15 @@ mod tests {
         let false_expr = Expr::Bool(false);
 
         // Test arithmetic operations
-        let arithmetic_ops = [BOp::Add, BOp::Sub, BOp::Mul, BOp::Div, BOp::Rem, BOp::Shl, BOp::Shr];
+        let arithmetic_ops = [
+            BOp::Add,
+            BOp::Sub,
+            BOp::Mul,
+            BOp::Div,
+            BOp::Rem,
+            BOp::Shl,
+            BOp::Shr,
+        ];
         let test_cases = [
             (&num1, &num_type1, &Expr::Num(1, num_type1.clone())),
             (&num2, &num_type2, &Expr::Num(3, num_type2.clone())),
@@ -241,7 +255,9 @@ mod tests {
                     _ => panic!("Expected numeric type"),
                 };
 
-                assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(range)) if range == expected_range));
+                assert!(
+                    matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(range)) if range == expected_range)
+                );
             }
         }
 
@@ -313,13 +329,33 @@ mod tests {
         // Test arithmetic, comparison, and logical operations
         let operations: [(Box<Expr>, BOp, Box<Expr>, Result<Type, TypeError>); 4] = [
             // Arithmetic with same range (x + y)
-            (Box::new(x_expr.clone()), BOp::Add, Box::new(y_expr.clone()), Ok(Type::NumT(0..10))),
+            (
+                Box::new(x_expr.clone()),
+                BOp::Add,
+                Box::new(y_expr.clone()),
+                Ok(Type::NumT(0..10)),
+            ),
             // Arithmetic with same range (z - z)
-            (Box::new(z_expr.clone()), BOp::Sub, Box::new(z_expr.clone()), Ok(Type::NumT(-5..5))),
+            (
+                Box::new(z_expr.clone()),
+                BOp::Sub,
+                Box::new(z_expr.clone()),
+                Ok(Type::NumT(-5..5)),
+            ),
             // Comparison (x < y)
-            (Box::new(x_expr.clone()), BOp::Lt, Box::new(y_expr.clone()), Ok(Type::BoolT)),
+            (
+                Box::new(x_expr.clone()),
+                BOp::Lt,
+                Box::new(y_expr.clone()),
+                Ok(Type::BoolT),
+            ),
             // Logical (flag1 && flag2)
-            (Box::new(flag1_expr.clone()), BOp::And, Box::new(flag2_expr.clone()), Ok(Type::BoolT)),
+            (
+                Box::new(flag1_expr.clone()),
+                BOp::And,
+                Box::new(flag2_expr.clone()),
+                Ok(Type::BoolT),
+            ),
         ];
 
         for (lhs, op, rhs, expected) in operations {
@@ -327,7 +363,9 @@ mod tests {
 
             match expected {
                 Ok(Type::BoolT) => assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::BoolT))),
-                Ok(Type::NumT(range)) => assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(r)) if r == range)),
+                Ok(Type::NumT(range)) => {
+                    assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(r)) if r == range))
+                }
                 _ => panic!("Unexpected expected type"),
             }
         }
@@ -335,7 +373,11 @@ mod tests {
         // Test type errors
         let invalid_operations: [(Box<Expr>, BOp, Box<Expr>); 2] = [
             // Type mismatch (x + flag1)
-            (Box::new(x_expr.clone()), BOp::Add, Box::new(flag1_expr.clone())),
+            (
+                Box::new(x_expr.clone()),
+                BOp::Add,
+                Box::new(flag1_expr.clone()),
+            ),
             // Different ranges (x + z)
             (Box::new(x_expr.clone()), BOp::Add, Box::new(z_expr.clone())),
         ];
@@ -370,7 +412,9 @@ mod tests {
 
             match expected {
                 Ok(Type::BoolT) => assert!(matches!(typeck_expr(&unary_op, &env), Ok(Type::BoolT))),
-                Ok(Type::NumT(range)) => assert!(matches!(typeck_expr(&unary_op, &env), Ok(Type::NumT(r)) if r == range)),
+                Ok(Type::NumT(range)) => {
+                    assert!(matches!(typeck_expr(&unary_op, &env), Ok(Type::NumT(r)) if r == range))
+                }
                 _ => panic!("Unexpected expected type"),
             }
         }
