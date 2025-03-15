@@ -81,7 +81,7 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             //find out what type the expression is
-            let t = typeck_expr(&expr, &env);
+            // let t = typeck_expr(&expr, &env);
             //t
             todo!()
             //assign the id to the expression type in the env??
@@ -89,7 +89,7 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
         Stmt::If { 
             cond, 
             true_branch, 
-            false_branch 
+            false_branch ,
         } => {
             todo!()
         }
