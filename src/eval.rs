@@ -1,5 +1,6 @@
 use crate::syntax::*;
 use std::collections::HashMap as Map;
+use std::ops::Range;
 
 #[derive(Debug)]
 enum RuntimeError {
@@ -8,14 +9,15 @@ enum RuntimeError {
     DivisionbyZero,
     TypeError,
     InvalidOperand,
+    ModulusByZero, 
 }
 
 // abstraction for values making up expressions
 #[derive(Debug, Clone, PartialEq)]
 enum Value {
     Bool(bool),
-    Num(i64),
-    Sym(Symbol),  
+    Num(i64), // TODO: Range<i64> might need to be usize for range
+    Sym(Symbol),
 }
 
 // map of variable names to values
@@ -36,16 +38,18 @@ fn init_env(program: &Program) -> Env {
 	for (id, typ) in &program.locals {
         let value = match typ {
 
-        	// TODO - Do we put default values?? What are the defaults for Nums and Symbols??
+        	// defaults for now are zero values
         	
             Type::BoolT => Value::Bool(false), 
             
-            //  TODO - add int - kinda confused about ranges
+            //  TODO - add Range to the Num enum
+            //  default to be beginning of range
             Type::NumT(range) => {
-                        Value::Num(range.start)
-                    }
+                        Value::Num(range.start) // Range { start: range.start, end: range.end })
+                    },
                     
-            //  TODO - Type::SymT => Value::Sym(??)
+            //  default to empty char
+            Type::SymT => Value::Sym(Symbol(' ')),
 
             _ => continue // for now continue, raise error later 
         };
@@ -78,17 +82,18 @@ fn eval(program: &Program, input: &str) ->Result<(bool, Env), RuntimeError> {
 fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
     match expr {
 
-    
 		/* TODO
     		Expr::Call
     		Expr::Cast
     		Expr::Match
+            Expr::Var --> i think this is completed?? i'm not sure how to test for it
     		How to handle ranges if we have to??
     	*/
     	
         Expr::Num(n, _) => Ok(Value::Num(*n)),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
+        Expr::Var(id) => Ok(env.get(id).unwrap().clone()), // will return a Value
 
         Expr::BinOp { lhs, op, rhs } => {
 
@@ -107,8 +112,14 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 			            } else {
 			                Ok(Value::Num(l / r))
 			            }
-			        }
-			        BOp::Rem => Ok(Value::Num(l % r)),
+			        },
+			        BOp::Rem => {
+                        if r == 0 {
+                            Err(RuntimeError::ModulusByZero)
+                        } else {
+                            Ok(Value::Num(l % r))
+                        }
+                    },
 			        BOp::Shl => Ok(Value::Num(l << r)),
 			        BOp::Shr => Ok(Value::Num(l >> r)),
 
@@ -150,6 +161,30 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
                 _ => Err(RuntimeError::TypeError),
             }
         },
+
+        Expr::Cast {inner, typ, overflow } => {
+            
+            let val = eval_expr(inner, env)?;
+
+            match val {
+                Value::Num(num) => match overflow {
+                    
+                    Overflow::Fail => todo!(),
+                    Overflow::Saturate => todo!(),
+                    // (n - lower) % (upper - lower) + lower
+                    Overflow::Wraparound => todo!()
+                }
+                // can only cast ints
+                Value::Bool(b) => Err(RuntimeError::TypeError),
+                Value::Sym(s) => Err(RuntimeError::TypeError)
+            }
+        
+        },
+
+        Expr::Call { callee, args } => {
+
+            Err(RuntimeError::InvalidExpression)
+        }
 
         _ => Err(RuntimeError::InvalidExpression),
     }
@@ -225,8 +260,6 @@ fn test_simple_2() {
     assert_eq!(env.get(&id("x")), Some(&Value::Bool(false)));  
     assert_eq!(env.get(&id("y")), Some(&Value::Num(2)));
 }
-
-
 
 
 #[test]
@@ -540,4 +573,5 @@ fn test_unop() {
     assert_eq!(env.get(&id("z")), Some(&Value::Num(-4)));
     assert_eq!(env.get(&id("w")), Some(&Value::Bool(false)));
 }
+
 
