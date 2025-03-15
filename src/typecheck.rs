@@ -96,6 +96,14 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
     }
 }
 
+pub fn typeck_block(blk: &Block, env: &TypeEnv) => Result<Type, TypeError> {
+    //a vector of stmts
+    //check each stmt in the vector sequence is ok
+    todo!()
+}
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
