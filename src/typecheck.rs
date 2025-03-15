@@ -89,7 +89,7 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
         Stmt::If { 
             cond, 
             true_branch, 
-            false_branch ,
+            false_branch,
         } => {
             todo!()
         }
