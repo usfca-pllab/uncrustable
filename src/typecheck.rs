@@ -73,18 +73,22 @@ pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
 
 //TODO
 // in progress, need to verify understanding and test
-pub fn typeck_stmt(stmt: &Statement, env: &mut TypeEnv) -> Result<Type, TypeError> {
-    // check if it is an expression, and a variable type
-    // TODO: Γ ⊢ x = e ok
-    // OK identifier = expression
-    // or err
-    let t = typeck_expr(&Statement, &TypeEnv);
-    if t == TypeError {
-        Err(t.err()) //CHECK: set error to the issue with the expression??
-    } else {
-        let updt = env.get(t); //CHECK: assuming t == id??
-        Ok(env.insert(&Statement, updt)); //change id to expression
-        env.remove(t);
+pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
+    // Either an asignment statemnt (x = 5)
+    // Or an if statment (if condition - true block - or  - false block)
+    // need to be able to assign a var or an expression
+
+    match stmt {
+        Stmt::Assign(id, expr) => {
+            //find out what type the expression is
+            let t = typeck_expr(&expr, &env);
+            //t
+            todo!()
+            //assign the id to the expression type in the env??
+        }
+        Stmt::If { cond, true_branch, false_branch } => {
+            todo!()
+        }
     }
 }
 
