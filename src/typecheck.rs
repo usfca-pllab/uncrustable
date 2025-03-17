@@ -101,8 +101,6 @@ pub fn typeck_block(blk: &Block, env: &TypeEnv) -> Result<Type, TypeError> {
     todo!()
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
