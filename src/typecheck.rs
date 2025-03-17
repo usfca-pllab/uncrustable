@@ -204,7 +204,70 @@ pub fn typeck_expr(
         }
         // Pattern matching is always of the type of the scrutinee
         Expr::Match { scrutinee, cases } => {
-            todo!()
+            // Type check the scrutinee
+            let scrutinee_type = typeck_expr(scrutinee, env, function_env)?;
+
+            // If there are no cases, return an error
+            if cases.is_empty() {
+                return Err(TypeError::EmptyMatchCases);
+            }
+
+            // Type check each case and collect result types
+            let mut result_type: Option<Type> = None;
+
+            for case in cases {
+                // Check pattern compatibility with scrutinee type
+                let case_env = match &case.pattern {
+                    // Variable patterns can match any type
+                    Pattern::Var(id) => {
+                        // Create environment with the pattern variable
+                        let mut new_env = env.clone();
+                        new_env.insert(*id, scrutinee_type.clone());
+                        new_env
+                    }
+                    // Type-specific patterns must match their corresponding types
+                    Pattern::Num(_) if matches!(scrutinee_type, Type::NumT(_)) => env.clone(),
+                    Pattern::Bool(_) if scrutinee_type == Type::BoolT => env.clone(),
+                    Pattern::Sym(_) if scrutinee_type == Type::SymT => env.clone(),
+                    // Pattern type doesn't match scrutinee type
+                    _ => {
+                        return Err(TypeError::TypeMismatchBetweenPatternAndScrutinee {
+                            expected: scrutinee_type.clone(),
+                            actual: case.pattern.clone(),
+                        });
+                    }
+                };
+
+                // Check guard is boolean
+                let guard_type = typeck_expr(&case.guard, &case_env, function_env)?;
+                if guard_type != Type::BoolT {
+                    return Err(TypeError::TypeMismatch {
+                        expected: Type::BoolT,
+                        actual: guard_type,
+                    });
+                }
+
+                // Check result type
+                let case_result_type = typeck_expr(&case.result, &case_env, function_env)?;
+
+                // Ensure consistency with previous cases
+                if let Some(ref t) = result_type {
+                    if *t != case_result_type {
+                        return Err(TypeError::TypeMismatch {
+                            expected: t.clone(),
+                            actual: case_result_type,
+                        });
+                    }
+                } else {
+                    result_type = Some(case_result_type);
+                }
+            }
+
+            // Return the type of the result
+            result_type.ok_or(TypeError::TypeMismatchBetweenPatternAndScrutinee {
+                expected: scrutinee_type,
+                actual: cases[0].pattern.clone(),
+            })
         }
     }
 }
