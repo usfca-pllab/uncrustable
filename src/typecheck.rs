@@ -28,7 +28,18 @@ pub enum TypeError {
         expected: usize,
         /// Actual number of arguments
         actual: usize,
-    }
+    },
+    /// Empty match cases
+    #[error("Empty match cases")]
+    EmptyMatchCases,
+    /// Type mismatch between pattern and scrutinee
+    #[error("Type mismatch between pattern and scrutinee")]
+    TypeMismatchBetweenPatternAndScrutinee {
+        /// Expected type
+        expected: Type,
+        /// Actual pattern
+        actual: Pattern,
+    },
 }
 
 /// Type environment mapping variables to their types
@@ -275,7 +286,7 @@ pub fn typeck_expr(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::syntax::{id, Expr, Map, Type};
+    use crate::syntax::{id, Case, Expr, Map, Pattern, Type};
 
     #[test]
     fn variables() {
@@ -599,5 +610,249 @@ mod tests {
             let unary_op = Expr::UOp { op, inner };
             assert!(typeck_expr(&unary_op, &env, &Map::new()).is_err());
         }
+    }
+
+    #[test]
+    fn function_calls() {
+        // Create a type environment with variables
+        let mut env = Map::new();
+        env.insert(id("x"), Type::NumT(-10..10));
+        env.insert(id("flag"), Type::BoolT);
+
+        // Create a function environment with functions
+        let mut function_env = Map::new();
+
+        // Add a function that takes a numeric parameter and returns a boolean
+        function_env.insert(
+            id("is_positive"),
+            Function {
+                params: vec![(id("n"), Type::NumT(-10..10))],
+                ret_typ: Type::BoolT,
+                body: Expr::Bool(true), // Dummy body, not used in type checking
+            },
+        );
+
+        // Add a function that takes a boolean parameter and returns a numeric value
+        function_env.insert(
+            id("to_number"),
+            Function {
+                params: vec![(id("b"), Type::BoolT)],
+                ret_typ: Type::NumT(0..1),
+                body: Expr::Num(0, Type::NumT(0..1)), // Dummy body, not used in type checking
+            },
+        );
+
+        // Add a function that takes multiple parameters
+        function_env.insert(
+            id("complex_func"),
+            Function {
+                params: vec![
+                    (id("n1"), Type::NumT(-10..10)),
+                    (id("n2"), Type::NumT(-10..10)),
+                    (id("b"), Type::BoolT),
+                ],
+                ret_typ: Type::NumT(0..20),
+                body: Expr::Num(0, Type::NumT(0..20)), // Dummy body, not used in type checking
+            },
+        );
+
+        // Test valid function calls
+
+        // Call is_positive with a numeric variable
+        let call1 = Expr::Call {
+            callee: id("is_positive"),
+            args: vec![Expr::Var(id("x"))],
+        };
+        assert!(matches!(
+            typeck_expr(&call1, &env, &function_env),
+            Ok(Type::BoolT)
+        ));
+
+        // Call to_number with a boolean variable
+        let call2 = Expr::Call {
+            callee: id("to_number"),
+            args: vec![Expr::Var(id("flag"))],
+        };
+        assert!(
+            matches!(typeck_expr(&call2, &env, &function_env), Ok(Type::NumT(range)) if range == (0..1))
+        );
+
+        // Call complex_func with appropriate arguments
+        let call3 = Expr::Call {
+            callee: id("complex_func"),
+            args: vec![
+                Expr::Var(id("x")),
+                Expr::Var(id("x")),
+                Expr::Var(id("flag")),
+            ],
+        };
+        assert!(
+            matches!(typeck_expr(&call3, &env, &function_env), Ok(Type::NumT(range)) if range == (0..20))
+        );
+
+        // Test invalid function calls
+
+        // Call undefined function
+        let invalid_call1 = Expr::Call {
+            callee: id("undefined_func"),
+            args: vec![Expr::Var(id("x"))],
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_call1, &env, &function_env),
+            Err(TypeError::UndefinedFunction(_))
+        ));
+
+        // Call with wrong number of arguments
+        let invalid_call2 = Expr::Call {
+            callee: id("is_positive"),
+            args: vec![Expr::Var(id("x")), Expr::Var(id("flag"))],
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_call2, &env, &function_env),
+            Err(TypeError::WrongNumberOfArguments {
+                expected: 1,
+                actual: 2
+            })
+        ));
+
+        // Call with wrong argument type
+        let invalid_call3 = Expr::Call {
+            callee: id("is_positive"),
+            args: vec![Expr::Var(id("flag"))],
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_call3, &env, &function_env),
+            Err(TypeError::TypeMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn pattern_matching() {
+        // Create a type environment with variables
+        let mut env = Map::new();
+        env.insert(id("x"), Type::NumT(0..10));
+        env.insert(id("flag"), Type::BoolT);
+        env.insert(id("sym"), Type::SymT);
+
+        // Create a function environment (empty for this test)
+        let function_env = Map::new();
+
+        // Test pattern matching with numeric scrutinee
+        let num_match = Expr::Match {
+            scrutinee: Box::new(Expr::Var(id("x"))),
+            cases: vec![
+                // Case 1: Match a specific number
+                Case {
+                    pattern: Pattern::Num(5),
+                    guard: Expr::Bool(true),
+                    result: Expr::Bool(true),
+                },
+                // Case 2: Match any number and bind to variable
+                Case {
+                    pattern: Pattern::Var(id("n")),
+                    guard: Expr::Bool(true),
+                    result: Expr::Bool(false),
+                },
+            ],
+        };
+        assert!(matches!(
+            typeck_expr(&num_match, &env, &function_env),
+            Ok(Type::BoolT)
+        ));
+
+        // Test pattern matching with boolean scrutinee
+        let bool_match = Expr::Match {
+            scrutinee: Box::new(Expr::Var(id("flag"))),
+            cases: vec![
+                // Case 1: Match true
+                Case {
+                    pattern: Pattern::Bool(true),
+                    guard: Expr::Bool(true),
+                    result: Expr::Num(1, Type::NumT(0..10)),
+                },
+                // Case 2: Match false
+                Case {
+                    pattern: Pattern::Bool(false),
+                    guard: Expr::Bool(true),
+                    result: Expr::Num(0, Type::NumT(0..10)),
+                },
+            ],
+        };
+        assert!(
+            matches!(typeck_expr(&bool_match, &env, &function_env), Ok(Type::NumT(range)) if range == (0..10))
+        );
+
+        // Test pattern matching with symbol scrutinee
+        let sym_match = Expr::Match {
+            scrutinee: Box::new(Expr::Var(id("sym"))),
+            cases: vec![
+                // Case 1: Match specific symbol
+                Case {
+                    pattern: Pattern::Sym(Symbol('a')),
+                    guard: Expr::Bool(true),
+                    result: Expr::Var(id("x")),
+                },
+                // Case 2: Match any symbol and bind to variable
+                Case {
+                    pattern: Pattern::Var(id("s")),
+                    guard: Expr::Bool(true),
+                    result: Expr::Var(id("x")),
+                },
+            ],
+        };
+        assert!(
+            matches!(typeck_expr(&sym_match, &env, &function_env), Ok(Type::NumT(range)) if range == (0..10))
+        );
+
+        // Test invalid pattern matching
+
+        // Type mismatch between pattern and scrutinee
+        let invalid_match1 = Expr::Match {
+            scrutinee: Box::new(Expr::Var(id("x"))),
+            cases: vec![Case {
+                pattern: Pattern::Bool(true), // Boolean pattern for numeric scrutinee
+                guard: Expr::Bool(true),
+                result: Expr::Bool(true),
+            }],
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_match1, &env, &function_env),
+            Err(TypeError::TypeMismatchBetweenPatternAndScrutinee { .. })
+        ));
+
+        // Type mismatch between case results
+        let invalid_match2 = Expr::Match {
+            scrutinee: Box::new(Expr::Var(id("flag"))),
+            cases: vec![
+                Case {
+                    pattern: Pattern::Bool(true),
+                    guard: Expr::Bool(true),
+                    result: Expr::Bool(true), // Boolean result
+                },
+                Case {
+                    pattern: Pattern::Bool(false),
+                    guard: Expr::Bool(true),
+                    result: Expr::Num(0, Type::NumT(0..10)), // Numeric result
+                },
+            ],
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_match2, &env, &function_env),
+            Err(TypeError::TypeMismatch { .. })
+        ));
+
+        // Invalid guard type
+        let invalid_match3 = Expr::Match {
+            scrutinee: Box::new(Expr::Var(id("x"))),
+            cases: vec![Case {
+                pattern: Pattern::Var(id("n")),
+                guard: Expr::Var(id("x")), // Numeric guard instead of boolean
+                result: Expr::Bool(true),
+            }],
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_match3, &env, &function_env),
+            Err(TypeError::TypeMismatch { .. })
+        ));
     }
 }
