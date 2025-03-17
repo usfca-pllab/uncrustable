@@ -21,6 +21,14 @@ pub enum TypeError {
     /// Symbol not in alphabet
     #[error("Symbol '{0}' is not in the alphabet")]
     SymbolNotInAlphabet(char),
+    /// Wrong number of arguments
+    #[error("Wrong number of arguments: expected {expected}, actual {actual}")]
+    WrongNumberOfArguments {
+        /// Expected number of arguments
+        expected: usize,
+        /// Actual number of arguments
+        actual: usize,
+    }
 }
 
 /// Type environment mapping variables to their types
