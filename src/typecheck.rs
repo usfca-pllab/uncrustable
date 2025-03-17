@@ -84,7 +84,7 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
             let e = typeck_expr(&expr, &env)?;
             //assign the id to the expression type in the env??
             env.insert(id, e);
-            Ok(e).or_else(TypeError::UndefinedVariable(*id))
+            Ok(e)
         }
         Stmt::If {
             cond,
