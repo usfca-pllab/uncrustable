@@ -26,8 +26,15 @@ pub enum TypeError {
 /// Type environment mapping variables to their types
 type TypeEnv = Map<Id, Type>;
 
+/// Function environment mapping function names to their definitions
+type FunctionEnv = Map<Id, Function>;
+
 /// Type check an expression in a given environment
-pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
+pub fn typeck_expr(
+    expr: &Expr,
+    env: &TypeEnv,
+    function_env: &FunctionEnv,
+) -> Result<Type, TypeError> {
     match expr {
         // Variables are always of the type of the variable in the environment
         Expr::Var(id) => {
@@ -155,7 +162,37 @@ pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
         }
         // Call expressions are always of the type of the function
         Expr::Call { callee, args } => {
-            todo!()
+            // Type check each argument
+            let mut arg_types: Vec<Type> = Vec::new();
+            for arg in args {
+                arg_types.push(typeck_expr(arg, env, function_env)?);
+            }
+
+            // Look up the function in the function environment
+            let function = function_env
+                .get(callee)
+                .ok_or(TypeError::UndefinedFunction(*callee))?;
+
+            // Check that the number of arguments matches the number of parameters
+            if arg_types.len() != function.params.len() {
+                return Err(TypeError::WrongNumberOfArguments {
+                    expected: function.params.len(),
+                    actual: arg_types.len(),
+                });
+            }
+
+            // Verify that argument types match parameter types
+            for (arg_type, (_, param_type)) in arg_types.iter().zip(function.params.iter()) {
+                if arg_type != param_type {
+                    return Err(TypeError::TypeMismatch {
+                        expected: param_type.clone(),
+                        actual: arg_type.clone(),
+                    });
+                }
+            }
+
+            // Return the function's return type
+            Ok(function.ret_typ.clone())
         }
         // Pattern matching is always of the type of the scrutinee
         Expr::Match { scrutinee, cases } => {
