@@ -81,10 +81,9 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             //find out what type the expression is
-            // let t = typeck_expr(&expr, &env);
-            //t
-            todo!()
+            let e = typeck_expr(&expr, &env)?;
             //assign the id to the expression type in the env??
+            env.insert(id, e);
         }
         Stmt::If {
             cond,
@@ -101,6 +100,8 @@ pub fn typeck_block(blk: &Block, env: &TypeEnv) -> Result<Type, TypeError> {
     //check each stmt in the vector sequence is ok
     todo!()
 }
+
+
 
 #[cfg(test)]
 mod tests {
