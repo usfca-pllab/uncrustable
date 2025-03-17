@@ -59,8 +59,8 @@ pub fn typeck_expr(
         Expr::Sym(_) => Ok(Type::SymT),
         // Binary operations are always of the type of the left hand side
         Expr::BinOp { lhs, op, rhs } => {
-            let lhs_type = typeck_expr(lhs, env)?;
-            let rhs_type = typeck_expr(rhs, env)?;
+            let lhs_type = typeck_expr(lhs, env, function_env)?;
+            let rhs_type = typeck_expr(rhs, env, function_env)?;
             if lhs_type != rhs_type {
                 return Err(TypeError::TypeMismatch {
                     expected: lhs_type,
@@ -105,7 +105,7 @@ pub fn typeck_expr(
         }
         // Unary operations are always of the type of the inner expression
         Expr::UOp { op, inner } => {
-            let inner_type = typeck_expr(inner, env)?;
+            let inner_type = typeck_expr(inner, env, function_env)?;
             match op {
                 UOp::Not => {
                     if inner_type == Type::BoolT {
@@ -136,7 +136,7 @@ pub fn typeck_expr(
             overflow: _overflow,
         } => {
             // First, type check the inner expression
-            let inner_type = typeck_expr(inner, env)?;
+            let inner_type = typeck_expr(inner, env, function_env)?;
 
             // According to the [T-Cast] rule, both the inner expression and the target type
             // must be numeric types with bounds
@@ -144,21 +144,21 @@ pub fn typeck_expr(
                 (Type::NumT(_), Type::NumT(_)) => {
                     // The cast is valid, return the target type
                     Ok(typ.clone())
-                },
+                }
                 (_, Type::NumT(_)) => {
                     // The inner expression is not a numeric type
                     Err(TypeError::TypeMismatch {
                         expected: Type::NumT(0..1), // Example numeric type
                         actual: inner_type,
                     })
-                },
+                }
                 (Type::NumT(_), _) => {
                     // The target type is not a numeric type
                     Err(TypeError::TypeMismatch {
                         expected: Type::NumT(0..1), // Example numeric type
                         actual: typ.clone(),
                     })
-                },
+                }
                 _ => {
                     // Neither the inner expression nor the target type are numeric types
                     Err(TypeError::TypeMismatch {
@@ -227,13 +227,21 @@ mod tests {
         let b_expr = Expr::Var(id("b"));
         let s_expr = Expr::Var(id("s"));
 
-        assert!(matches!(typeck_expr(&x_expr, &env), Ok(Type::NumT(range)) if range == (0..10)));
-        assert!(matches!(typeck_expr(&b_expr, &env), Ok(Type::BoolT)));
-        assert!(matches!(typeck_expr(&s_expr, &env), Ok(Type::SymT)));
+        assert!(
+            matches!(typeck_expr(&x_expr, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..10))
+        );
+        assert!(matches!(
+            typeck_expr(&b_expr, &env, &Map::new()),
+            Ok(Type::BoolT)
+        ));
+        assert!(matches!(
+            typeck_expr(&s_expr, &env, &Map::new()),
+            Ok(Type::SymT)
+        ));
 
         // Test variable lookup for non-existent variable
         let unknown_expr = Expr::Var(id("unknown"));
-        assert!(typeck_expr(&unknown_expr, &env).is_err());
+        assert!(typeck_expr(&unknown_expr, &env, &Map::new()).is_err());
     }
 
     #[test]
@@ -245,7 +253,7 @@ mod tests {
         let undefined_expr = Expr::Var(id("undefined_flag"));
 
         // Should result in an error
-        assert!(typeck_expr(&undefined_expr, &env).is_err());
+        assert!(typeck_expr(&undefined_expr, &env, &Map::new()).is_err());
 
         // Create an environment with some variables, but not the one we'll try to access
         let mut env = Map::new();
@@ -256,7 +264,7 @@ mod tests {
         let another_undefined_expr = Expr::Var(id("another_flag"));
 
         // Should also result in an error
-        assert!(typeck_expr(&another_undefined_expr, &env).is_err());
+        assert!(typeck_expr(&another_undefined_expr, &env, &Map::new()).is_err());
     }
 
     #[test]
@@ -265,11 +273,11 @@ mod tests {
 
         // Test boolean literals
         assert!(matches!(
-            typeck_expr(&Expr::Bool(true), &env),
+            typeck_expr(&Expr::Bool(true), &env, &Map::new()),
             Ok(Type::BoolT)
         ));
         assert!(matches!(
-            typeck_expr(&Expr::Bool(false), &env),
+            typeck_expr(&Expr::Bool(false), &env, &Map::new()),
             Ok(Type::BoolT)
         ));
 
@@ -279,11 +287,16 @@ mod tests {
 
         for (_i, (range, value)) in ranges.iter().zip(values.iter()).enumerate() {
             let num = Expr::Num(*value, Type::NumT(range.clone()));
-            assert!(matches!(typeck_expr(&num, &env), Ok(Type::NumT(r)) if r == *range));
+            assert!(
+                matches!(typeck_expr(&num, &env, &Map::new()), Ok(Type::NumT(r)) if r == *range)
+            );
         }
 
         // Test symbol literals
-        assert!(matches!(typeck_expr(&Expr::Sym('a'), &env), Ok(Type::SymT)));
+        assert!(matches!(
+            typeck_expr(&Expr::Sym('a'), &env, &Map::new()),
+            Ok(Type::SymT)
+        ));
     }
 
     #[test]
@@ -332,7 +345,7 @@ mod tests {
                 };
 
                 assert!(
-                    matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(range)) if range == expected_range)
+                    matches!(typeck_expr(&bin_op, &env, &Map::new()), Ok(Type::NumT(range)) if range == expected_range)
                 );
             }
         }
@@ -348,7 +361,10 @@ mod tests {
                     rhs: Box::new((*rhs).clone()),
                 };
 
-                assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::BoolT)));
+                assert!(matches!(
+                    typeck_expr(&bin_op, &env, &Map::new()),
+                    Ok(Type::BoolT)
+                ));
             }
         }
 
@@ -362,7 +378,10 @@ mod tests {
                 rhs: Box::new(false_expr.clone()),
             };
 
-            assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::BoolT)));
+            assert!(matches!(
+                typeck_expr(&bin_op, &env, &Map::new()),
+                Ok(Type::BoolT)
+            ));
         }
 
         // Test type mismatches
@@ -371,21 +390,21 @@ mod tests {
             op: BOp::Add,
             rhs: Box::new(bool_expr.clone()),
         };
-        assert!(typeck_expr(&invalid_add, &env).is_err());
+        assert!(typeck_expr(&invalid_add, &env, &Map::new()).is_err());
 
         let invalid_type_add = Expr::BinOp {
             lhs: Box::new(num1.clone()),
             op: BOp::Add,
             rhs: Box::new(num2.clone()),
         };
-        assert!(typeck_expr(&invalid_type_add, &env).is_err());
+        assert!(typeck_expr(&invalid_type_add, &env, &Map::new()).is_err());
 
         let invalid_and = Expr::BinOp {
             lhs: Box::new(bool_expr.clone()),
             op: BOp::And,
             rhs: Box::new(num1.clone()),
         };
-        assert!(typeck_expr(&invalid_and, &env).is_err());
+        assert!(typeck_expr(&invalid_and, &env, &Map::new()).is_err());
 
         // Create a type environment with variables
         let mut env = Map::new();
@@ -438,9 +457,14 @@ mod tests {
             let bin_op = Expr::BinOp { lhs, op, rhs };
 
             match expected {
-                Ok(Type::BoolT) => assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::BoolT))),
+                Ok(Type::BoolT) => assert!(matches!(
+                    typeck_expr(&bin_op, &env, &Map::new()),
+                    Ok(Type::BoolT)
+                )),
                 Ok(Type::NumT(range)) => {
-                    assert!(matches!(typeck_expr(&bin_op, &env), Ok(Type::NumT(r)) if r == range))
+                    assert!(
+                        matches!(typeck_expr(&bin_op, &env, &Map::new()), Ok(Type::NumT(r)) if r == range)
+                    )
                 }
                 _ => panic!("Unexpected expected type"),
             }
@@ -460,7 +484,7 @@ mod tests {
 
         for (lhs, op, rhs) in invalid_operations {
             let bin_op = Expr::BinOp { lhs, op, rhs };
-            assert!(typeck_expr(&bin_op, &env).is_err());
+            assert!(typeck_expr(&bin_op, &env, &Map::new()).is_err());
         }
     }
 
@@ -487,9 +511,14 @@ mod tests {
             let unary_op = Expr::UOp { op, inner };
 
             match expected {
-                Ok(Type::BoolT) => assert!(matches!(typeck_expr(&unary_op, &env), Ok(Type::BoolT))),
+                Ok(Type::BoolT) => assert!(matches!(
+                    typeck_expr(&unary_op, &env, &Map::new()),
+                    Ok(Type::BoolT)
+                )),
                 Ok(Type::NumT(range)) => {
-                    assert!(matches!(typeck_expr(&unary_op, &env), Ok(Type::NumT(r)) if r == range))
+                    assert!(
+                        matches!(typeck_expr(&unary_op, &env, &Map::new()), Ok(Type::NumT(r)) if r == range)
+                    )
                 }
                 _ => panic!("Unexpected expected type"),
             }
@@ -505,7 +534,7 @@ mod tests {
 
         for (op, inner) in invalid_operations {
             let unary_op = Expr::UOp { op, inner };
-            assert!(typeck_expr(&unary_op, &env).is_err());
+            assert!(typeck_expr(&unary_op, &env, &Map::new()).is_err());
         }
     }
 }
