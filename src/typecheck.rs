@@ -286,7 +286,7 @@ pub fn typeck_expr(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::syntax::{id, Case, Expr, Map, Pattern, Type};
+    use crate::syntax::{id, Case, Expr, Map, Overflow, Pattern, Type};
 
     #[test]
     fn variables() {
@@ -610,6 +610,122 @@ mod tests {
             let unary_op = Expr::UOp { op, inner };
             assert!(typeck_expr(&unary_op, &env, &Map::new()).is_err());
         }
+    }
+
+    #[test]
+    fn casting() {
+        // Create a type environment with variables
+        let mut env = Map::new();
+        env.insert(id("x"), Type::NumT(0..10));
+        env.insert(id("y"), Type::NumT(-5..5));
+        env.insert(id("flag"), Type::BoolT);
+        env.insert(id("sym"), Type::SymT);
+
+        // Test valid numeric casts
+
+        // Cast from one numeric range to another
+        let cast1 = Expr::Cast {
+            inner: Box::new(Expr::Var(id("x"))),
+            typ: Type::NumT(0..100),
+            overflow: Overflow::Fail,
+        };
+        assert!(
+            matches!(typeck_expr(&cast1, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..100))
+        );
+
+        // Cast from negative range to positive range
+        let cast2 = Expr::Cast {
+            inner: Box::new(Expr::Var(id("y"))),
+            typ: Type::NumT(0..10),
+            overflow: Overflow::Wraparound, // Allow overflow with wraparound
+        };
+        assert!(
+            matches!(typeck_expr(&cast2, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..10))
+        );
+
+        // Cast from numeric literal to different range
+        let cast3 = Expr::Cast {
+            inner: Box::new(Expr::Num(42, Type::NumT(0..100))),
+            typ: Type::NumT(0..50),
+            overflow: Overflow::Saturate,
+        };
+        assert!(
+            matches!(typeck_expr(&cast3, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..50))
+        );
+
+        // Cast from result of binary operation
+        let cast4 = Expr::Cast {
+            inner: Box::new(Expr::BinOp {
+                lhs: Box::new(Expr::Var(id("x"))),
+                op: BOp::Add,
+                rhs: Box::new(Expr::Var(id("x"))),
+            }),
+            typ: Type::NumT(0..20),
+            overflow: Overflow::Fail,
+        };
+        assert!(
+            matches!(typeck_expr(&cast4, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..20))
+        );
+
+        // Test invalid casts
+
+        // Cast from boolean to numeric
+        let invalid_cast1 = Expr::Cast {
+            inner: Box::new(Expr::Var(id("flag"))),
+            typ: Type::NumT(0..1),
+            overflow: Overflow::Fail,
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_cast1, &env, &Map::new()),
+            Err(TypeError::TypeMismatch { .. })
+        ));
+
+        // Cast from symbol to numeric
+        let invalid_cast2 = Expr::Cast {
+            inner: Box::new(Expr::Var(id("sym"))),
+            typ: Type::NumT(0..255),
+            overflow: Overflow::Fail,
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_cast2, &env, &Map::new()),
+            Err(TypeError::TypeMismatch { .. })
+        ));
+
+        // Cast from numeric to boolean (invalid target type)
+        let invalid_cast3 = Expr::Cast {
+            inner: Box::new(Expr::Var(id("x"))),
+            typ: Type::BoolT,
+            overflow: Overflow::Fail,
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_cast3, &env, &Map::new()),
+            Err(TypeError::TypeMismatch { .. })
+        ));
+
+        // Cast from numeric to symbol (invalid target type)
+        let invalid_cast4 = Expr::Cast {
+            inner: Box::new(Expr::Var(id("x"))),
+            typ: Type::SymT,
+            overflow: Overflow::Fail,
+        };
+        assert!(matches!(
+            typeck_expr(&invalid_cast4, &env, &Map::new()),
+            Err(TypeError::TypeMismatch { .. })
+        ));
+
+        // Nested casts
+        let nested_cast = Expr::Cast {
+            inner: Box::new(Expr::Cast {
+                inner: Box::new(Expr::Var(id("x"))),
+                typ: Type::NumT(0..50),
+                overflow: Overflow::Fail,
+            }),
+            typ: Type::NumT(0..25),
+            overflow: Overflow::Fail,
+        };
+        assert!(
+            matches!(typeck_expr(&nested_cast, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..25))
+        );
     }
 
     #[test]
