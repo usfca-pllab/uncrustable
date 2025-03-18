@@ -313,8 +313,11 @@ pub fn typeck_stmt(
             cond,
             true_branch,
             false_branch,
-        } => {
-            todo!()
+        } => { //if all parts of if stmt are OK then OK, else ERR
+            let e = typeck_expr(cond, &env, &function_env)?;
+            let tb = typeck_block(true_branch, env, function_env)?;
+            let fb = typeck_block(false_branch, env, function_env)?;
+            Ok(())
         }
     }
 }
@@ -334,22 +337,22 @@ pub fn typeck_block(
 }
 
 pub fn typeck_fun(
-    fun: &Function,
-    env: &mut TypeEnv,
     function_env: &FunctionEnv,
+    env: &mut TypeEnv,
 ) -> Result<Type, TypeError> {
-    // todo!()
-    let e = typeck_expr(&fun.body, env, &function_env)?;
-    if e == fun.ret_typ {
-        let t = fun.ret_typ.clone();
-        Ok(t)
-    } else {
-        let t = fun.ret_typ.clone();
-        Err(TypeError::TypeMismatch {
-            expected: t,
-            actual: e,
-        })
-    }
+    todo!()
+    // let fun_env = function_env.clone();
+    // let e = typeck_expr(&fun.body, env, &function_env)?;
+    // if e == fun.ret_typ {
+    //     let t = fun.ret_typ.clone();
+    //     Ok(t)
+    // } else {
+    //     let t = fun.ret_typ.clone();
+    //     Err(TypeError::TypeMismatch {
+    //         expected: t,
+    //         actual: e,
+    //     })
+    // }
     //TODO need to be able to assign an ID, or function signature to
     //     the type of the function and add to TypeEnv
 }
