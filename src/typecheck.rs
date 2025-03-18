@@ -104,7 +104,6 @@ pub fn typeck_block(blk: &Block, env: &TypeEnv) -> Result<Type, TypeError> {
     //     typeck_stmt(i, &env)
     // }
     // Ok(())
-
 }
 
 #[cfg(test)]
