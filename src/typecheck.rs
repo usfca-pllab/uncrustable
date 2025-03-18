@@ -285,7 +285,7 @@ pub fn typeck_expr(
 
 // in progress, need to verify understanding and test
 pub fn typeck_stmt(
-    stmt: &Stmt, 
+    stmt: &Stmt,
     env: &mut TypeEnv, 
     function_env: &FunctionEnv,
 ) -> Result<(), TypeError> {
@@ -320,8 +320,8 @@ pub fn typeck_stmt(
 }
 
 pub fn typeck_block(
-    blk: &Block, 
-    env: &mut TypeEnv, 
+    blk: &Block,
+    env: &mut TypeEnv,
     function_env: &FunctionEnv,
 ) -> Result<(), TypeError> {
     //a vector of stmts
@@ -334,8 +334,8 @@ pub fn typeck_block(
 }
 
 pub fn typeck_fun(
-    fun: &Function, 
-    env: &mut TypeEnv, 
+    fun: &Function,
+    env: &mut TypeEnv,
     function_env: &FunctionEnv,
 ) -> Result<Type, TypeError> {
     // todo!()
