@@ -313,7 +313,7 @@ pub fn typeck_stmt(
             cond,
             true_branch,
             false_branch,
-        } => { 
+        } => {
             //if all parts of if stmt are OK then OK, else ERR
             let e = typeck_expr(cond, &env, &function_env)?;
             let tb = typeck_block(true_branch, env, function_env)?;
