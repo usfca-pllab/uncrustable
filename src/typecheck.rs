@@ -116,8 +116,6 @@ pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<(), TypeError> {
     todo!()
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
