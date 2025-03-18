@@ -96,14 +96,14 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<(), TypeError> {
     }
 }
 
-pub fn typeck_block(blk: &Block, env: &TypeEnv) -> Result<Type, TypeError> {
+pub fn typeck_block(blk: &Block, env: &mut TypeEnv) -> Result<(), TypeError> {
     //a vector of stmts
     //check each stmt in the vector sequence is ok
-    todo!()
-    // for i in &blk {
-    //     typeck_stmt(i, &env)
-    // }
-    // Ok(())
+    // todo!()
+    for i in blk {
+        let check_stmt = typeck_stmt(i, env)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
