@@ -119,7 +119,10 @@ pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<(), TypeError> {
         Ok(())
     } else {
         let t = fun.ret_typ.clone();
-        Err(TypeError::TypeMismatch{expected: t, actual: e})
+        Err(TypeError::TypeMismatch {
+            expected: t, 
+            actual: e,
+        })
     }
 }
 
