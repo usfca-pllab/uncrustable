@@ -124,6 +124,8 @@ pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<Type, TypeError> 
             actual: e,
         })
     }
+    //TODO need to be able to assign an ID, or function signature to 
+    //     the type of the function and add to TypeEnv
 }
 
 pub fn typeck_prgm(prgm: &Program, env: &TypeEnv) -> Result<(), TypeError> {
