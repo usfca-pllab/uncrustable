@@ -286,7 +286,7 @@ pub fn typeck_expr(
 // in progress, need to verify understanding and test
 pub fn typeck_stmt(
     stmt: &Stmt,
-    env: &mut TypeEnv, 
+    env: &mut TypeEnv,
     function_env: &FunctionEnv,
 ) -> Result<(), TypeError> {
     // Either an asignment statemnt (x = 5)
