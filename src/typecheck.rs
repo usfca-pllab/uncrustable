@@ -71,7 +71,6 @@ pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
     }
 }
 
-//TODO
 // in progress, need to verify understanding and test
 pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<(), TypeError> {
     // Either an asignment statemnt (x = 5)
@@ -112,11 +111,12 @@ pub fn typeck_block(blk: &Block, env: &mut TypeEnv) -> Result<(), TypeError> {
     Ok(())
 }
 
-pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<(), TypeError> {
+pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<Type, TypeError> {
     // todo!()
     let e = typeck_expr(&fun.body, env)?;
     if e == fun.ret_typ {
-        Ok(())
+        let t = fun.ret_typ.clone();
+        Ok(t)
     } else {
         let t = fun.ret_typ.clone();
         Err(TypeError::TypeMismatch {
