@@ -303,6 +303,8 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<(), TypeError> {
             //     Err(TypeError::UndefinedVariable(id))
             // }
         }
+
+        //TODO find out if this portion is needed for typechecker?
         Stmt::If {
             cond,
             true_branch,
