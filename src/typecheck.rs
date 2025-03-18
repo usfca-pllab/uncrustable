@@ -85,6 +85,12 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<(), TypeError> {
             //assign the id to the expression type in the env??
             env.insert(*id, e);
             Ok(())
+            // if Ok(e) {
+            //     env.insert(*id, e);
+            //     Ok(())
+            // } else {
+            //     Err(TypeError::UndefinedVariable(id))
+            // }
         }
         Stmt::If {
             cond,
@@ -105,6 +111,12 @@ pub fn typeck_block(blk: &Block, env: &mut TypeEnv) -> Result<(), TypeError> {
     }
     Ok(())
 }
+
+pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<(), TypeError> {
+    todo!()
+}
+
+
 
 #[cfg(test)]
 mod tests {
