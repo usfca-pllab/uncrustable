@@ -73,7 +73,7 @@ pub fn typeck_expr(expr: &Expr, env: &TypeEnv) -> Result<Type, TypeError> {
 
 //TODO
 // in progress, need to verify understanding and test
-pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
+pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<(), TypeError> {
     // Either an asignment statemnt (x = 5)
     // Or an if statment (if condition - true block - or  - false block)
     // need to be able to assign a var or an expression
@@ -83,8 +83,8 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv) -> Result<Type, TypeError> {
             //find out what type the expression is
             let e = typeck_expr(&expr, &env)?;
             //assign the id to the expression type in the env??
-            env.insert(id, e);
-            Ok(&e)
+            env.insert(*id, e);
+            Ok(())
         }
         Stmt::If {
             cond,
@@ -100,6 +100,11 @@ pub fn typeck_block(blk: &Block, env: &TypeEnv) -> Result<Type, TypeError> {
     //a vector of stmts
     //check each stmt in the vector sequence is ok
     todo!()
+    // for i in &blk {
+    //     typeck_stmt(i, &env)
+    // }
+    // Ok(())
+
 }
 
 #[cfg(test)]
