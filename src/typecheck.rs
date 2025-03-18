@@ -128,6 +128,12 @@ pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<Type, TypeError> 
 
 pub fn typeck_prgm(prgm: &Program, env: &TypeEnv) -> Result<(), TypeError> {
     todo!()
+    //typecheck functions in helpers map are okay
+    //typecheck start block is okay
+    //typecheck action block is okay
+    //typecheck acceptance expression is okay
+
+    //if the above are okay then return okay, else error
 }
 
 #[cfg(test)]
