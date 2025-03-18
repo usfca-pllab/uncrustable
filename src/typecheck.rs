@@ -113,7 +113,14 @@ pub fn typeck_block(blk: &Block, env: &mut TypeEnv) -> Result<(), TypeError> {
 }
 
 pub fn typeck_fun(fun: &Function, env: &mut TypeEnv) -> Result<(), TypeError> {
-    todo!()
+    // todo!()
+    let e = typeck_expr(&fun.body, env)?;
+    if e == fun.ret_typ {
+        Ok(())
+    } else {
+        let t = fun.ret_typ.clone();
+        Err(TypeError::TypeMismatch{expected: t, actual: e})
+    }
 }
 
 pub fn typeck_prgm(prgm: &Program, env: &TypeEnv) -> Result<(), TypeError> {
