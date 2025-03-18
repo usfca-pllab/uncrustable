@@ -284,7 +284,11 @@ pub fn typeck_expr(
 }
 
 // in progress, need to verify understanding and test
-pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv, function_env: &FunctionEnv) -> Result<(), TypeError> {
+pub fn typeck_stmt(
+    stmt: &Stmt, 
+    env: &mut TypeEnv, 
+    function_env: &FunctionEnv,
+) -> Result<(), TypeError> {
     // Either an asignment statemnt (x = 5)
     // Or an if statment (if condition - true block - or  - false block)
     // need to be able to assign a var or an expression
@@ -315,7 +319,11 @@ pub fn typeck_stmt(stmt: &Stmt, env: &mut TypeEnv, function_env: &FunctionEnv) -
     }
 }
 
-pub fn typeck_block(blk: &Block, env: &mut TypeEnv, function_env: &FunctionEnv) -> Result<(), TypeError> {
+pub fn typeck_block(
+    blk: &Block, 
+    env: &mut TypeEnv, 
+    function_env: &FunctionEnv,
+) -> Result<(), TypeError> {
     //a vector of stmts
     //check each stmt in the vector sequence is ok
     // todo!()
@@ -325,7 +333,11 @@ pub fn typeck_block(blk: &Block, env: &mut TypeEnv, function_env: &FunctionEnv) 
     Ok(())
 }
 
-pub fn typeck_fun(fun: &Function, env: &mut TypeEnv, function_env: &FunctionEnv) -> Result<Type, TypeError> {
+pub fn typeck_fun(
+    fun: &Function, 
+    env: &mut TypeEnv, 
+    function_env: &FunctionEnv,
+) -> Result<Type, TypeError> {
     // todo!()
     let e = typeck_expr(&fun.body, env, &function_env)?;
     if e == fun.ret_typ {
