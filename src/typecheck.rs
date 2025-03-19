@@ -337,7 +337,11 @@ pub fn typeck_block(
     Ok(())
 }
 
-pub fn typeck_fun(fun: &Function, function_env: &FunctionEnv, env: &mut TypeEnv) -> Result<Type, TypeError> {
+pub fn typeck_fun(
+    fun: &Function,
+    function_env: &FunctionEnv,
+    env: &mut TypeEnv
+) -> Result<Type, TypeError> {
     // todo!()
     let fun_env = function_env.clone();
     let e = typeck_expr(&fun.body, env, &function_env)?;
