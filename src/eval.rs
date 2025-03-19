@@ -16,7 +16,7 @@ enum RuntimeError {
 #[derive(Debug, Clone, PartialEq)]
 enum Value {
     Bool(bool),
-    Num(i64, Range<usize>),
+    Num(i64, Range<i64>),
     Sym(Symbol),
 }
 
@@ -45,7 +45,7 @@ fn init_env(program: &Program) -> Env {
             //  TODO - add Range to the Num enum
             //  default to be beginning of range
             Type::NumT(range) => {
-                        Value::Num(range.start, Range { start: range.start as usize, end: range.end as usize })
+                        Value::Num(range.start, Range { start: range.start, end: range.end })
                     },
                     
             //  default to empty char
@@ -78,10 +78,10 @@ fn eval(program: &Program, input: &str) ->Result<(bool, Env), RuntimeError> {
     Ok((false, env))
 }
 
-fn cast(v: i64, t: Range<usize>, wraparound: bool) -> Result<Value, RuntimeError> {
+fn cast(v: i64, t: Range<i64>, wraparound: bool) -> Result<Value, RuntimeError> {
     let lower = t.start;
     let upper = t.end;
-    return Ok(Value::Num(((v - lower as i64) % (upper - lower) as i64 + lower as i64), Range { start: lower, end: upper }));
+    return Ok(Value::Num(((v - lower) % (upper - lower) + lower), Range { start: lower, end: upper }));
 }
 
 // eval. expr.
@@ -96,7 +96,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
     		How to handle ranges if we have to??
     	*/
     	
-        Expr::Num(n, Type::NumT(range)) => cast(*n, Range { start: range.start as usize, end: range.end as usize } , true),
+        Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), true),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
         Expr::Var(id) => Ok(env.get(id).unwrap().clone()), // will return a Value
@@ -464,7 +464,7 @@ fn test_binop_4() {
     let input = "";
     let (result, env) = eval(&program, input).unwrap();
 
-    assert_eq!(env.get(&id("v")), Some(&Value::Num(1, 0..10)));
+    assert_eq!(env.get(&id("v")), Some(&Value::Num(0, 0..10)));
     assert_eq!(env.get(&id("z")), Some(&Value::Num(4, 0..10)));
     assert_eq!(env.get(&id("w")), Some(&Value::Num(2, 0..10))); 
 }
@@ -491,7 +491,7 @@ fn test_binop_5() {
                 Expr::BinOp {
                     op: BOp::Lt,
                     lhs: Box::new(Expr::Num(3, Type::NumT(0..10))),
-                    rhs: Box::new(Expr::Num(10, Type::NumT(0..10))),
+                    rhs: Box::new(Expr::Num(9, Type::NumT(0..10))),
                 },
             ),
             Stmt::Assign(
@@ -553,7 +553,7 @@ fn test_binop_5() {
     let input = "";
     let (result, env) = eval(&program, input).unwrap();
 
-	assert_eq!(env.get(&id("v")), Some(&Value::Bool(false)));  
+	assert_eq!(env.get(&id("v")), Some(&Value::Bool(true)));  
     assert_eq!(env.get(&id("x")), Some(&Value::Bool(true)));  
     assert_eq!(env.get(&id("y")), Some(&Value::Bool(false))); 
     assert_eq!(env.get(&id("z")), Some(&Value::Bool(true)));   
