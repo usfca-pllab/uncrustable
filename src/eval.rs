@@ -10,6 +10,7 @@ enum RuntimeError {
     TypeError,
     InvalidOperand,
     ModulusByZero, 
+    OutOfRange,
 }
 
 // abstraction for values making up expressions
@@ -78,10 +79,36 @@ fn eval(program: &Program, input: &str) ->Result<(bool, Env), RuntimeError> {
     Ok((false, env))
 }
 
-fn cast(v: i64, t: Range<i64>, wraparound: bool) -> Result<Value, RuntimeError> {
-    let lower = t.start;
-    let upper = t.end;
-    return Ok(Value::Num(((v - lower) % (upper - lower) + lower), Range { start: lower, end: upper }));
+fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeError> {
+    let lower = range.start;
+    let upper = range.end; 
+    let val = match overflow {
+        Overflow::Fail => {
+            if v > upper {
+                Err(RuntimeError::OutOfRange)
+            }
+            else if v < lower {
+                Err(RuntimeError::OutOfRange)
+            }
+            else {
+                Ok(Value::Num(v, range))
+            }
+        },
+        Overflow::Saturate => {
+            if v > upper {
+                Ok(Value::Num(upper, range))
+            }
+            else if v < lower {
+                Ok(Value::Num(lower, range))
+            }
+            else {
+                Ok(Value::Num(v, range))
+            }
+        }
+        Overflow::Wraparound => Ok(Value::Num(((v - lower) % (upper - lower) + lower), Range { start: lower, end: upper })),
+        _ => Err(RuntimeError::InvalidExpression)
+    };
+    return val;
 }
 
 // eval. expr.
@@ -96,7 +123,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
     		How to handle ranges if we have to??
     	*/
     	
-        Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), true),
+        Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
         Expr::Var(id) => Ok(env.get(id).unwrap().clone()), // will return a Value
@@ -108,27 +135,26 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 
 			match (left, right) {
 			    (Value::Num(l, l_range), Value::Num(r, range_ignore)) => match op {
-                    // TODO: create a cast helper function 
 			    	// numerical return
-			        BOp::Add => cast(l + r, l_range, true),
-			        BOp::Sub => cast(l - r, l_range, true),
-			        BOp::Mul => cast(l * r, l_range, true),
+			        BOp::Add => cast(l + r, l_range, Overflow::Wraparound),
+			        BOp::Sub => cast(l - r, l_range, Overflow::Wraparound),
+			        BOp::Mul => cast(l * r, l_range, Overflow::Wraparound),
 			        BOp::Div => {
 			            if r == 0 {
 			                Err(RuntimeError::DivisionbyZero)
 			            } else {
-			                cast(l / r, l_range, true)
+			                cast(l / r, l_range, Overflow::Wraparound)
 			            }
 			        },
 			        BOp::Rem => {
                         if r == 0 {
                             Err(RuntimeError::ModulusByZero)
                         } else {
-                            cast(l % r, l_range, true)
+                            cast(l % r, l_range, Overflow::Wraparound)
                         }
                     },
-			        BOp::Shl => cast(l << r, l_range, true),
-			        BOp::Shr => cast(l >> r, l_range, true),
+			        BOp::Shl => cast(l << r, l_range, Overflow::Wraparound),
+			        BOp::Shr => cast(l >> r, l_range, Overflow::Wraparound),
 
 			        // boolean return
 			  		BOp::Lt => Ok(Value::Bool(l < r)),
@@ -157,7 +183,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
             match left {
             
                 Value::Num(l, range) => match op {
-                    UOp::Negate => cast(-l, range, true),
+                    UOp::Negate => cast(-l, range, Overflow::Wraparound),
                     _ => Err(RuntimeError::InvalidOperand),
                 },
                 
@@ -171,15 +197,20 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 
         Expr::Cast {inner, typ, overflow } => {
             
+            let cast_t = match typ {
+                Type::BoolT => Err(RuntimeError::TypeError),
+                Type::SymT => Err(RuntimeError::TypeError),
+                Type::NumT(n) => Ok(n.clone())
+            }?;
+            
             let val = eval_expr(inner, env)?;
 
             match val {
                 Value::Num(num, range) => match overflow {
                     
-                    Overflow::Fail => todo!(),
-                    Overflow::Saturate => todo!(),
-                    // (n - lower) % (upper - lower) + lower
-                    Overflow::Wraparound => todo!()
+                    Overflow::Fail => cast(num, cast_t, Overflow::Fail),
+                    Overflow::Saturate => cast(num, cast_t, Overflow::Saturate),
+                    Overflow::Wraparound => cast(num, cast_t, Overflow::Wraparound)
                 }
                 // can only cast ints
                 Value::Bool(b) => Err(RuntimeError::TypeError),
