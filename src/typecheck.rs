@@ -1056,7 +1056,7 @@ mod tests {
         ));
     }
 
-    #[test]
+    // #[test]
     // fn stmt() {
     //     //test assign
     //     let mut env = Map.new();
