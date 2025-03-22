@@ -360,7 +360,6 @@ pub fn typeck_block(
 //     for f in fun_env {
 //         if f.1 == fun {
 //             let id = f.0;
-            
 //         }
 //     }
     
@@ -1061,7 +1060,7 @@ mod tests {
     //     //test assign
     //     let mut env = Map.new();
     //     env.insert()
-    //     //test if 
+    //     //test if
     // }
 
     // #[test]
