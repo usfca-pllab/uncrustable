@@ -298,14 +298,13 @@ pub fn typeck_stmt(
             //find out what type the expression is
             let e = typeck_expr(&expr, &env, &function_env)?;
             //assign the id to the expression type in the env??
-            env.insert(*id, e);
-            Ok(())
-            // if Ok(e) {
-            //     env.insert(*id, e);
-            //     Ok(())
-            // } else {
-            //     Err(TypeError::UndefinedVariable(id))
-            // }
+            let x = env.get(id).clone().ok_or(TypeError::UndefinedVariable(*id));
+            if (x.0 == e){
+                Ok(())
+            } else {
+                Err(TypeError::TypeMismatch { expected: (x.0), actual: (e) })
+            }
+            
         }
 
         //TODO find out if this portion is needed for typechecker?
@@ -347,6 +346,7 @@ pub fn typeck_fun(
     let e = typeck_expr(&fun.body, env, &function_env)?;
     if e == fun.ret_typ {
         let t = fun.ret_typ.clone();
+
         Ok(t)
     } else {
         let t = fun.ret_typ.clone();
@@ -357,6 +357,14 @@ pub fn typeck_fun(
     }
     //TODO need to be able to assign an ID, or function signature to
     //     the type of the function and add to FunctionEnv
+    for f in fun_env {
+        if f.1 == fun {
+            let id = f.0;
+            
+        }
+    }
+    
+
 }
 
 #[cfg(test)]
@@ -1048,10 +1056,13 @@ mod tests {
         ));
     }
 
-    // #[test]
-    // fn stmt() {
-    //     todo!()
-    // }
+    #[test]
+    fn stmt() {
+        //test assign
+        let mut env = Map.new();
+        env.insert()
+        //test if 
+    }
 
     // #[test]
     // fn block() {
