@@ -306,12 +306,11 @@ pub fn typeck_stmt(
             if (*x == e) {
                 Ok(())
             } else {
-                Err(TypeError::TypeMismatch { 
+                Err(TypeError::TypeMismatch {
                     expected: (x.to_owned()),
                     actual: (e),
                 })
             }
-            
         }
 
         //TODO find out if this portion is needed for typechecker?
@@ -353,7 +352,6 @@ pub fn typeck_block(
 //     let e = typeck_expr(&fun.body, env, &function_env)?;
 //     if e == fun.ret_typ {
 //         let t = fun.ret_typ.clone();
-// 
 //         Ok(t)
 //     } else {
 //         let t = fun.ret_typ.clone();
