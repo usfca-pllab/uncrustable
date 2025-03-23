@@ -298,12 +298,16 @@ pub fn typeck_stmt(
             //find out what type the expression is
             let e = typeck_expr(&expr, &env, &function_env)?;
             //assign the id to the expression type in the env??
-            let x = env.get(id).clone().ok_or(TypeError::UndefinedVariable(*id)).unwrap();
+            let x = env
+                .get(id)
+                .clone()
+                .ok_or(TypeError::UndefinedVariable(*id))
+                .unwrap();
             if (*x == e) {
                 Ok(())
             } else {
                 Err(TypeError::TypeMismatch { 
-                    expected: (x.to_owned()), 
+                    expected: (x.to_owned()),
                     actual: (e),
                 })
             }
@@ -349,7 +353,7 @@ pub fn typeck_block(
 //     let e = typeck_expr(&fun.body, env, &function_env)?;
 //     if e == fun.ret_typ {
 //         let t = fun.ret_typ.clone();
-
+// 
 //         Ok(t)
 //     } else {
 //         let t = fun.ret_typ.clone();
@@ -365,8 +369,6 @@ pub fn typeck_block(
 //             let id = f.0;
 //         }
 //     }
-    
-
 // }
 
 #[cfg(test)]
