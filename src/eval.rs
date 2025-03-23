@@ -1,6 +1,7 @@
 use crate::syntax::*;
 use std::collections::HashMap as Map;
 use std::ops::Range;
+use std::result;
 use crate::parse::parse;
 
 #[derive(Debug)]
@@ -219,53 +220,60 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
         },
 
         Expr::Match { scrutinee, cases } => {
-            // let val = eval_expr(&scrutinee, env)?;
-            // for case in cases {
-            //     match case.pattern {
-            //         Pattern::Bool(b) => match val {
-            //             Value::Bool(b) => Ok(Value::Bool(true)),
-            //             Value::Sym(s) => Err(RuntimeError::TypeError),
-            //             Value::Num(n) => Err(RuntimeError::TypeError),
-            //             _ => Err(RuntimeError::TypeError),
-            //         },
-            //         Pattern::Num(b) => todo!(),
-            //         Pattern::Sym(b) => todo!(),
-            //         Pattern::Var(id) => todo!()
-            //     }
-            // }
-            Err(RuntimeError::TypeError)
-            /*
-            let pat = case.pattern;
-                match pat {
-                    Pattern::Bool(b) => match val {
-                            Value::Bool(b) => Ok(Value::Bool(true)),
-                            Value::Sym(s) => Err(RuntimeError::TypeError),
-                            Value::Num(n) => Err(RuntimeError::TypeError),
-                            _ => Err(RuntimeError::TypeError),
-                        },
-                    
-                    Pattern::Num(n) => match val {
-                        Value::Bool(b) => Ok(Value::Bool(true)),
+            let raw_val = eval_expr(&scrutinee, env)?;
+            let res;
+            for case in cases {
+                let pattern = match case.pattern {
+                    Pattern::Bool(b) => Value::Bool(b),
+                    Pattern::Num(n) => Value::Num(n, Range { start: n, end: n + 1 }),
+                    Pattern::Sym(s) => Value::Sym(s),
+                    Pattern::Var(id) => continue
+                };
+                if raw_val == pattern {
+                    let g = eval_expr(&case.guard, env).unwrap();
+                    match g {
+                        Value::Bool(b) if b => Ok(eval_expr(&case.result, env)),
                         Value::Sym(s) => Err(RuntimeError::TypeError),
-                        Value::Num(n) => Err(RuntimeError::TypeError),
-                        _ => Err(RuntimeError::TypeError),
-                    },
-                    Pattern::Sym(s) => match val {
-                        Value::Bool(b) => Ok(Value::Bool(true)),
-                        Value::Sym(s) => Err(RuntimeError::TypeError),
-                        Value::Num(n) => Err(RuntimeError::TypeError),
-                        _ => Err(RuntimeError::TypeError),
-                    },
-                    Pattern::Var(id) => match val {
-                        Value::Bool(b) => Ok(Value::Bool(true)),
-                        Value::Sym(s) => Err(RuntimeError::TypeError),
-                        Value::Num(n) => Err(RuntimeError::TypeError),
-                        _ => Err(RuntimeError::TypeError),
-                    },
-                    _ => Err(RuntimeError::TypeError),
+                        Value::Num(n, range) => Err(RuntimeError::TypeError)
+                    }
                 }
-            } */
+                else {
+                    Err(RuntimeError::TypeError)
+                }
+
+            }
+            Err(RuntimeError::TypeError)
         },
+        /*
+         * let val = eval_expr(&scrutinee, env)?;
+            let c;
+            for case in cases {
+                let val_p = match (val, case.pattern){
+                    (Value::Bool(vb), Pattern::Bool(pb)) => {
+                        if vb == pb {
+                            let g = eval_expr(&case.guard, env);
+                            match g {
+                                Value::Bool(b) => {
+                                    if b {
+                                        c = case.result;
+                                        Ok(Value::Bool(b))
+                                    }
+                                    else {
+                                        Err(RuntimeError::InvalidExpression)
+                                    }
+                                },
+                                Value::Num(n, range),
+                                Value::Sym(s)
+                            }
+                        }
+                    }
+                    (Value::Num(nn, range), Pattern::Num(pn)) => Ok(Value::Num(nn, range)),
+                    (Value::Sym(s), Pattern::Sym(ps)) => Ok(Value::Sym(s)),
+                    _ => Err(RuntimeError::TypeError),
+                };
+            }
+            eval_expr(&c, env)
+         */
 
         Expr::Call { callee, args } => {
             let mut env_args = Env::new();
