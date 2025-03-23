@@ -342,37 +342,31 @@ pub fn typeck_block(
     Ok(())
 }
 
-pub fn typeck_fun(fun_env: &FunctionEnv, env: &mut TypeEnv) -> Result<Type, TypeError> {
-    // let cpy_env = fun_env.clone();
-    todo!()
-}
-
-// pub fn typeck_fun(
-//     fun: &Function,
-//     function_env: &FunctionEnv,
-//     env: &mut TypeEnv,
-// ) -> Result<Type, TypeError> {
+// pub fn typeck_fun(fun: &Function, fun_env: &FunctionEnv) -> Result<Type, TypeError> {
+//     let cpy_env = fun_env.clone();
+//     cpy_env.
 //     // todo!()
-//     let fun_env = function_env.clone();
-//     let e = typeck_expr(&fun.body, env, &function_env)?;
-//     if e == fun.ret_typ {
-//         let t = fun.ret_typ.clone();
-//         Ok(t)
-//     } else {
-//         let t = fun.ret_typ.clone();
-//         Err(TypeError::TypeMismatch {
-//             expected: t,
-//             actual: e,
-//         })
-//     }
-//     //TODO need to be able to assign an ID, or function signature to
-//     //     the type of the function and add to FunctionEnv
-//     for f in fun_env {
-//         if f.1 == fun {
-//             let id = f.0;
-//         }
-//     }
 // }
+
+pub fn typeck_fun(
+    fun: &Function,
+    function_env: &FunctionEnv,
+    env: &mut TypeEnv,
+) -> Result<Type, TypeError> {
+    // todo!()
+    let fun_env = function_env.clone();
+    let e = typeck_expr(&fun.body, env, &function_env)?;
+    if e == fun.ret_typ {
+        let t = fun.ret_typ.clone();
+        Ok(t)
+    } else {
+        let t = fun.ret_typ.clone();
+        Err(TypeError::TypeMismatch {
+            expected: t,
+            actual: e,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
