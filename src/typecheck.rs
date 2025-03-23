@@ -297,7 +297,9 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::syntax::{id, Case, Expr, Map, Overflow, Pattern, Type};
+    use crate::syntax::{
+        id, Block, Case, Expr, Function, Map, Overflow, Pattern, Program, Stmt, Symbol, Type,
+    };
 
     #[test]
     fn variables() {
@@ -307,62 +309,71 @@ mod tests {
         env.insert(id("b"), Type::BoolT);
         env.insert(id("s"), Type::SymT);
 
+        // Create context
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
+
         // Test variable lookup for existing variables
         let x_expr = Expr::Var(id("x"));
         let b_expr = Expr::Var(id("b"));
         let s_expr = Expr::Var(id("s"));
 
-        assert!(
-            matches!(typeck_expr(&x_expr, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..10))
-        );
-        assert!(matches!(
-            typeck_expr(&b_expr, &env, &Map::new()),
-            Ok(Type::BoolT)
-        ));
-        assert!(matches!(
-            typeck_expr(&s_expr, &env, &Map::new()),
-            Ok(Type::SymT)
-        ));
+        assert!(matches!(typeck_expr(&x_expr, &ctx), Ok(Type::NumT(range)) if range == (0..10)));
+        assert!(matches!(typeck_expr(&b_expr, &ctx), Ok(Type::BoolT)));
+        assert!(matches!(typeck_expr(&s_expr, &ctx), Ok(Type::SymT)));
 
         // Test variable lookup for non-existent variable
         let unknown_expr = Expr::Var(id("unknown"));
-        assert!(typeck_expr(&unknown_expr, &env, &Map::new()).is_err());
+        assert!(typeck_expr(&unknown_expr, &ctx).is_err());
     }
 
     #[test]
     fn undefined_variables() {
         // Create an empty type environment
         let env = Map::new();
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
 
         // Try to access an undefined variable
         let undefined_expr = Expr::Var(id("undefined_flag"));
 
         // Should result in an error
-        assert!(typeck_expr(&undefined_expr, &env, &Map::new()).is_err());
+        assert!(typeck_expr(&undefined_expr, &ctx).is_err());
 
         // Create an environment with some variables, but not the one we'll try to access
         let mut env = Map::new();
         env.insert(id("existing_flag"), Type::BoolT);
         env.insert(id("count"), Type::NumT(0..100));
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
 
         // Try to access a different undefined variable
         let another_undefined_expr = Expr::Var(id("another_flag"));
 
         // Should also result in an error
-        assert!(typeck_expr(&another_undefined_expr, &env, &Map::new()).is_err());
+        assert!(typeck_expr(&another_undefined_expr, &ctx).is_err());
     }
 
     #[test]
     fn literals() {
-        let env = Map::new();
+        let ctx = TypeCtx {
+            env: Map::new(),
+            funcs: &Map::new(),
+        };
 
         // Test boolean literals
         assert!(matches!(
-            typeck_expr(&Expr::Bool(true), &env, &Map::new()),
+            typeck_expr(&Expr::Bool(true), &ctx),
             Ok(Type::BoolT)
         ));
         assert!(matches!(
-            typeck_expr(&Expr::Bool(false), &env, &Map::new()),
+            typeck_expr(&Expr::Bool(false), &ctx),
             Ok(Type::BoolT)
         ));
 
@@ -372,22 +383,20 @@ mod tests {
 
         for (_i, (range, value)) in ranges.iter().zip(values.iter()).enumerate() {
             let num = Expr::Num(*value, Type::NumT(range.clone()));
-            assert!(
-                matches!(typeck_expr(&num, &env, &Map::new()), Ok(Type::NumT(r)) if r == *range)
-            );
+            assert!(matches!(typeck_expr(&num, &ctx), Ok(Type::NumT(r)) if r == *range));
         }
 
         // Test symbol literals
-        assert!(matches!(
-            typeck_expr(&Expr::Sym('a'), &env, &Map::new()),
-            Ok(Type::SymT)
-        ));
+        assert!(matches!(typeck_expr(&Expr::Sym('a'), &ctx), Ok(Type::SymT)));
     }
 
     #[test]
     fn binary_operations() {
         // Create a type environment
-        let env = Map::new();
+        let ctx = TypeCtx {
+            env: Map::new(),
+            funcs: &Map::new(),
+        };
 
         // Define test types and expressions
         let num_type1 = Type::NumT(0..1);
@@ -430,7 +439,7 @@ mod tests {
                 };
 
                 assert!(
-                    matches!(typeck_expr(&bin_op, &env, &Map::new()), Ok(Type::NumT(range)) if range == expected_range)
+                    matches!(typeck_expr(&bin_op, &ctx), Ok(Type::NumT(r)) if r == expected_range)
                 );
             }
         }
@@ -446,10 +455,7 @@ mod tests {
                     rhs: Box::new((*rhs).clone()),
                 };
 
-                assert!(matches!(
-                    typeck_expr(&bin_op, &env, &Map::new()),
-                    Ok(Type::BoolT)
-                ));
+                assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::BoolT)));
             }
         }
 
@@ -463,10 +469,7 @@ mod tests {
                 rhs: Box::new(false_expr.clone()),
             };
 
-            assert!(matches!(
-                typeck_expr(&bin_op, &env, &Map::new()),
-                Ok(Type::BoolT)
-            ));
+            assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::BoolT)));
         }
 
         // Test type mismatches
@@ -475,21 +478,21 @@ mod tests {
             op: BOp::Add,
             rhs: Box::new(bool_expr.clone()),
         };
-        assert!(typeck_expr(&invalid_add, &env, &Map::new()).is_err());
+        assert!(typeck_expr(&invalid_add, &ctx).is_err());
 
         let invalid_type_add = Expr::BinOp {
             lhs: Box::new(num1.clone()),
             op: BOp::Add,
             rhs: Box::new(num2.clone()),
         };
-        assert!(typeck_expr(&invalid_type_add, &env, &Map::new()).is_err());
+        assert!(typeck_expr(&invalid_type_add, &ctx).is_err());
 
         let invalid_and = Expr::BinOp {
             lhs: Box::new(bool_expr.clone()),
             op: BOp::And,
             rhs: Box::new(num1.clone()),
         };
-        assert!(typeck_expr(&invalid_and, &env, &Map::new()).is_err());
+        assert!(typeck_expr(&invalid_and, &ctx).is_err());
 
         // Create a type environment with variables
         let mut env = Map::new();
@@ -498,6 +501,10 @@ mod tests {
         env.insert(id("z"), Type::NumT(-5..5));
         env.insert(id("flag1"), Type::BoolT);
         env.insert(id("flag2"), Type::BoolT);
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
 
         // Create variable expressions
         let x_expr = Expr::Var(id("x"));
@@ -542,14 +549,9 @@ mod tests {
             let bin_op = Expr::BinOp { lhs, op, rhs };
 
             match expected {
-                Ok(Type::BoolT) => assert!(matches!(
-                    typeck_expr(&bin_op, &env, &Map::new()),
-                    Ok(Type::BoolT)
-                )),
+                Ok(Type::BoolT) => assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::BoolT))),
                 Ok(Type::NumT(range)) => {
-                    assert!(
-                        matches!(typeck_expr(&bin_op, &env, &Map::new()), Ok(Type::NumT(r)) if r == range)
-                    )
+                    assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::NumT(r)) if r == range))
                 }
                 _ => panic!("Unexpected expected type"),
             }
@@ -569,7 +571,7 @@ mod tests {
 
         for (lhs, op, rhs) in invalid_operations {
             let bin_op = Expr::BinOp { lhs, op, rhs };
-            assert!(typeck_expr(&bin_op, &env, &Map::new()).is_err());
+            assert!(typeck_expr(&bin_op, &ctx).is_err());
         }
     }
 
@@ -579,6 +581,10 @@ mod tests {
         let mut env = Map::new();
         env.insert(id("x"), Type::NumT(0..10));
         env.insert(id("flag"), Type::BoolT);
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
 
         // Create variable expressions
         let x_expr = Expr::Var(id("x"));
@@ -596,14 +602,9 @@ mod tests {
             let unary_op = Expr::UOp { op, inner };
 
             match expected {
-                Ok(Type::BoolT) => assert!(matches!(
-                    typeck_expr(&unary_op, &env, &Map::new()),
-                    Ok(Type::BoolT)
-                )),
+                Ok(Type::BoolT) => assert!(matches!(typeck_expr(&unary_op, &ctx), Ok(Type::BoolT))),
                 Ok(Type::NumT(range)) => {
-                    assert!(
-                        matches!(typeck_expr(&unary_op, &env, &Map::new()), Ok(Type::NumT(r)) if r == range)
-                    )
+                    assert!(matches!(typeck_expr(&unary_op, &ctx), Ok(Type::NumT(r)) if r == range))
                 }
                 _ => panic!("Unexpected expected type"),
             }
@@ -619,7 +620,7 @@ mod tests {
 
         for (op, inner) in invalid_operations {
             let unary_op = Expr::UOp { op, inner };
-            assert!(typeck_expr(&unary_op, &env, &Map::new()).is_err());
+            assert!(typeck_expr(&unary_op, &ctx).is_err());
         }
     }
 
@@ -631,6 +632,10 @@ mod tests {
         env.insert(id("y"), Type::NumT(-5..5));
         env.insert(id("flag"), Type::BoolT);
         env.insert(id("sym"), Type::SymT);
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
 
         // Test valid numeric casts
 
@@ -640,9 +645,7 @@ mod tests {
             typ: Type::NumT(0..100),
             overflow: Overflow::Fail,
         };
-        assert!(
-            matches!(typeck_expr(&cast1, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..100))
-        );
+        assert!(matches!(typeck_expr(&cast1, &ctx), Ok(Type::NumT(range)) if range == (0..100)));
 
         // Cast from negative range to positive range
         let cast2 = Expr::Cast {
@@ -650,9 +653,7 @@ mod tests {
             typ: Type::NumT(0..10),
             overflow: Overflow::Wraparound, // Allow overflow with wraparound
         };
-        assert!(
-            matches!(typeck_expr(&cast2, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..10))
-        );
+        assert!(matches!(typeck_expr(&cast2, &ctx), Ok(Type::NumT(range)) if range == (0..10)));
 
         // Cast from numeric literal to different range
         let cast3 = Expr::Cast {
@@ -660,9 +661,7 @@ mod tests {
             typ: Type::NumT(0..50),
             overflow: Overflow::Saturate,
         };
-        assert!(
-            matches!(typeck_expr(&cast3, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..50))
-        );
+        assert!(matches!(typeck_expr(&cast3, &ctx), Ok(Type::NumT(range)) if range == (0..50)));
 
         // Cast from result of binary operation
         let cast4 = Expr::Cast {
@@ -674,9 +673,7 @@ mod tests {
             typ: Type::NumT(0..20),
             overflow: Overflow::Fail,
         };
-        assert!(
-            matches!(typeck_expr(&cast4, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..20))
-        );
+        assert!(matches!(typeck_expr(&cast4, &ctx), Ok(Type::NumT(range)) if range == (0..20)));
 
         // Test invalid casts
 
@@ -687,7 +684,7 @@ mod tests {
             overflow: Overflow::Fail,
         };
         assert!(matches!(
-            typeck_expr(&invalid_cast1, &env, &Map::new()),
+            typeck_expr(&invalid_cast1, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
 
@@ -698,7 +695,7 @@ mod tests {
             overflow: Overflow::Fail,
         };
         assert!(matches!(
-            typeck_expr(&invalid_cast2, &env, &Map::new()),
+            typeck_expr(&invalid_cast2, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
 
@@ -709,7 +706,7 @@ mod tests {
             overflow: Overflow::Fail,
         };
         assert!(matches!(
-            typeck_expr(&invalid_cast3, &env, &Map::new()),
+            typeck_expr(&invalid_cast3, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
 
@@ -720,7 +717,7 @@ mod tests {
             overflow: Overflow::Fail,
         };
         assert!(matches!(
-            typeck_expr(&invalid_cast4, &env, &Map::new()),
+            typeck_expr(&invalid_cast4, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
 
@@ -735,7 +732,7 @@ mod tests {
             overflow: Overflow::Fail,
         };
         assert!(
-            matches!(typeck_expr(&nested_cast, &env, &Map::new()), Ok(Type::NumT(range)) if range == (0..25))
+            matches!(typeck_expr(&nested_cast, &ctx), Ok(Type::NumT(range)) if range == (0..25))
         );
     }
 
@@ -783,6 +780,11 @@ mod tests {
             },
         );
 
+        let ctx = TypeCtx {
+            env,
+            funcs: &function_env,
+        };
+
         // Test valid function calls
 
         // Call is_positive with a numeric variable
@@ -790,19 +792,14 @@ mod tests {
             callee: id("is_positive"),
             args: vec![Expr::Var(id("x"))],
         };
-        assert!(matches!(
-            typeck_expr(&call1, &env, &function_env),
-            Ok(Type::BoolT)
-        ));
+        assert!(matches!(typeck_expr(&call1, &ctx), Ok(Type::BoolT)));
 
         // Call to_number with a boolean variable
         let call2 = Expr::Call {
             callee: id("to_number"),
             args: vec![Expr::Var(id("flag"))],
         };
-        assert!(
-            matches!(typeck_expr(&call2, &env, &function_env), Ok(Type::NumT(range)) if range == (0..1))
-        );
+        assert!(matches!(typeck_expr(&call2, &ctx), Ok(Type::NumT(range)) if range == (0..1)));
 
         // Call complex_func with appropriate arguments
         let call3 = Expr::Call {
@@ -813,9 +810,7 @@ mod tests {
                 Expr::Var(id("flag")),
             ],
         };
-        assert!(
-            matches!(typeck_expr(&call3, &env, &function_env), Ok(Type::NumT(range)) if range == (0..20))
-        );
+        assert!(matches!(typeck_expr(&call3, &ctx), Ok(Type::NumT(range)) if range == (0..20)));
 
         // Test invalid function calls
 
@@ -825,7 +820,7 @@ mod tests {
             args: vec![Expr::Var(id("x"))],
         };
         assert!(matches!(
-            typeck_expr(&invalid_call1, &env, &function_env),
+            typeck_expr(&invalid_call1, &ctx),
             Err(TypeError::UndefinedFunction(_))
         ));
 
@@ -835,7 +830,7 @@ mod tests {
             args: vec![Expr::Var(id("x")), Expr::Var(id("flag"))],
         };
         assert!(matches!(
-            typeck_expr(&invalid_call2, &env, &function_env),
+            typeck_expr(&invalid_call2, &ctx),
             Err(TypeError::WrongNumberOfArguments {
                 expected: 1,
                 actual: 2
@@ -848,7 +843,7 @@ mod tests {
             args: vec![Expr::Var(id("flag"))],
         };
         assert!(matches!(
-            typeck_expr(&invalid_call3, &env, &function_env),
+            typeck_expr(&invalid_call3, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
     }
@@ -860,9 +855,10 @@ mod tests {
         env.insert(id("x"), Type::NumT(0..10));
         env.insert(id("flag"), Type::BoolT);
         env.insert(id("sym"), Type::SymT);
-
-        // Create a function environment (empty for this test)
-        let function_env = Map::new();
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
 
         // Test pattern matching with numeric scrutinee
         let num_match = Expr::Match {
@@ -882,10 +878,7 @@ mod tests {
                 },
             ],
         };
-        assert!(matches!(
-            typeck_expr(&num_match, &env, &function_env),
-            Ok(Type::BoolT)
-        ));
+        assert!(matches!(typeck_expr(&num_match, &ctx), Ok(Type::BoolT)));
 
         // Test pattern matching with boolean scrutinee
         let bool_match = Expr::Match {
@@ -906,7 +899,7 @@ mod tests {
             ],
         };
         assert!(
-            matches!(typeck_expr(&bool_match, &env, &function_env), Ok(Type::NumT(range)) if range == (0..10))
+            matches!(typeck_expr(&bool_match, &ctx), Ok(Type::NumT(range)) if range == (0..10))
         );
 
         // Test pattern matching with symbol scrutinee
@@ -927,9 +920,7 @@ mod tests {
                 },
             ],
         };
-        assert!(
-            matches!(typeck_expr(&sym_match, &env, &function_env), Ok(Type::NumT(range)) if range == (0..10))
-        );
+        assert!(matches!(typeck_expr(&sym_match, &ctx), Ok(Type::NumT(range)) if range == (0..10)));
 
         // Test invalid pattern matching
 
@@ -943,7 +934,7 @@ mod tests {
             }],
         };
         assert!(matches!(
-            typeck_expr(&invalid_match1, &env, &function_env),
+            typeck_expr(&invalid_match1, &ctx),
             Err(TypeError::TypeMismatchBetweenPatternAndScrutinee { .. })
         ));
 
@@ -964,7 +955,7 @@ mod tests {
             ],
         };
         assert!(matches!(
-            typeck_expr(&invalid_match2, &env, &function_env),
+            typeck_expr(&invalid_match2, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
 
@@ -978,7 +969,7 @@ mod tests {
             }],
         };
         assert!(matches!(
-            typeck_expr(&invalid_match3, &env, &function_env),
+            typeck_expr(&invalid_match3, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
     }
