@@ -1,6 +1,7 @@
 use crate::syntax::*;
 use std::collections::HashMap as Map;
 use std::ops::Range;
+use crate::parse::parse;
 
 #[derive(Debug)]
 enum RuntimeError {
@@ -10,13 +11,14 @@ enum RuntimeError {
     TypeError,
     InvalidOperand,
     ModulusByZero, 
+    OutOfRange,
 }
 
 // abstraction for values making up expressions
 #[derive(Debug, Clone, PartialEq)]
 enum Value {
     Bool(bool),
-    Num(i64), // TODO: Range<i64> might need to be usize for range
+    Num(i64, Range<i64>),
     Sym(Symbol),
 }
 
@@ -45,7 +47,7 @@ fn init_env(program: &Program) -> Env {
             //  TODO - add Range to the Num enum
             //  default to be beginning of range
             Type::NumT(range) => {
-                        Value::Num(range.start) // Range { start: range.start, end: range.end })
+                        Value::Num(range.start, Range { start: range.start, end: range.end })
                     },
                     
             //  default to empty char
@@ -78,19 +80,49 @@ fn eval(program: &Program, input: &str) ->Result<(bool, Env), RuntimeError> {
     Ok((false, env))
 }
 
+fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeError> {
+    let lower = range.start;
+    let upper = range.end; 
+    let val = match overflow {
+        Overflow::Fail => {
+            if v > upper {
+                Err(RuntimeError::OutOfRange)
+            }
+            else if v < lower {
+                Err(RuntimeError::OutOfRange)
+            }
+            else {
+                Ok(Value::Num(v, range))
+            }
+        },
+        Overflow::Saturate => {
+            if v > upper {
+                Ok(Value::Num(upper - 1, range))
+            }
+            else if v < lower {
+                Ok(Value::Num(lower, range))
+            }
+            else {
+                Ok(Value::Num(v, range))
+            }
+        }
+        Overflow::Wraparound => Ok(Value::Num(((v - lower).abs() % (upper - lower) + lower), Range { start: lower, end: upper })),
+        _ => Err(RuntimeError::InvalidExpression)
+    };
+    return val;
+}
+
 // eval. expr.
 fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
     match expr {
 
 		/* TODO
     		Expr::Call
-    		Expr::Cast
     		Expr::Match
-            Expr::Var --> i think this is completed?? i'm not sure how to test for it
     		How to handle ranges if we have to??
     	*/
     	
-        Expr::Num(n, _) => Ok(Value::Num(*n)),
+        Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
         Expr::Var(id) => Ok(env.get(id).unwrap().clone()), // will return a Value
@@ -101,27 +133,27 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 			let right = eval_expr(rhs, env)?;
 
 			match (left, right) {
-			    (Value::Num(l), Value::Num(r)) => match op {
+			    (Value::Num(l, l_range), Value::Num(r, range_ignore)) => match op {
 			    	// numerical return
-			        BOp::Add => Ok(Value::Num(l + r)),
-			        BOp::Sub => Ok(Value::Num(l - r)),
-			        BOp::Mul => Ok(Value::Num(l * r)),
+			        BOp::Add => cast(l + r, l_range, Overflow::Wraparound),
+			        BOp::Sub => cast(l - r, l_range, Overflow::Wraparound),
+			        BOp::Mul => cast(l * r, l_range, Overflow::Wraparound),
 			        BOp::Div => {
 			            if r == 0 {
 			                Err(RuntimeError::DivisionbyZero)
 			            } else {
-			                Ok(Value::Num(l / r))
+			                cast(l / r, l_range, Overflow::Wraparound)
 			            }
 			        },
 			        BOp::Rem => {
                         if r == 0 {
                             Err(RuntimeError::ModulusByZero)
                         } else {
-                            Ok(Value::Num(l % r))
+                            cast(l % r, l_range, Overflow::Wraparound)
                         }
                     },
-			        BOp::Shl => Ok(Value::Num(l << r)),
-			        BOp::Shr => Ok(Value::Num(l >> r)),
+			        BOp::Shl => cast(l << r, l_range, Overflow::Wraparound),
+			        BOp::Shr => cast(l >> r, l_range, Overflow::Wraparound),
 
 			        // boolean return
 			  		BOp::Lt => Ok(Value::Bool(l < r)),
@@ -149,8 +181,8 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
             
             match left {
             
-                Value::Num(l) => match op {
-                    UOp::Negate => Ok(Value::Num(-l)),
+                Value::Num(l, range) => match op {
+                    UOp::Negate => cast(-l, range, Overflow::Wraparound),
                     _ => Err(RuntimeError::InvalidOperand),
                 },
                 
@@ -164,15 +196,20 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 
         Expr::Cast {inner, typ, overflow } => {
             
+            let cast_t = match typ {
+                Type::BoolT => Err(RuntimeError::TypeError),
+                Type::SymT => Err(RuntimeError::TypeError),
+                Type::NumT(n) => Ok(n.clone())
+            }?;
+            
             let val = eval_expr(inner, env)?;
 
             match val {
-                Value::Num(num) => match overflow {
+                Value::Num(num, range) => match overflow {
                     
-                    Overflow::Fail => todo!(),
-                    Overflow::Saturate => todo!(),
-                    // (n - lower) % (upper - lower) + lower
-                    Overflow::Wraparound => todo!()
+                    Overflow::Fail => cast(num, cast_t, Overflow::Fail),
+                    Overflow::Saturate => cast(num, cast_t, Overflow::Saturate),
+                    Overflow::Wraparound => cast(num, cast_t, Overflow::Wraparound)
                 }
                 // can only cast ints
                 Value::Bool(b) => Err(RuntimeError::TypeError),
@@ -181,8 +218,60 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
         
         },
 
-        Expr::Call { callee, args } => {
+        Expr::Match { scrutinee, cases } => {
+            // let val = eval_expr(&scrutinee, env)?;
+            // for case in cases {
+            //     match case.pattern {
+            //         Pattern::Bool(b) => match val {
+            //             Value::Bool(b) => Ok(Value::Bool(true)),
+            //             Value::Sym(s) => Err(RuntimeError::TypeError),
+            //             Value::Num(n) => Err(RuntimeError::TypeError),
+            //             _ => Err(RuntimeError::TypeError),
+            //         },
+            //         Pattern::Num(b) => todo!(),
+            //         Pattern::Sym(b) => todo!(),
+            //         Pattern::Var(id) => todo!()
+            //     }
+            // }
+            Err(RuntimeError::TypeError)
+            /*
+            let pat = case.pattern;
+                match pat {
+                    Pattern::Bool(b) => match val {
+                            Value::Bool(b) => Ok(Value::Bool(true)),
+                            Value::Sym(s) => Err(RuntimeError::TypeError),
+                            Value::Num(n) => Err(RuntimeError::TypeError),
+                            _ => Err(RuntimeError::TypeError),
+                        },
+                    
+                    Pattern::Num(n) => match val {
+                        Value::Bool(b) => Ok(Value::Bool(true)),
+                        Value::Sym(s) => Err(RuntimeError::TypeError),
+                        Value::Num(n) => Err(RuntimeError::TypeError),
+                        _ => Err(RuntimeError::TypeError),
+                    },
+                    Pattern::Sym(s) => match val {
+                        Value::Bool(b) => Ok(Value::Bool(true)),
+                        Value::Sym(s) => Err(RuntimeError::TypeError),
+                        Value::Num(n) => Err(RuntimeError::TypeError),
+                        _ => Err(RuntimeError::TypeError),
+                    },
+                    Pattern::Var(id) => match val {
+                        Value::Bool(b) => Ok(Value::Bool(true)),
+                        Value::Sym(s) => Err(RuntimeError::TypeError),
+                        Value::Num(n) => Err(RuntimeError::TypeError),
+                        _ => Err(RuntimeError::TypeError),
+                    },
+                    _ => Err(RuntimeError::TypeError),
+                }
+            } */
+        },
 
+        Expr::Call { callee, args } => {
+            let mut env_args = Env::new();
+            // let val = eval_expr(env.get(callee).unwrap().clone(), &env_args);
+            // env.insert(args);
+            // try eval_expr(env.get(callee), args)
             Err(RuntimeError::InvalidExpression)
         }
 
@@ -258,7 +347,7 @@ fn test_simple_2() {
     let (result, env) = eval(&program, input).unwrap();
     
     assert_eq!(env.get(&id("x")), Some(&Value::Bool(false)));  
-    assert_eq!(env.get(&id("y")), Some(&Value::Num(2)));
+    assert_eq!(env.get(&id("y")), Some(&Value::Num(2, 2..7)));
 }
 
 
@@ -294,8 +383,8 @@ fn test_binop_1() {
     let input = "";
     let (result, env) = eval(&program, input).unwrap();
 
-    assert_eq!(env.get(&id("x")), Some(&Value::Num(7)));  
-    assert_eq!(env.get(&id("y")), Some(&Value::Num(4))); 
+    assert_eq!(env.get(&id("x")), Some(&Value::Num(7, 0..10)));  
+    assert_eq!(env.get(&id("y")), Some(&Value::Num(4, 0..10))); 
 }
 
 
@@ -330,8 +419,8 @@ fn test_binop_2() {
 
     let input = "";
     let (result, env) = eval(&program, input).unwrap();
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(8))); 
-    assert_eq!(env.get(&id("w")), Some(&Value::Num(2)));
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(8, 0..10))); 
+    assert_eq!(env.get(&id("w")), Some(&Value::Num(2, 0..10)));
 }
 
 
@@ -405,9 +494,9 @@ fn test_binop_4() {
     let input = "";
     let (result, env) = eval(&program, input).unwrap();
 
-    assert_eq!(env.get(&id("v")), Some(&Value::Num(1)));  
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(4)));  
-    assert_eq!(env.get(&id("w")), Some(&Value::Num(2))); 
+    assert_eq!(env.get(&id("v")), Some(&Value::Num(0, 0..10)));
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(4, 0..10)));
+    assert_eq!(env.get(&id("w")), Some(&Value::Num(2, 0..10))); 
 }
 
 #[test]
@@ -432,7 +521,7 @@ fn test_binop_5() {
                 Expr::BinOp {
                     op: BOp::Lt,
                     lhs: Box::new(Expr::Num(3, Type::NumT(0..10))),
-                    rhs: Box::new(Expr::Num(10, Type::NumT(0..10))),
+                    rhs: Box::new(Expr::Num(9, Type::NumT(0..10))),
                 },
             ),
             Stmt::Assign(
@@ -494,7 +583,7 @@ fn test_binop_5() {
     let input = "";
     let (result, env) = eval(&program, input).unwrap();
 
-	assert_eq!(env.get(&id("v")), Some(&Value::Bool(false)));  
+	assert_eq!(env.get(&id("v")), Some(&Value::Bool(true)));  
     assert_eq!(env.get(&id("x")), Some(&Value::Bool(true)));  
     assert_eq!(env.get(&id("y")), Some(&Value::Bool(false))); 
     assert_eq!(env.get(&id("z")), Some(&Value::Bool(true)));   
@@ -570,8 +659,123 @@ fn test_unop() {
     let input = "";
     let (result, env) = eval(&program, input).unwrap();
 
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(-4)));
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(-4, 0..10)));
     assert_eq!(env.get(&id("w")), Some(&Value::Bool(false)));
 }
 
+#[test]
+// Cast, wraparound
+fn test_cast_wraparound() {
+    let program = Program {
+        alphabet: Set::from([Symbol('d')]),
+        helpers: Map::new(),
+        locals: Map::new(),
+        start: vec![],
+        action: (Some(id("y")), vec![
+            // under bounds
+            Stmt::Assign(
+                id("z"), 
+                Expr::Cast { 
+                    inner: Box::new(Expr::Num(1, Type::NumT(0..10))), 
+                    typ: Type::NumT(2..5), 
+                    overflow: Overflow::Wraparound 
+                }
+            ),
+            // over bounds
+            Stmt::Assign(
+                id("a"), 
+                Expr::Cast { 
+                    inner: Box::new(Expr::Num(9, Type::NumT(0..10))), 
+                    typ: Type::NumT(2..5), 
+                    overflow: Overflow::Wraparound 
+                }
+            )
+        ]),
+        accept: Expr::Bool(true),
+    };
+    let input = "";
+    
+    let (result, env) = eval(&program, input).unwrap();
+
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(3, 2..5)));
+    assert_eq!(env.get(&id("a")), Some(&Value::Num(3, 2..5)));
+}
+
+#[test]
+// Cast, saturate
+fn test_cast_saturate() {
+    let program = Program {
+        alphabet: Set::from([Symbol('d')]),
+        helpers: Map::new(),
+        locals: Map::new(),
+        start: vec![],
+        action: (Some(id("y")), vec![
+            // under bounds
+            Stmt::Assign(
+                id("z"), 
+                Expr::Cast { 
+                    inner: Box::new(Expr::Num(1, Type::NumT(0..10))), 
+                    typ: Type::NumT(2..5), 
+                    overflow: Overflow::Saturate 
+                }
+            ),
+            // over bounds
+            Stmt::Assign(
+                id("a"), 
+                Expr::Cast { 
+                    inner: Box::new(Expr::Num(9, Type::NumT(0..10))), 
+                    typ: Type::NumT(2..5), 
+                    overflow: Overflow::Saturate 
+                }
+            )
+        ]),
+        accept: Expr::Bool(true),
+    };
+    let input = "";
+    
+    let (result, env) = eval(&program, input).unwrap();
+
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 2..5)));
+    assert_eq!(env.get(&id("a")), Some(&Value::Num(4, 2..5)));
+}
+
+#[test]
+// Cast, fail
+fn test_cast_fail() {
+    let program = Program {
+        alphabet: Set::from([Symbol('d')]),
+        helpers: Map::new(),
+        locals: Map::new(),
+        start: vec![],
+        action: (Some(id("y")), vec![
+            // under bounds
+            Stmt::Assign(
+                id("z"), 
+                Expr::Cast { 
+                    inner: Box::new(Expr::Num(1, Type::NumT(0..10))), 
+                    typ: Type::NumT(2..5), 
+                    overflow: Overflow::Fail 
+                }
+            ),
+            // over bounds
+            Stmt::Assign(
+                id("a"), 
+                Expr::Cast { 
+                    inner: Box::new(Expr::Num(9, Type::NumT(0..10))), 
+                    typ: Type::NumT(2..5), 
+                    overflow: Overflow::Fail 
+                }
+            )
+        ]),
+        accept: Expr::Bool(true),
+    };
+    let input = "";
+    
+    let result = eval(&program, input);
+
+    match result {
+        Err(RuntimeError::OutOfRange) => (),
+        _ => panic!("Expected OutOfRange error but got: {:?}", result),
+    }
+}
 
