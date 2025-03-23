@@ -283,7 +283,7 @@ pub fn typeck_expr(
     }
 }
 
-// in progress, need to verify understanding and test
+///Typecheck a statement in a given environment
 pub fn typeck_stmt(
     stmt: &Stmt,
     env: &mut TypeEnv,
@@ -303,7 +303,7 @@ pub fn typeck_stmt(
                 .clone()
                 .ok_or(TypeError::UndefinedVariable(*id))
                 .unwrap();
-            if (*x == e) {
+            if *x == e {
                 Ok(())
             } else {
                 Err(TypeError::TypeMismatch {
@@ -313,7 +313,6 @@ pub fn typeck_stmt(
             }
         }
 
-        //TODO find out if this portion is needed for typechecker?
         Stmt::If {
             cond,
             true_branch,
@@ -328,6 +327,7 @@ pub fn typeck_stmt(
     }
 }
 
+///Typecheck a block of statements in the given environment using typeck_stmt
 pub fn typeck_block(
     blk: &Block,
     env: &mut TypeEnv,
@@ -342,12 +342,7 @@ pub fn typeck_block(
     Ok(())
 }
 
-// pub fn typeck_fun(fun: &Function, fun_env: &FunctionEnv) -> Result<Type, TypeError> {
-//     let cpy_env = fun_env.clone();
-//     cpy_env.
-//     // todo!()
-// }
-
+///Typecheck a function using the given environment and function environment
 pub fn typeck_fun(
     fun: &Function,
     function_env: &FunctionEnv,
