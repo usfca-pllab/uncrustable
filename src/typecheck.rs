@@ -42,23 +42,22 @@ pub enum TypeError {
     },
 }
 
-/// Type environment mapping variables to their types
-type TypeEnv = Map<Id, Type>;
+/// Type context for type checking
+pub struct TypeCtx<'prog> {
+    /// Type environment
+    env: Map<Id, Type>,
+    /// Function environment
+    funcs: &'prog Map<Id, Function>,
+}
 
-/// Function environment mapping function names to their definitions
-type FunctionEnv = Map<Id, Function>;
-
-/// Type check an expression in a given environment
-pub fn typeck_expr(
-    expr: &Expr,
-    env: &TypeEnv,
-    function_env: &FunctionEnv,
-) -> Result<Type, TypeError> {
+/// Type check an expression in a given type context
+pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
     match expr {
         // Variables are always of the type of the variable in the environment
         Expr::Var(id) => {
             // Get the type of the variable from the environment
-            env.get(id)
+            ctx.env
+                .get(id)
                 .cloned()
                 .ok_or(TypeError::UndefinedVariable(*id))
         }
@@ -70,8 +69,8 @@ pub fn typeck_expr(
         Expr::Sym(_) => Ok(Type::SymT),
         // Binary operations are always of the type of the left hand side
         Expr::BinOp { lhs, op, rhs } => {
-            let lhs_type = typeck_expr(lhs, env, function_env)?;
-            let rhs_type = typeck_expr(rhs, env, function_env)?;
+            let lhs_type = typeck_expr(lhs, ctx)?;
+            let rhs_type = typeck_expr(rhs, ctx)?;
             if lhs_type != rhs_type {
                 return Err(TypeError::TypeMismatch {
                     expected: lhs_type,
@@ -116,7 +115,7 @@ pub fn typeck_expr(
         }
         // Unary operations are always of the type of the inner expression
         Expr::UOp { op, inner } => {
-            let inner_type = typeck_expr(inner, env, function_env)?;
+            let inner_type = typeck_expr(inner, ctx)?;
             match op {
                 UOp::Not => {
                     if inner_type == Type::BoolT {
@@ -147,7 +146,7 @@ pub fn typeck_expr(
             overflow: _overflow,
         } => {
             // First, type check the inner expression
-            let inner_type = typeck_expr(inner, env, function_env)?;
+            let inner_type = typeck_expr(inner, ctx)?;
 
             // According to the [T-Cast] rule, both the inner expression and the target type
             // must be numeric types with bounds
@@ -184,11 +183,12 @@ pub fn typeck_expr(
             // Type check each argument
             let mut arg_types: Vec<Type> = Vec::new();
             for arg in args {
-                arg_types.push(typeck_expr(arg, env, function_env)?);
+                arg_types.push(typeck_expr(arg, ctx)?);
             }
 
             // Look up the function in the function environment
-            let function = function_env
+            let function = ctx
+                .funcs
                 .get(callee)
                 .ok_or(TypeError::UndefinedFunction(*callee))?;
 
@@ -216,7 +216,7 @@ pub fn typeck_expr(
         // Pattern matching is always of the type of the scrutinee
         Expr::Match { scrutinee, cases } => {
             // Type check the scrutinee
-            let scrutinee_type = typeck_expr(scrutinee, env, function_env)?;
+            let scrutinee_type = typeck_expr(scrutinee, ctx)?;
 
             // If there are no cases, return an error
             if cases.is_empty() {
@@ -228,18 +228,17 @@ pub fn typeck_expr(
 
             for case in cases {
                 // Check pattern compatibility with scrutinee type
-                let case_env = match &case.pattern {
+                let mut case_env = ctx.env.clone();
+                match &case.pattern {
                     // Variable patterns can match any type
                     Pattern::Var(id) => {
                         // Create environment with the pattern variable
-                        let mut new_env = env.clone();
-                        new_env.insert(*id, scrutinee_type.clone());
-                        new_env
+                        case_env.insert(*id, scrutinee_type.clone());
                     }
                     // Type-specific patterns must match their corresponding types
-                    Pattern::Num(_) if matches!(scrutinee_type, Type::NumT(_)) => env.clone(),
-                    Pattern::Bool(_) if scrutinee_type == Type::BoolT => env.clone(),
-                    Pattern::Sym(_) if scrutinee_type == Type::SymT => env.clone(),
+                    Pattern::Num(_) if matches!(scrutinee_type, Type::NumT(_)) => {}
+                    Pattern::Bool(_) if scrutinee_type == Type::BoolT => {}
+                    Pattern::Sym(_) if scrutinee_type == Type::SymT => {}
                     // Pattern type doesn't match scrutinee type
                     _ => {
                         return Err(TypeError::TypeMismatchBetweenPatternAndScrutinee {
@@ -250,7 +249,13 @@ pub fn typeck_expr(
                 };
 
                 // Check guard is boolean
-                let guard_type = typeck_expr(&case.guard, &case_env, function_env)?;
+                let guard_type = typeck_expr(
+                    &case.guard,
+                    &TypeCtx {
+                        env: case_env.clone(),
+                        funcs: ctx.funcs,
+                    },
+                )?;
                 if guard_type != Type::BoolT {
                     return Err(TypeError::TypeMismatch {
                         expected: Type::BoolT,
@@ -259,7 +264,13 @@ pub fn typeck_expr(
                 }
 
                 // Check result type
-                let case_result_type = typeck_expr(&case.result, &case_env, function_env)?;
+                let case_result_type = typeck_expr(
+                    &case.result,
+                    &TypeCtx {
+                        env: case_env,
+                        funcs: ctx.funcs,
+                    },
+                )?;
 
                 // Ensure consistency with previous cases
                 if let Some(ref t) = result_type {
