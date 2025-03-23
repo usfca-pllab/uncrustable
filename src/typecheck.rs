@@ -283,6 +283,86 @@ pub fn typeck_expr(
     }
 }
 
+///Typecheck a statement in a given environment
+pub fn typeck_stmt(
+    stmt: &Stmt,
+    env: &mut TypeEnv,
+    function_env: &FunctionEnv,
+) -> Result<(), TypeError> {
+    // Either an asignment statemnt (x = 5)
+    // Or an if statment (if condition - true block - or  - false block)
+    // need to be able to assign a var or an expression
+
+    match stmt {
+        Stmt::Assign(id, expr) => {
+            //find out what type the expression is
+            let e = typeck_expr(&expr, &env, &function_env)?;
+            //assign the id to the expression type in the env??
+            let x = env
+                .get(id)
+                .clone()
+                .ok_or(TypeError::UndefinedVariable(*id))
+                .unwrap();
+            if *x == e {
+                Ok(())
+            } else {
+                Err(TypeError::TypeMismatch {
+                    expected: (x.to_owned()),
+                    actual: (e),
+                })
+            }
+        }
+
+        Stmt::If {
+            cond,
+            true_branch,
+            false_branch,
+        } => {
+            //if all parts of if stmt are OK then OK, else ERR
+            let e = typeck_expr(cond, &env, &function_env)?;
+            let tb = typeck_block(true_branch, env, function_env)?;
+            let fb = typeck_block(false_branch, env, function_env)?;
+            Ok(())
+        }
+    }
+}
+
+///Typecheck a block of statements in the given environment using typeck_stmt
+pub fn typeck_block(
+    blk: &Block,
+    env: &mut TypeEnv,
+    function_env: &FunctionEnv,
+) -> Result<(), TypeError> {
+    //a vector of stmts
+    //check each stmt in the vector sequence is ok
+    // todo!()
+    for i in blk {
+        let check_stmt = typeck_stmt(i, env, function_env)?;
+    }
+    Ok(())
+}
+
+///Typecheck a function using the given environment and function environment
+pub fn typeck_fun(
+    fun: &Function,
+    function_env: &FunctionEnv,
+    env: &mut TypeEnv,
+) -> Result<Type, TypeError> {
+    // todo!()
+    let fun_env = function_env.clone();
+    let e = typeck_expr(&fun.body, env, &function_env)?;
+    if e == fun.ret_typ {
+        let t = fun.ret_typ.clone();
+        Ok(t)
+    } else {
+        let t = fun.ret_typ.clone();
+        Err(TypeError::TypeMismatch {
+            expected: t,
+            actual: e,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -971,4 +1051,35 @@ mod tests {
             Err(TypeError::TypeMismatch { .. })
         ));
     }
+
+    #[test]
+    fn stmt() {
+        //test assign
+        let mut env = Map::new();
+        env.insert(id("A"), Type::NumT(0..3));
+        env.insert(id("B"), Type::SymT);
+        env.insert(id("C"), Type::BoolT);
+
+        //make expressionsß
+        let e1 = Expr::Num(1, Type::NumT(0..3));
+
+        //make variables
+        // let v1 = Expr::Var(id("x"));
+
+        let test1 = Stmt::Assign(id("A"), e1);
+
+        assert!(typeck_stmt(&test1, &mut env, &Map::new()).is_ok());
+
+        //test if
+    }
+
+    // #[test]
+    // fn block() {
+    //     todo!()
+    // }
+
+    // #[test]
+    // fn fun() {
+    //     todo!()
+    // }
 }
