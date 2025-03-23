@@ -298,11 +298,14 @@ pub fn typeck_stmt(
             //find out what type the expression is
             let e = typeck_expr(&expr, &env, &function_env)?;
             //assign the id to the expression type in the env??
-            let x = env.get(id).clone().ok_or(TypeError::UndefinedVariable(*id));
-            if (x.0 == e){
+            let x = env.get(id).clone().ok_or(TypeError::UndefinedVariable(*id)).unwrap();
+            if (*x == e) {
                 Ok(())
             } else {
-                Err(TypeError::TypeMismatch { expected: (x.0), actual: (e) })
+                Err(TypeError::TypeMismatch { 
+                    expected: (x.to_owned()), 
+                    actual: (e),
+                })
             }
             
         }
