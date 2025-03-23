@@ -1052,13 +1052,26 @@ mod tests {
         ));
     }
 
-    // #[test]
-    // fn stmt() {
-    //     //test assign
-    //     let mut env = Map.new();
-    //     env.insert()
-    //     //test if
-    // }
+    #[test]
+    fn stmt() {
+        //test assign
+        let mut env = Map::new();
+        env.insert(id("A"), Type::NumT(0..3));
+        env.insert(id("B"), Type::SymT);
+        env.insert(id("C"), Type::BoolT);
+
+        //make expressionsß
+        let e1 = Expr::Num(1, Type::NumT(0..3));
+
+        //make variables
+        // let v1 = Expr::Var(id("x"));
+
+        let test1 = Stmt::Assign(id("A"), e1);
+
+        assert!(typeck_stmt(&test1, &mut env, &Map::new()).is_ok());
+
+        //test if
+    }
 
     // #[test]
     // fn block() {
