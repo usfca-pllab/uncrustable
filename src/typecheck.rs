@@ -1050,6 +1050,10 @@ mod tests {
         env.insert(id("A"), Type::NumT(0..3));
         env.insert(id("B"), Type::SymT);
         env.insert(id("C"), Type::BoolT);
+        //variables that will be used for err cases
+        env.insert(id("X"), Type::NumT(0..1));
+        env.insert(id("Y"), Type::BoolT);
+        env.insert(id("Z"), Type::SymT);
 
         let ctx = TypeCtx {
             env,
@@ -1057,17 +1061,27 @@ mod tests {
         };
 
         //make expressions
-        let e1 = Expr::Num(1, Type::NumT(0..3));
+        let e1 = Expr::Num(2, Type::NumT(0..3));
         let e2 = Expr::Sym('x');
         let e3 = Expr::Bool(true);
 
-        let test1 = Stmt::Assign(id("A"), e1);
-        let test2 = Stmt::Assign(id("B"), e2);
-        let test3 = Stmt::Assign(id("C"), e3);
+        let test1 = Stmt::Assign(id("A"), e1.clone());
+        let test2 = Stmt::Assign(id("B"), e2.clone());
+        let test3 = Stmt::Assign(id("C"), e3.clone());
 
+        //check OK
         assert!(typeck_stmt(&test1, &ctx).is_ok());
         assert!(typeck_stmt(&test2, &ctx).is_ok());
         assert!(typeck_stmt(&test3, &ctx).is_ok());
+
+        let err1 = Stmt::Assign(id("X"), e1);
+        let err2 = Stmt::Assign(id("Y"), e2);
+        let err3 = Stmt::Assign(id("Z"), e3);
+
+        //check ERR
+        assert!(typeck_stmt(&err1, &ctx).is_err());
+        assert!(typeck_stmt(&err2, &ctx).is_err());
+        assert!(typeck_stmt(&err3, &ctx).is_err());
 
         // test if
     }
