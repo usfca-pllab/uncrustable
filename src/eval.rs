@@ -221,59 +221,71 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 
         Expr::Match { scrutinee, cases } => {
             let raw_val = eval_expr(&scrutinee, env)?;
-            let res;
             for case in cases {
                 let pattern = match case.pattern {
                     Pattern::Bool(b) => Value::Bool(b),
                     Pattern::Num(n) => Value::Num(n, Range { start: n, end: n + 1 }),
                     Pattern::Sym(s) => Value::Sym(s),
-                    Pattern::Var(id) => continue
+                    Pattern::Var(id) => env.get(&id).unwrap().clone(),
                 };
                 if raw_val == pattern {
                     let g = eval_expr(&case.guard, env).unwrap();
-                    match g {
-                        Value::Bool(b) if b => Ok(eval_expr(&case.result, env)),
-                        Value::Sym(s) => Err(RuntimeError::TypeError),
-                        Value::Num(n, range) => Err(RuntimeError::TypeError)
-                    }
-                }
-                else {
-                    Err(RuntimeError::TypeError)
-                }
-
-            }
-            Err(RuntimeError::TypeError)
-        },
-        /*
-         * let val = eval_expr(&scrutinee, env)?;
-            let c;
-            for case in cases {
-                let val_p = match (val, case.pattern){
-                    (Value::Bool(vb), Pattern::Bool(pb)) => {
-                        if vb == pb {
-                            let g = eval_expr(&case.guard, env);
-                            match g {
-                                Value::Bool(b) => {
-                                    if b {
-                                        c = case.result;
-                                        Ok(Value::Bool(b))
-                                    }
-                                    else {
-                                        Err(RuntimeError::InvalidExpression)
-                                    }
-                                },
-                                Value::Num(n, range),
-                                Value::Sym(s)
-                            }
+                    
+                    if let Value::Bool(b) = g {
+                        if b {
+                            return Ok(eval_expr(&case.result, env).unwrap());
                         }
+                    } else {
+                        return Err(RuntimeError::TypeError);
                     }
-                    (Value::Num(nn, range), Pattern::Num(pn)) => Ok(Value::Num(nn, range)),
-                    (Value::Sym(s), Pattern::Sym(ps)) => Ok(Value::Sym(s)),
-                    _ => Err(RuntimeError::TypeError),
-                };
+                }
             }
-            eval_expr(&c, env)
-         */
+
+        },
+
+
+
+            // let val = eval_expr(&scrutinee, env)?;
+            // let mut res: Option<Result<Value, RuntimeError>> = None;
+            // for case in cases {
+            //     println!("case: {:?}", case);
+
+            //     let pattern = match case.pattern {
+            //     Pattern::Bool(b) => Value::Bool(b)
+            //         /*
+            //         if let MyEnum::Point { x, .. } = value {
+            //             println!("Matched a Point with x = {}", x); // `y` is ignored
+            //         }
+            //          */
+            //         ,
+            //         Pattern::Num(n) => Value::Num(n, Range { start: n, end: n + 1 }),
+            //         Pattern::Sym(s) => Value::Sym(s),
+            //         Pattern::Var(id) => env.get(&id).unwrap().clone(),
+            //     };
+            //     println!("pattern: {:?}", pattern);
+            //     println!("val: {:?}", val);
+                
+                
+
+            //     if val == pattern {
+                
+            //         let mut g = eval_expr(&case.guard, env);
+            //         println!("g: {:?}", g);
+            //         if g.is_err() {
+            //             res = Some(g);
+            //             break;
+            //         }
+            //         println!("result: {:?}", res);
+            //         res = Some(Ok(g.unwrap()));
+            //     }
+            // }
+            // println!("result: {:?}", res);
+            // match res {
+            //     Some(Err(_)) => Err(RuntimeError::TypeError),
+            //     Some(Ok(value)) => Ok(value),
+            //     None => Err(RuntimeError::TypeError),
+            // }
+        // },
 
         Expr::Call { callee, args } => {
             let mut env_args = Env::new();
@@ -785,5 +797,69 @@ fn test_cast_fail() {
         Err(RuntimeError::OutOfRange) => (),
         _ => panic!("Expected OutOfRange error but got: {:?}", result),
     }
+}
+
+#[test]
+// Match
+fn test_match() {
+    let input = "";
+    let program = Program {
+        alphabet: Set::from([Symbol('d')]),
+        helpers: Map::new(),
+        locals: Map::new(),
+        start: vec![],
+        action: (Some(id("y")), vec![
+            // under bounds
+            Stmt::Assign(
+                id("z"), 
+                Expr::Match { 
+                    scrutinee: Box::new(Expr::Num(2, Type::NumT(0..5))), 
+                    cases: vec![
+                        Case {
+                            pattern: Pattern::Sym(
+                                Symbol(
+                                    'a',
+                                ),
+                            ),
+                            guard: Expr::Bool(
+                                true,
+                            ),
+                            result: Expr::Num(
+                                1,
+                                Type::NumT(
+                                    1..2,
+                                ),
+                            ),
+                        },
+                        Case {
+                            pattern: Pattern::Num(
+                                2
+                            ),
+                            guard: Expr::Bool(
+                                true,
+                            ),
+                            result: Expr::Num(
+                                2,
+                                Type::NumT(
+                                    0..5,
+                                ),
+                            ),
+                        },
+                    ]
+                }
+            ),
+        ]),
+        accept: Expr::Bool(true),
+    };
+    println!("program: {:?}", program);
+    
+    // let (result, env) = eval(&program, input).unwrap();
+    let result = eval(&program, input);
+    // assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 0..5)));
+    match result {
+        // Err(RuntimeError::TypeError) => (),
+        _ => panic!("Expected error and got: {:?}", result),
+    }
+
 }
 
