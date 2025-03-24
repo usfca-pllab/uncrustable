@@ -295,10 +295,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
 }
 
 ///Typecheck a statement in a given environment
-pub fn typeck_stmt(
-    stmt: &Stmt,
-    ctx: &TypeCtx,
-) -> Result<(), TypeError> {
+pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
     // Either an asignment statemnt (x = 5)
     // Or an if statment (if condition - true block - or  - false block)
     // need to be able to assign a var or an expression
@@ -338,10 +335,7 @@ pub fn typeck_stmt(
 }
 
 ///Typecheck a block of statements in the given environment using typeck_stmt
-pub fn typeck_block(
-    blk: &Block,
-    ctx: &TypeCtx,
-) -> Result<(), TypeError> {
+pub fn typeck_block(blk: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
     //a vector of stmts
     //check each stmt in the vector sequence is ok
     // todo!()
@@ -352,10 +346,7 @@ pub fn typeck_block(
 }
 
 ///Typecheck a function using the given environment and function environment
-pub fn typeck_fun(
-    fun: &Function,
-    ctx: &TypeCtx,
-) -> Result<Type, TypeError> {
+pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<Type, TypeError> {
     let fun_env = ctx.funcs.clone();
     let e = typeck_expr(&fun.body, ctx)?;
     if e == fun.ret_typ {
@@ -1049,35 +1040,4 @@ mod tests {
             Err(TypeError::TypeMismatch { .. })
         ));
     }
-
-    // #[test]
-    // fn stmt() {
-    //     //test assign
-    //     let mut env = Map::new();
-    //     env.insert(id("A"), Type::NumT(0..3));
-    //     env.insert(id("B"), Type::SymT);
-    //     env.insert(id("C"), Type::BoolT);
-
-    //     //make expressionsß
-    //     let e1 = Expr::Num(1, Type::NumT(0..3));
-
-    //     //make variables
-    //     // let v1 = Expr::Var(id("x"));
-
-    //     let test1 = Stmt::Assign(id("A"), e1);
-
-    //     assert!(typeck_stmt(&test1, &env).is_ok());
-
-    //test if
-    // }
-
-    // #[test]
-    // fn block() {
-    //     todo!()
-    // }
-
-    // #[test]
-    // fn fun() {
-    //     todo!()
-    // }
 }
