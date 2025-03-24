@@ -224,7 +224,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
             for case in cases {
                 let pattern = match case.pattern {
                     Pattern::Bool(b) => Value::Bool(b),
-                    Pattern::Num(n) => Value::Num(n, Range { start: n, end: n + 1 }),
+                    Pattern::Num(n) => Value::Num(n, Range { start: n, end: n + 1 }), // TODO: how would we match on Num, not including the range?
                     Pattern::Sym(s) => Value::Sym(s),
                     Pattern::Var(id) => env.get(&id).unwrap().clone(),
                 };
@@ -244,51 +244,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
             return Err(RuntimeError::TypeError);
 
         },
-
-
-
-            // let val = eval_expr(&scrutinee, env)?;
-            // let mut res: Option<Result<Value, RuntimeError>> = None;
-            // for case in cases {
-            //     println!("case: {:?}", case);
-
-            //     let pattern = match case.pattern {
-            //     Pattern::Bool(b) => Value::Bool(b)
-            //         /*
-            //         if let MyEnum::Point { x, .. } = value {
-            //             println!("Matched a Point with x = {}", x); // `y` is ignored
-            //         }
-            //          */
-            //         ,
-            //         Pattern::Num(n) => Value::Num(n, Range { start: n, end: n + 1 }),
-            //         Pattern::Sym(s) => Value::Sym(s),
-            //         Pattern::Var(id) => env.get(&id).unwrap().clone(),
-            //     };
-            //     println!("pattern: {:?}", pattern);
-            //     println!("val: {:?}", val);
-                
-                
-
-            //     if val == pattern {
-                
-            //         let mut g = eval_expr(&case.guard, env);
-            //         println!("g: {:?}", g);
-            //         if g.is_err() {
-            //             res = Some(g);
-            //             break;
-            //         }
-            //         println!("result: {:?}", res);
-            //         res = Some(Ok(g.unwrap()));
-            //     }
-            // }
-            // println!("result: {:?}", res);
-            // match res {
-            //     Some(Err(_)) => Err(RuntimeError::TypeError),
-            //     Some(Ok(value)) => Ok(value),
-            //     None => Err(RuntimeError::TypeError),
-            // }
-        // },
-
+        
         Expr::Call { callee, args } => {
             let mut env_args = Env::new();
             // let val = eval_expr(env.get(callee).unwrap().clone(), &env_args);
