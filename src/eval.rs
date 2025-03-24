@@ -239,7 +239,9 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
                         return Err(RuntimeError::TypeError);
                     }
                 }
+            
             }
+            return Err(RuntimeError::TypeError);
 
         },
 
@@ -813,7 +815,7 @@ fn test_match() {
             Stmt::Assign(
                 id("z"), 
                 Expr::Match { 
-                    scrutinee: Box::new(Expr::Num(2, Type::NumT(0..5))), 
+                    scrutinee: Box::new(Expr::Num(2, Type::NumT(2..3))), 
                     cases: vec![
                         Case {
                             pattern: Pattern::Sym(
@@ -853,13 +855,13 @@ fn test_match() {
     };
     println!("program: {:?}", program);
     
-    // let (result, env) = eval(&program, input).unwrap();
-    let result = eval(&program, input);
-    // assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 0..5)));
-    match result {
-        // Err(RuntimeError::TypeError) => (),
-        _ => panic!("Expected error and got: {:?}", result),
-    }
+    let (result, env) = eval(&program, input).unwrap();
+    // let result = eval(&program, input);
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 0..5)));
+    // match result {
+    //     // Err(RuntimeError::TypeError) => (),
+    //     _ => panic!("Expected error and got: {:?}", result),
+    // }
 
 }
 
