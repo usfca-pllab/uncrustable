@@ -1097,7 +1097,6 @@ mod tests {
         let b = vec![s1,s2,s3];
 
         assert!(typeck_block(&b, &ctx).is_ok());
-
     }
 
     // #[test]
