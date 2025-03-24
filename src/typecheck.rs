@@ -1093,6 +1093,10 @@ mod tests {
         env.insert(id("A"), Type::NumT(0..3));
         env.insert(id("B"), Type::SymT);
         env.insert(id("C"), Type::BoolT);
+        //variables that will be used for err cases
+        env.insert(id("X"), Type::NumT(0..1));
+        env.insert(id("Y"), Type::BoolT);
+        env.insert(id("Z"), Type::SymT);
 
         let ctx = TypeCtx {
             env,
@@ -1104,13 +1108,21 @@ mod tests {
         let e2 = Expr::Sym('x');
         let e3 = Expr::Bool(true);
 
-        let s1 = Stmt::Assign(id("A"), e1);
-        let s2 = Stmt::Assign(id("B"), e2);
-        let s3 = Stmt::Assign(id("C"), e3);
+        let s1 = Stmt::Assign(id("A"), e1.clone());
+        let s2 = Stmt::Assign(id("B"), e2.clone());
+        let s3 = Stmt::Assign(id("C"), e3.clone());
 
         let b = vec![s1, s2, s3];
 
         assert!(typeck_block(&b, &ctx).is_ok());
+
+        let err1 = Stmt::Assign(id("X"), e1);
+        let err2 = Stmt::Assign(id("Y"), e2);
+        let err3 = Stmt::Assign(id("Z"), e3);
+
+        let b = vec![err1, err2, err3];
+
+        assert!(typeck_block(&b, &ctx).is_err());
     }
 
     // #[test]
