@@ -1068,7 +1068,7 @@ mod tests {
 
     //     assert!(typeck_stmt(&test1, &env).is_ok());
 
-        //test if
+    //test if
     // }
 
     // #[test]
