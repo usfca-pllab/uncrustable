@@ -1041,4 +1041,44 @@ mod tests {
             Err(TypeError::TypeMismatch { .. })
         ));
     }
+
+    #[test]
+    fn stmt() {
+        //test assign
+        //make variables with types
+        let mut env = Map::new();
+        env.insert(id("A"), Type::NumT(0..3));
+        env.insert(id("B"), Type::SymT);
+        env.insert(id("C"), Type::BoolT);
+
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
+
+        //make expressions
+        let e1 = Expr::Num(1, Type::NumT(0..3));
+        let e2 = Expr::Sym('x');
+        let e3 = Expr::Bool(true);
+
+        let test1 = Stmt::Assign(id("A"), e1);
+        let test2 = Stmt::Assign(id("B"), e2);
+        let test3 = Stmt::Assign(id("C"), e3);
+
+        assert!(typeck_stmt(&test1, &ctx).is_ok());
+        assert!(typeck_stmt(&test2, &ctx).is_ok());
+        assert!(typeck_stmt(&test3, &ctx).is_ok());
+
+    // test if
+    }
+
+    // #[test]
+    // fn block() {
+    //     todo!()
+    // }
+
+    // #[test]
+    // fn fun() {
+    //     todo!()
+    // }
 }
