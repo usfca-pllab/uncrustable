@@ -305,7 +305,8 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
             //find out what type the expression is
             let e = typeck_expr(&expr, ctx)?;
             //assign the id to the expression type in the env??
-            let x = ctx.env
+            let x = ctx
+                .env
                 .get(id)
                 .clone()
                 .ok_or(TypeError::UndefinedVariable(*id))
