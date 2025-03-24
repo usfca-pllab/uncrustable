@@ -1072,10 +1072,33 @@ mod tests {
         // test if
     }
 
-    // #[test]
-    // fn block() {
-    //     todo!()
-    // }
+    #[test]
+    fn block() {
+        //make variables with types
+        let mut env = Map::new();
+        env.insert(id("A"), Type::NumT(0..3));
+        env.insert(id("B"), Type::SymT);
+        env.insert(id("C"), Type::BoolT);
+
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
+
+        //make expressions
+        let e1 = Expr::Num(1, Type::NumT(0..3));
+        let e2 = Expr::Sym('x');
+        let e3 = Expr::Bool(true);
+
+        let s1 = Stmt::Assign(id("A"), e1);
+        let s2 = Stmt::Assign(id("B"), e2);
+        let s3 = Stmt::Assign(id("C"), e3);
+
+        let b = vec![s1,s2,s3];
+
+        assert!(typeck_block(&b, &ctx).is_ok());
+
+    }
 
     // #[test]
     // fn fun() {
