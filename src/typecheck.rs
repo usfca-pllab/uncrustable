@@ -1069,7 +1069,7 @@ mod tests {
         assert!(typeck_stmt(&test2, &ctx).is_ok());
         assert!(typeck_stmt(&test3, &ctx).is_ok());
 
-    // test if
+        // test if
     }
 
     // #[test]
