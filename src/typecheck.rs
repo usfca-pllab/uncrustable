@@ -1082,8 +1082,6 @@ mod tests {
         assert!(typeck_stmt(&err1, &ctx).is_err());
         assert!(typeck_stmt(&err2, &ctx).is_err());
         assert!(typeck_stmt(&err3, &ctx).is_err());
-
-        // test if
     }
 
     #[test]
@@ -1124,9 +1122,4 @@ mod tests {
 
         assert!(typeck_block(&b, &ctx).is_err());
     }
-
-    // #[test]
-    // fn fun() {
-    //     todo!()
-    // }
 }
