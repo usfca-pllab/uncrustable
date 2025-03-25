@@ -294,7 +294,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
     }
 }
 
-///Typecheck a statement in a given environment
+/// Typecheck a statement in a given environment
 pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
     // Either an asignment statemnt (x = 5)
     // Or an if statment (if condition - true block - or  - false block)
@@ -302,67 +302,83 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 
     match stmt {
         Stmt::Assign(id, expr) => {
-            //find out what type the expression is
-            let e = typeck_expr(&expr, ctx)?;
-            //assign the id to the expression type in the env??
-            let x = ctx
+            // Get the type of the variable from the environment
+            let var_type = ctx
                 .env
                 .get(id)
-                .clone()
-                .ok_or(TypeError::UndefinedVariable(*id))
-                .unwrap();
-            if *x == e {
-                Ok(())
-            } else {
-                Err(TypeError::TypeMismatch {
-                    expected: (x.to_owned()),
-                    actual: (e),
-                })
-            }
-        }
+                .cloned()
+                .ok_or(TypeError::UndefinedVariable(*id))?;
 
+            // Type check the expression
+            let expr_type = typeck_expr(expr, ctx)?;
+
+            // Check that the expression's type matches the variable's type
+            if var_type != expr_type {
+                return Err(TypeError::TypeMismatch {
+                    expected: var_type,
+                    actual: expr_type,
+                });
+            }
+            Ok(())
+        }
+        // If statement: check that the condition is a boolean and type check both branches
         Stmt::If {
             cond,
             true_branch,
             false_branch,
         } => {
-            // todo unused variables
-            //if all parts of if stmt are OK then OK, else ERR
-            let e = typeck_expr(cond, ctx)?;
-            let tb = typeck_block(true_branch, ctx)?;
-            let fb = typeck_block(false_branch, ctx)?;
+            // Type check the condition
+            let cond_type = typeck_expr(cond, ctx)?;
+
+            // Check that the condition is a boolean
+            if cond_type != Type::BoolT {
+                return Err(TypeError::TypeMismatch {
+                    expected: Type::BoolT,
+                    actual: cond_type,
+                });
+            };
+
+            // Type check both branches
+            typeck_block(true_branch, ctx)?;
+            typeck_block(false_branch, ctx)?;
             Ok(())
         }
     }
 }
 
-///Typecheck a block of statements in the given environment using typeck_stmt
-pub fn typeck_block(blk: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
-    //a vector of stmts
-    //check each stmt in the vector sequence is ok
-    for i in blk {
-        // todo unused variable check_stmt
-        let check_stmt = typeck_stmt(i, ctx)?;
+/// Typecheck a block of statements in the given environment using typeck_stmt
+pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
+    // type check each stmt in the vector sequence is ok
+    for stmt in block {
+        typeck_stmt(stmt, ctx)?;
     }
     Ok(())
 }
 
-///Typecheck a function using the given environment and function environment
-/// todo need have parameter checks as well
-pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<Type, TypeError> {
-    // todo unused variable fun_env
-    let fun_env = ctx.funcs.clone();
-    let e = typeck_expr(&fun.body, ctx)?;
-    if e == fun.ret_typ {
-        let t = fun.ret_typ.clone();
-        Ok(t)
-    } else {
-        let t = fun.ret_typ.clone();
-        Err(TypeError::TypeMismatch {
-            expected: t,
-            actual: e,
-        })
+/// Typecheck a function
+pub fn typeck_function(function: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
+    // Extend global environment with the function's parameters
+    let mut fun_env = ctx.env.clone();
+    // adds the function parameters to extended environment
+    for (param, param_type) in &function.params {
+        fun_env.insert(*param, param_type.clone());
     }
+    // Type check the function's body
+    let body_type = typeck_expr(
+        &function.body,
+        &TypeCtx {
+            env: fun_env,
+            funcs: ctx.funcs,
+        },
+    )?;
+    // Check that the body type matches the return type
+    if body_type != function.ret_typ {
+        return Err(TypeError::TypeMismatch {
+            expected: function.ret_typ.clone(),
+            actual: body_type,
+        });
+    }
+    Ok(())
 }
 
 /// Type check a program
@@ -375,7 +391,7 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 
     // Check that all helper functions are well-typed
     for (_, function) in &program.helpers {
-        typeck_fun(function, &ctx)?;
+        typeck_function(function, &ctx)?;
     }
 
     // Type check all statements in the start block
@@ -1175,7 +1191,7 @@ mod tests {
 
     // todo not testing the nested environment
     #[test]
-    fn fun() {
+    fn functions() {
         let ctx = TypeCtx {
             env: Map::new(),
             funcs: &Map::new(),
@@ -1191,7 +1207,7 @@ mod tests {
             },
         };
 
-        assert!(typeck_fun(&fun_ok, &ctx).is_ok());
+        assert!(typeck_function(&fun_ok, &ctx).is_ok());
 
         let fun_err = Function {
             params: vec![],
@@ -1203,7 +1219,7 @@ mod tests {
             },
         };
 
-        assert!(typeck_fun(&fun_err, &ctx).is_err());
+        assert!(typeck_function(&fun_err, &ctx).is_err());
     }
 
     #[test]
