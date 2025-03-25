@@ -48,7 +48,7 @@ fn init_env(program: &Program) -> Env {
             
             //  default to be beginning of range
             Type::NumT(range) => {
-                        Value::Num(range.start, Range { start: range.start, end: range.end })
+                        Value::Num(range.start, range.clone())
                     },
                     
             //  default to empty char
@@ -253,28 +253,48 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             if args.len() != function.params.len() {
                 return Err(RuntimeError::IncorrectArgs);
             }
-            let mut num_matches = 0;
+            let mut num_matches = 0; // checking to see if we've matched every arg
 
             for i in 0..args.len() {
                 
-                let arg_val = eval_expr(args.get(i).unwrap(), env, program).unwrap();
+                let mut arg_val = eval_expr(args.get(i).unwrap(), env, program).unwrap();
+                println!("argval: {:?}", arg_val);
                 let param_type = function.params.get(i).unwrap().clone().1;
+                println!("param_type: {:?} ", param_type);
+                let mut num_range = 0..0;
+                let mut num_type = false;
+                let mut num = 0;
 
-                // let mut matches = false;
                 let matches = match (&arg_val, param_type) {
                     (Value::Bool(b), Type::BoolT) => true,
-                    (Value::Num(n, range), Type::NumT(t_range)) => true,
+                    (Value::Num(n, range), Type::NumT(t_range)) => {
+                        if range != &t_range {
+                            num_range = t_range.clone();
+                        }
+                        else {
+                            num_range = range.clone();
+                        }
+                        num_type = true;
+                        num = n.clone();
+                        true
+                    },
                     (Value::Sym(s), Type::SymT) => true,
                     _ => false,
                 };
                 if matches {
+                    println!("inserting type: {:?}", function.params.get(i).unwrap().clone().1);
+                    println!("argval: {:?}", arg_val);
+                    if num_type {
+                        arg_val = cast(num, num_range, Overflow::Wraparound).unwrap();
+                    }
                     env_args.insert(function.params.get(i).unwrap().clone().0, arg_val.clone());
                     num_matches += 1;
                 }
             }
             if num_matches == args.len() {
-                // eval expr
-                return eval_expr(&function.body, &env_args, program);
+                let val = eval_expr(&function.body, &env_args, program);
+                println!("val: {:?}", val);
+                return val;
             }
             else {
                 return Err(RuntimeError::IncorrectArgs);
@@ -854,8 +874,8 @@ fn test_match() {
 fn test_call() {
     let input = r#"
         alphabet: {'a'}
-        fn add(a: int[3], b: int[0..4]) -> int[0..4] = a + b
-        let x: int[4];
+        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+        let x: int[3];
         on input y {
                 x = add(1, 2);
         }
@@ -865,6 +885,6 @@ fn test_call() {
     println!("program: {:?}", program);
 
     let (result, env) = eval(&program, input).unwrap();
-    assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
+    assert_eq!(env.get(&id("x")), Some(&Value::Num(0, 0..3)));
 
 }
