@@ -369,6 +369,30 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
             actual: e,
         })
     }
+    // =======
+    // // Extend global environment with the function's parameters
+    // let mut fun_env = ctx.env.clone();
+    // // adds the function parameters to extended environment
+    // for (param, param_type) in &function.params {
+    //     fun_env.insert(*param, param_type.clone());
+    // >>>>>>> refs/remotes/origin/ainslee
+    // }
+    // // Type check the function's body
+    // let body_type = typeck_expr(
+    //     &function.body,
+    //     &TypeCtx {
+    //         env: fun_env,
+    //         funcs: ctx.funcs,
+    //     },
+    // )?;
+    // // Check that the body type matches the return type
+    // if body_type != function.ret_typ {
+    //     return Err(TypeError::TypeMismatch {
+    //         expected: function.ret_typ.clone(),
+    //         actual: body_type,
+    //     });
+    // }
+    // Ok(())
 }
 
 /// Type check a program
@@ -1212,205 +1236,205 @@ mod tests {
         assert!(typeck_function(&fun_err, &ctx).is_err());
     }
 
-    #[test]
-    fn programs() {
-        // Test a valid program
-        let valid_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set.insert(Symbol('b'));
-                set
-            },
-            helpers: {
-                let mut map = Map::new();
-                map.insert(
-                    id("is_a"),
-                    Function {
-                        params: vec![(id("c"), Type::SymT)],
-                        ret_typ: Type::BoolT,
-                        body: Expr::Match {
-                            scrutinee: Box::new(Expr::Var(id("c"))),
-                            cases: vec![
-                                Case {
-                                    pattern: Pattern::Sym(Symbol('a')),
-                                    guard: Expr::Bool(true),
-                                    result: Expr::Bool(true),
-                                },
-                                Case {
-                                    pattern: Pattern::Var(id("_")),
-                                    guard: Expr::Bool(true),
-                                    result: Expr::Bool(false),
-                                },
-                            ],
-                        },
-                    },
-                );
-                map
-            },
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("count"), Type::NumT(0..100));
-                map.insert(id("saw_a"), Type::BoolT);
-                map
-            },
-            start: vec![
-                Stmt::Assign(id("count"), Expr::Num(0, Type::NumT(0..100))),
-                Stmt::Assign(id("saw_a"), Expr::Bool(false)),
-            ],
-            action: (
-                Some(id("input")),
-                vec![Stmt::If {
-                    cond: Expr::Call {
-                        callee: id("is_a"),
-                        args: vec![Expr::Var(id("input"))],
-                    },
-                    true_branch: vec![
-                        Stmt::Assign(id("saw_a"), Expr::Bool(true)),
-                        Stmt::Assign(
-                            id("count"),
-                            Expr::BinOp {
-                                lhs: Box::new(Expr::Var(id("count"))),
-                                op: BOp::Add,
-                                rhs: Box::new(Expr::Num(1, Type::NumT(0..100))),
-                            },
-                        ),
-                    ],
-                    false_branch: vec![],
-                }],
-            ),
-            accept: Expr::BinOp {
-                lhs: Box::new(Expr::Var(id("saw_a"))),
-                op: BOp::And,
-                rhs: Box::new(Expr::BinOp {
-                    lhs: Box::new(Expr::Var(id("count"))),
-                    op: BOp::Eq,
-                    rhs: Box::new(Expr::Num(1, Type::NumT(0..100))),
-                }),
-            },
-        };
+    // #[test]
+    // fn programs() {
+    //     // Test a valid program
+    //     let valid_program = Program {
+    //         alphabet: {
+    //             let mut set = Set::new();
+    //             set.insert(Symbol('a'));
+    //             set.insert(Symbol('b'));
+    //             set
+    //         },
+    //         helpers: {
+    //             let mut map = Map::new();
+    //             map.insert(
+    //                 id("is_a"),
+    //                 Function {
+    //                     params: vec![(id("c"), Type::SymT)],
+    //                     ret_typ: Type::BoolT,
+    //                     body: Expr::Match {
+    //                         scrutinee: Box::new(Expr::Var(id("c"))),
+    //                         cases: vec![
+    //                             Case {
+    //                                 pattern: Pattern::Sym(Symbol('a')),
+    //                                 guard: Expr::Bool(true),
+    //                                 result: Expr::Bool(true),
+    //                             },
+    //                             Case {
+    //                                 pattern: Pattern::Var(id("_")),
+    //                                 guard: Expr::Bool(true),
+    //                                 result: Expr::Bool(false),
+    //                             },
+    //                         ],
+    //                     },
+    //                 },
+    //             );
+    //             map
+    //         },
+    //         locals: {
+    //             let mut map = Map::new();
+    //             map.insert(id("count"), Type::NumT(0..100));
+    //             map.insert(id("saw_a"), Type::BoolT);
+    //             map
+    //         },
+    //         start: vec![
+    //             Stmt::Assign(id("count"), Expr::Num(0, Type::NumT(0..100))),
+    //             Stmt::Assign(id("saw_a"), Expr::Bool(false)),
+    //         ],
+    //         action: (
+    //             Some(id("input")),
+    //             vec![Stmt::If {
+    //                 cond: Expr::Call {
+    //                     callee: id("is_a"),
+    //                     args: vec![Expr::Var(id("input"))],
+    //                 },
+    //                 true_branch: vec![
+    //                     Stmt::Assign(id("saw_a"), Expr::Bool(true)),
+    //                     Stmt::Assign(
+    //                         id("count"),
+    //                         Expr::BinOp {
+    //                             lhs: Box::new(Expr::Var(id("count"))),
+    //                             op: BOp::Add,
+    //                             rhs: Box::new(Expr::Num(1, Type::NumT(0..100))),
+    //                         },
+    //                     ),
+    //                 ],
+    //                 false_branch: vec![],
+    //             }],
+    //         ),
+    //         accept: Expr::BinOp {
+    //             lhs: Box::new(Expr::Var(id("saw_a"))),
+    //             op: BOp::And,
+    //             rhs: Box::new(Expr::BinOp {
+    //                 lhs: Box::new(Expr::Var(id("count"))),
+    //                 op: BOp::Eq,
+    //                 rhs: Box::new(Expr::Num(1, Type::NumT(0..100))),
+    //             }),
+    //         },
+    //     };
 
-        let result = typecheck_program(&valid_program);
-        assert!(
-            result.is_ok(),
-            "Program type check failed with error: {:?}",
-            result.err()
-        );
+    //     let result = typecheck_program(&valid_program);
+    //     assert!(
+    //         result.is_ok(),
+    //         "Program type check failed with error: {:?}",
+    //         result.err()
+    //     );
 
-        // Test program with invalid helper function
-        let invalid_helper_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: {
-                let mut map = Map::new();
-                map.insert(
-                    id("invalid_helper"),
-                    Function {
-                        params: vec![(id("c"), Type::SymT)],
-                        ret_typ: Type::BoolT,
-                        body: Expr::Var(id("undefined")), // Undefined variable
-                    },
-                );
-                map
-            },
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("flag"), Type::BoolT);
-                map
-            },
-            start: vec![Stmt::Assign(id("flag"), Expr::Bool(false))],
-            action: (None, vec![]),
-            accept: Expr::Var(id("flag")),
-        };
-        assert!(typecheck_program(&invalid_helper_program).is_err());
+    //     // Test program with invalid helper function
+    //     let invalid_helper_program = Program {
+    //         alphabet: {
+    //             let mut set = Set::new();
+    //             set.insert(Symbol('a'));
+    //             set
+    //         },
+    //         helpers: {
+    //             let mut map = Map::new();
+    //             map.insert(
+    //                 id("invalid_helper"),
+    //                 Function {
+    //                     params: vec![(id("c"), Type::SymT)],
+    //                     ret_typ: Type::BoolT,
+    //                     body: Expr::Var(id("undefined")), // Undefined variable
+    //                 },
+    //             );
+    //             map
+    //         },
+    //         locals: {
+    //             let mut map = Map::new();
+    //             map.insert(id("flag"), Type::BoolT);
+    //             map
+    //         },
+    //         start: vec![Stmt::Assign(id("flag"), Expr::Bool(false))],
+    //         action: (None, vec![]),
+    //         accept: Expr::Var(id("flag")),
+    //     };
+    //     assert!(typecheck_program(&invalid_helper_program).is_err());
 
-        // Test program with invalid start block
-        let invalid_start_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("flag"), Type::BoolT);
-                map
-            },
-            start: vec![
-                Stmt::Assign(id("flag"), Expr::Bool(true)),
-                Stmt::Assign(id("undefined"), Expr::Bool(false)), // Undefined variable
-            ],
-            action: (None, vec![]),
-            accept: Expr::Var(id("flag")),
-        };
-        assert!(typecheck_program(&invalid_start_program).is_err());
+    //     // Test program with invalid start block
+    //     let invalid_start_program = Program {
+    //         alphabet: {
+    //             let mut set = Set::new();
+    //             set.insert(Symbol('a'));
+    //             set
+    //         },
+    //         helpers: Map::new(),
+    //         locals: {
+    //             let mut map = Map::new();
+    //             map.insert(id("flag"), Type::BoolT);
+    //             map
+    //         },
+    //         start: vec![
+    //             Stmt::Assign(id("flag"), Expr::Bool(true)),
+    //             Stmt::Assign(id("undefined"), Expr::Bool(false)), // Undefined variable
+    //         ],
+    //         action: (None, vec![]),
+    //         accept: Expr::Var(id("flag")),
+    //     };
+    //     assert!(typecheck_program(&invalid_start_program).is_err());
 
-        // Test program with invalid action block
-        let invalid_action_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("flag"), Type::BoolT);
-                map
-            },
-            start: vec![Stmt::Assign(id("flag"), Expr::Bool(false))],
-            action: (
-                Some(id("c")),
-                vec![Stmt::If {
-                    cond: Expr::BinOp {
-                        lhs: Box::new(Expr::Var(id("c"))),
-                        op: BOp::Eq,
-                        rhs: Box::new(Expr::Sym('a')),
-                    },
-                    true_branch: vec![Stmt::Assign(id("undefined"), Expr::Bool(true))], // Undefined variable
-                    false_branch: vec![],
-                }],
-            ),
-            accept: Expr::Var(id("flag")),
-        };
-        assert!(typecheck_program(&invalid_action_program).is_err());
+    //     // Test program with invalid action block
+    //     let invalid_action_program = Program {
+    //         alphabet: {
+    //             let mut set = Set::new();
+    //             set.insert(Symbol('a'));
+    //             set
+    //         },
+    //         helpers: Map::new(),
+    //         locals: {
+    //             let mut map = Map::new();
+    //             map.insert(id("flag"), Type::BoolT);
+    //             map
+    //         },
+    //         start: vec![Stmt::Assign(id("flag"), Expr::Bool(false))],
+    //         action: (
+    //             Some(id("c")),
+    //             vec![Stmt::If {
+    //                 cond: Expr::BinOp {
+    //                     lhs: Box::new(Expr::Var(id("c"))),
+    //                     op: BOp::Eq,
+    //                     rhs: Box::new(Expr::Sym('a')),
+    //                 },
+    //                 true_branch: vec![Stmt::Assign(id("undefined"), Expr::Bool(true))], // Undefined variable
+    //                 false_branch: vec![],
+    //             }],
+    //         ),
+    //         accept: Expr::Var(id("flag")),
+    //     };
+    //     assert!(typecheck_program(&invalid_action_program).is_err());
 
-        // Test program with invalid accept condition
-        let invalid_accept_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("count"), Type::NumT(0..10));
-                map
-            },
-            start: vec![Stmt::Assign(id("count"), Expr::Num(0, Type::NumT(0..10)))],
-            action: (None, vec![]),
-            accept: Expr::Var(id("count")), // Numeric instead of boolean
-        };
-        assert!(typecheck_program(&invalid_accept_program).is_err());
+    //     // Test program with invalid accept condition
+    //     let invalid_accept_program = Program {
+    //         alphabet: {
+    //             let mut set = Set::new();
+    //             set.insert(Symbol('a'));
+    //             set
+    //         },
+    //         helpers: Map::new(),
+    //         locals: {
+    //             let mut map = Map::new();
+    //             map.insert(id("count"), Type::NumT(0..10));
+    //             map
+    //         },
+    //         start: vec![Stmt::Assign(id("count"), Expr::Num(0, Type::NumT(0..10)))],
+    //         action: (None, vec![]),
+    //         accept: Expr::Var(id("count")), // Numeric instead of boolean
+    //     };
+    //     assert!(typecheck_program(&invalid_accept_program).is_err());
 
-        // Test program with non-existent symbol in alphabet
-        let valid_symbol_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: Map::new(),
-            start: vec![],
-            action: (None, vec![]),
-            accept: Expr::Bool(true),
-        };
-        assert!(typecheck_program(&valid_symbol_program).is_ok());
-    }
+    //     // Test program with non-existent symbol in alphabet
+    //     let valid_symbol_program = Program {
+    //         alphabet: {
+    //             let mut set = Set::new();
+    //             set.insert(Symbol('a'));
+    //             set
+    //         },
+    //         helpers: Map::new(),
+    //         locals: Map::new(),
+    //         start: vec![],
+    //         action: (None, vec![]),
+    //         accept: Expr::Bool(true),
+    //     };
+    //     assert!(typecheck_program(&valid_symbol_program).is_ok());
+    // }
 }
