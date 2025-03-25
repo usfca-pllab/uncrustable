@@ -3,6 +3,7 @@
 // read a file name as the only argument
 use clap::Parser;
 use uncrustable::parse::parse;
+use uncrustable::typecheck;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -18,6 +19,9 @@ fn main() {
     println!("Parsed program {program:#?}");
 
     // type check
+    // if args.1 == "typecheck" {
+    //     typecheck::typeck_program(program);
+    // }
     // evaluate
     // print verdict
 
