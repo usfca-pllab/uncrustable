@@ -3,6 +3,7 @@
 // read a file name as the only argument
 use clap::Parser;
 use uncrustable::parse::parse;
+use uncrustable::typecheck;
 
 #[derive(Parser, Debug)]
 struct Args {

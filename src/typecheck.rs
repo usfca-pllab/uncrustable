@@ -1122,4 +1122,36 @@ mod tests {
 
         assert!(typeck_block(&b, &ctx).is_err());
     }
+
+    #[test]
+    fn fun() {
+        let ctx = TypeCtx {
+            env: Map::new(),
+            funcs: &Map::new(),
+        };
+
+        let fun_ok = Function {
+            params: vec![],
+            ret_typ: Type::NumT(0..1),
+            body: Expr::BinOp {
+                lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                op: (BOp::Add),
+                rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+            },
+        };
+
+        assert!(typeck_fun(&fun_ok, &ctx).is_ok());
+
+        let fun_err = Function {
+            params: vec![],
+            ret_typ: Type::BoolT,
+            body: Expr::BinOp {
+                lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                op: (BOp::Add),
+                rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+            },
+        };
+
+        assert!(typeck_fun(&fun_err, &ctx).is_err());
+    }
 }
