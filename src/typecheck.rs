@@ -347,12 +347,11 @@ pub fn typeck_block(blk: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
 }
 
 ///Typecheck a function using the given environment and function environment
-pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<Type, TypeError> {
+pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let fun_env = ctx.funcs.clone();
     let e = typeck_expr(&fun.body, ctx)?;
     if e == fun.ret_typ {
-        let t = fun.ret_typ.clone();
-        Ok(t)
+        Ok(())
     } else {
         let t = fun.ret_typ.clone();
         Err(TypeError::TypeMismatch {
