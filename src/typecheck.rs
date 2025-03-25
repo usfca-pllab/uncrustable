@@ -357,7 +357,7 @@ pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
 
 // <<<<<<< HEAD
 ///Typecheck a function using the given environment and function environment
-pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
+pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let fun_env = ctx.funcs.clone();
     let e = typeck_expr(&fun.body, ctx)?;
     if e == fun.ret_typ {
