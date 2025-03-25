@@ -294,6 +294,74 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
     }
 }
 
+///Typecheck a statement in a given environment
+pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
+    // Either an asignment statemnt (x = 5)
+    // Or an if statment (if condition - true block - or  - false block)
+    // need to be able to assign a var or an expression
+
+    match stmt {
+        Stmt::Assign(id, expr) => {
+            //find out what type the expression is
+            let e = typeck_expr(&expr, ctx)?;
+            //assign the id to the expression type in the env??
+            let x = ctx
+                .env
+                .get(id)
+                .clone()
+                .ok_or(TypeError::UndefinedVariable(*id))
+                .unwrap();
+            if *x == e {
+                Ok(())
+            } else {
+                Err(TypeError::TypeMismatch {
+                    expected: (x.to_owned()),
+                    actual: (e),
+                })
+            }
+        }
+
+        Stmt::If {
+            cond,
+            true_branch,
+            false_branch,
+        } => {
+            //if all parts of if stmt are OK then OK, else ERR
+            let e = typeck_expr(cond, ctx)?;
+            let tb = typeck_block(true_branch, ctx)?;
+            let fb = typeck_block(false_branch, ctx)?;
+            Ok(())
+        }
+    }
+}
+
+///Typecheck a block of statements in the given environment using typeck_stmt
+pub fn typeck_block(blk: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
+    //a vector of stmts
+    //check each stmt in the vector sequence is ok
+    // todo!()
+    for i in blk {
+        let check_stmt = typeck_stmt(i, ctx)?;
+    }
+    Ok(())
+}
+
+///Typecheck a function using the given environment and function environment
+pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<Type, TypeError> {
+    let fun_env = ctx.funcs.clone();
+    let e = typeck_expr(&fun.body, ctx)?;
+    if e == fun.ret_typ {
+        let t = fun.ret_typ.clone();
+        Ok(t)
+    } else {
+        let t = fun.ret_typ.clone();
+        Err(TypeError::TypeMismatch {
+            expected: t,
+            actual: e,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -972,5 +1040,118 @@ mod tests {
             typeck_expr(&invalid_match3, &ctx),
             Err(TypeError::TypeMismatch { .. })
         ));
+    }
+
+    #[test]
+    fn stmt() {
+        //test assign
+        //make variables with types
+        let mut env = Map::new();
+        env.insert(id("A"), Type::NumT(0..3));
+        env.insert(id("B"), Type::SymT);
+        env.insert(id("C"), Type::BoolT);
+        //variables that will be used for err cases
+        env.insert(id("X"), Type::NumT(0..1));
+        env.insert(id("Y"), Type::BoolT);
+        env.insert(id("Z"), Type::SymT);
+
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
+
+        //make expressions
+        let e1 = Expr::Num(2, Type::NumT(0..3));
+        let e2 = Expr::Sym('x');
+        let e3 = Expr::Bool(true);
+
+        let test1 = Stmt::Assign(id("A"), e1.clone());
+        let test2 = Stmt::Assign(id("B"), e2.clone());
+        let test3 = Stmt::Assign(id("C"), e3.clone());
+
+        //check OK
+        assert!(typeck_stmt(&test1, &ctx).is_ok());
+        assert!(typeck_stmt(&test2, &ctx).is_ok());
+        assert!(typeck_stmt(&test3, &ctx).is_ok());
+
+        let err1 = Stmt::Assign(id("X"), e1);
+        let err2 = Stmt::Assign(id("Y"), e2);
+        let err3 = Stmt::Assign(id("Z"), e3);
+
+        //check ERR
+        assert!(typeck_stmt(&err1, &ctx).is_err());
+        assert!(typeck_stmt(&err2, &ctx).is_err());
+        assert!(typeck_stmt(&err3, &ctx).is_err());
+    }
+
+    #[test]
+    fn block() {
+        //make variables with types
+        let mut env = Map::new();
+        env.insert(id("A"), Type::NumT(0..3));
+        env.insert(id("B"), Type::SymT);
+        env.insert(id("C"), Type::BoolT);
+        //variables that will be used for err cases
+        env.insert(id("X"), Type::NumT(0..1));
+        env.insert(id("Y"), Type::BoolT);
+        env.insert(id("Z"), Type::SymT);
+
+        let ctx = TypeCtx {
+            env,
+            funcs: &Map::new(),
+        };
+
+        //make expressions
+        let e1 = Expr::Num(1, Type::NumT(0..3));
+        let e2 = Expr::Sym('x');
+        let e3 = Expr::Bool(true);
+
+        let s1 = Stmt::Assign(id("A"), e1.clone());
+        let s2 = Stmt::Assign(id("B"), e2.clone());
+        let s3 = Stmt::Assign(id("C"), e3.clone());
+
+        let b = vec![s1, s2, s3];
+
+        assert!(typeck_block(&b, &ctx).is_ok());
+
+        let err1 = Stmt::Assign(id("X"), e1);
+        let err2 = Stmt::Assign(id("Y"), e2);
+        let err3 = Stmt::Assign(id("Z"), e3);
+
+        let b = vec![err1, err2, err3];
+
+        assert!(typeck_block(&b, &ctx).is_err());
+    }
+
+    #[test]
+    fn fun() {
+        let ctx = TypeCtx {
+            env: Map::new(),
+            funcs: &Map::new(),
+        };
+
+        let fun_ok = Function {
+            params: vec![],
+            ret_typ: Type::NumT(0..1),
+            body: Expr::BinOp {
+                lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                op: (BOp::Add),
+                rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+            },
+        };
+
+        assert!(typeck_fun(&fun_ok, &ctx).is_ok());
+
+        let fun_err = Function {
+            params: vec![],
+            ret_typ: Type::BoolT,
+            body: Expr::BinOp {
+                lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                op: (BOp::Add),
+                rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+            },
+        };
+
+        assert!(typeck_fun(&fun_err, &ctx).is_err());
     }
 }
