@@ -326,6 +326,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
             true_branch,
             false_branch,
         } => {
+            // todo unused variables
             //if all parts of if stmt are OK then OK, else ERR
             let e = typeck_expr(cond, ctx)?;
             let tb = typeck_block(true_branch, ctx)?;
@@ -339,15 +340,17 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 pub fn typeck_block(blk: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
     //a vector of stmts
     //check each stmt in the vector sequence is ok
-    // todo!()
     for i in blk {
+        // todo unused variable check_stmt
         let check_stmt = typeck_stmt(i, ctx)?;
     }
     Ok(())
 }
 
 ///Typecheck a function using the given environment and function environment
+/// todo need have parameter checks as well
 pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<Type, TypeError> {
+    // todo unused variable fun_env
     let fun_env = ctx.funcs.clone();
     let e = typeck_expr(&fun.body, ctx)?;
     if e == fun.ret_typ {
@@ -1130,6 +1133,7 @@ mod tests {
         assert!(typeck_stmt(&err3, &ctx).is_err());
     }
 
+    // todo need some at least one if block test
     #[test]
     fn block() {
         //make variables with types
@@ -1169,6 +1173,7 @@ mod tests {
         assert!(typeck_block(&b, &ctx).is_err());
     }
 
+    // todo not testing the nested environment
     #[test]
     fn fun() {
         let ctx = TypeCtx {
