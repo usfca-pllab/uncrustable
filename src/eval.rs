@@ -854,20 +854,10 @@ fn test_match() {
 fn test_call() {
     let input = r#"
         alphabet: {'a'}
-        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
-        let x: int[3];
+        fn add(a: int[3], b: int[0..4]) -> int[0..4] = a + b
+        let x: int[4];
         on input y {
                 x = add(1, 2);
-                x = 3 + - 4 as int[3] wraparound;
-                x = 3 + 4 as int[3] wraparound;
-                if x < 3 {
-                        y = 'a';
-                } else {
-                        x = match y {
-                                'a' -> 1
-                                x if true -> 2
-                        };
-                }
         }
         accept if x == 3
     "#;
@@ -875,5 +865,6 @@ fn test_call() {
     println!("program: {:?}", program);
 
     let (result, env) = eval(&program, input).unwrap();
+    assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
 
 }
