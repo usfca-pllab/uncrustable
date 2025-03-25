@@ -19,9 +19,6 @@ fn main() {
     println!("Parsed program {program:#?}");
 
     // type check
-    // if args.1 == "typecheck" {
-    //     typecheck::typeck_program(program);
-    // }
     // evaluate
     // print verdict
 
