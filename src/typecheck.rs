@@ -1129,7 +1129,6 @@ mod tests {
             env: Map::new(),
             funcs: &Map::new(),
         };
-        
         let fun = Function {
             params: vec![],
             ret_typ: Type::NumT(0..1),
@@ -1139,7 +1138,6 @@ mod tests {
                 rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
             },
         };
-
         assert!(typeck_fun(&fun, &ctx).is_ok());
     }
 }
