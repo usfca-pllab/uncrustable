@@ -368,6 +368,7 @@ pub fn typeck_fun(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
             expected: t,
             actual: e,
         })
+    }
 // =======
 // /// Typecheck a function
 // pub fn typeck_function(function: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
