@@ -13,6 +13,7 @@ enum RuntimeError {
     InvalidOperand,
     ModulusByZero, 
     OutOfRange,
+    IncorrectArgs,
 }
 
 // abstraction for values making up expressions
@@ -118,17 +119,17 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
 		/* TODO
     		Expr::Call
-    		Expr::Match
-    		How to handle ranges if we have to??
     	*/
     	
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
-        Expr::Var(id) => Ok(env.get(id).unwrap().clone()), // will return a Value
+        Expr::Var(id) => Ok(env.get(id).unwrap().clone()),
+        // Ok(env.get(id).unwrap().clone()), // will return a Value
+        
 
         Expr::BinOp { lhs, op, rhs } => {
-
+            
 			let left = eval_expr(lhs, env, &program)?;
 			let right = eval_expr(rhs, env, &program)?;
 
@@ -246,11 +247,38 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
         Expr::Call { callee, args } => {
             let mut env_args = Env::new();
-            let call = env.get(callee).unwrap().clone();
-            // let val = eval_expr(env.get(callee).unwrap().clone(), &env_args);
-            // env.insert(args);
-            // try eval_expr(env.get(callee), args)
-            Err(RuntimeError::InvalidExpression)
+            let function = program.helpers.get(callee).unwrap().clone();
+
+             // check to see proper args
+            if args.len() != function.params.len() {
+                return Err(RuntimeError::IncorrectArgs);
+            }
+            let mut num_matches = 0;
+
+            for i in 0..args.len() {
+                
+                let arg_val = eval_expr(args.get(i).unwrap(), env, program).unwrap();
+                let param_type = function.params.get(i).unwrap().clone().1;
+
+                // let mut matches = false;
+                let matches = match (&arg_val, param_type) {
+                    (Value::Bool(b), Type::BoolT) => true,
+                    (Value::Num(n, range), Type::NumT(t_range)) => true,
+                    (Value::Sym(s), Type::SymT) => true,
+                    _ => false,
+                };
+                if matches {
+                    env_args.insert(function.params.get(i).unwrap().clone().0, arg_val.clone());
+                    num_matches += 1;
+                }
+            }
+            if num_matches == args.len() {
+                // eval expr
+                return eval_expr(&function.body, &env_args, program);
+            }
+            else {
+                return Err(RuntimeError::IncorrectArgs);
+            }
         }
 
         _ => Err(RuntimeError::InvalidExpression),
@@ -821,3 +849,31 @@ fn test_match() {
 
 }
 
+#[test]
+// Call
+fn test_call() {
+    let input = r#"
+        alphabet: {'a'}
+        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+        let x: int[3];
+        on input y {
+                x = add(1, 2);
+                x = 3 + - 4 as int[3] wraparound;
+                x = 3 + 4 as int[3] wraparound;
+                if x < 3 {
+                        y = 'a';
+                } else {
+                        x = match y {
+                                'a' -> 1
+                                x if true -> 2
+                        };
+                }
+        }
+        accept if x == 3
+    "#;
+    let program = parse(input).unwrap();
+    println!("program: {:?}", program);
+
+    let (result, env) = eval(&program, input).unwrap();
+
+}
