@@ -45,7 +45,6 @@ fn init_env(program: &Program) -> Env {
         	
             Type::BoolT => Value::Bool(false), 
             
-            //  TODO - add Range to the Num enum
             //  default to be beginning of range
             Type::NumT(range) => {
                         Value::Num(range.start, Range { start: range.start, end: range.end })
@@ -74,9 +73,9 @@ fn eval(program: &Program, input: &str) ->Result<(bool, Env), RuntimeError> {
 
     // evaluate the final condition
     for stmt in &program.action.1 {
-		eval_stmt(stmt, &mut env)?;
+		eval_stmt(stmt, &mut env, &program)?;
 	}
-    eval_expr(&program.accept, &env)?;
+    eval_expr(&program.accept, &env, &program)?;
     
     Ok((false, env))
 }
@@ -114,7 +113,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
 }
 
 // eval. expr.
-fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
+fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
 
 		/* TODO
@@ -130,8 +129,8 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 
         Expr::BinOp { lhs, op, rhs } => {
 
-			let left = eval_expr(lhs, env)?;
-			let right = eval_expr(rhs, env)?;
+			let left = eval_expr(lhs, env, &program)?;
+			let right = eval_expr(rhs, env, &program)?;
 
 			match (left, right) {
 			    (Value::Num(l, l_range), Value::Num(r, range_ignore)) => match op {
@@ -178,7 +177,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
         }
 
         Expr::UOp { op, inner } => {
-            let left = eval_expr(inner, env)?;
+            let left = eval_expr(inner, env, &program)?;
             
             match left {
             
@@ -203,7 +202,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
                 Type::NumT(n) => Ok(n.clone())
             }?;
             
-            let val = eval_expr(inner, env)?;
+            let val = eval_expr(inner, env, &program)?;
 
             match val {
                 Value::Num(num, range) => match overflow {
@@ -220,7 +219,7 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
         },
 
         Expr::Match { scrutinee, cases } => {
-            let raw_val = eval_expr(&scrutinee, env)?;
+            let raw_val = eval_expr(&scrutinee, env, &program)?;
             for case in cases {
                 let pattern = match case.pattern {
                     Pattern::Bool(b) => Value::Bool(b),
@@ -229,11 +228,11 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
                     Pattern::Var(id) => env.get(&id).unwrap().clone(),
                 };
                 if raw_val == pattern {
-                    let g = eval_expr(&case.guard, env).unwrap();
+                    let g = eval_expr(&case.guard, env, &program).unwrap();
                     
                     if let Value::Bool(b) = g {
                         if b {
-                            return Ok(eval_expr(&case.result, env).unwrap());
+                            return Ok(eval_expr(&case.result, env, &program).unwrap());
                         }
                     } else {
                         return Err(RuntimeError::TypeError);
@@ -244,9 +243,10 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
             return Err(RuntimeError::TypeError);
 
         },
-        
+
         Expr::Call { callee, args } => {
             let mut env_args = Env::new();
+            let call = env.get(callee).unwrap().clone();
             // let val = eval_expr(env.get(callee).unwrap().clone(), &env_args);
             // env.insert(args);
             // try eval_expr(env.get(callee), args)
@@ -261,14 +261,14 @@ fn eval_expr(expr: &Expr, env: &Env) -> Result<Value, RuntimeError> {
 
 
 // eval. stmt.
-fn eval_stmt(stmt: &Stmt, env: &mut Env) -> Result<Value, RuntimeError> {
+fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
 
 	// TODO : If 
 
 	
     match stmt {
         Stmt::Assign(id, expr) => {
-            let value = eval_expr(expr, env)?;
+            let value = eval_expr(expr, env, &program)?;
             println!("Assigned value {:?} to {}", value, id);
             env.insert(id.clone(), value.clone());
             Ok(value)
