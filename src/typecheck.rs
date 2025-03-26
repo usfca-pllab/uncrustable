@@ -1165,7 +1165,6 @@ mod tests {
         assert!(typeck_stmt(&if1, &ctx).is_ok());
     }
 
-    // todo need some at least one if block test
     #[test]
     fn block() {
         //make variables with types
