@@ -355,7 +355,6 @@ pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
     Ok(())
 }
 
-// <<<<<<< HEAD
 ///Typecheck a function using the given environment and function environment
 pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let mut fun_env = ctx.env.clone();
@@ -364,7 +363,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
         fun_env.insert(*param, param_type.clone());
     }
 
-    let fun_ctx = TypeCtx{
+    let fun_ctx = TypeCtx {
         env: fun_env,
         funcs: ctx.funcs,
     };
