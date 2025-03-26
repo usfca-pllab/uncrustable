@@ -19,8 +19,12 @@ fn main() {
     println!("Parsed program {program:#?}");
 
     // type check
-    if args[1] == "typecheck" {
-        typecheck::typecheck_program(&program);
+    if args.input.contains("typecheck") {
+        let type_check_result = typecheck::typecheck_program(&program);
+        if type_check_result.is_err() {
+            let error = type_check_result.unwrap_err();
+            println!("Error: {error}");
+        }
     }
     // evaluate
     // print verdict
