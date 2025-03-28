@@ -1,11 +1,13 @@
 // use clap derive for argument parsing
 //
 // read a file name as the only argument
-use clap::Parser;
+use clap::{Parser, Command, arg};
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
+use uncrustable::eval;
 
 #[derive(Parser, Debug)]
+#[cargo]
 struct Args {
     /// The input program to read
     input: String,
@@ -19,13 +21,19 @@ fn main() {
     println!("Parsed program {program:#?}");
 
     // type check
-    if args.input.contains("typecheck") {
+    let matches = Command::new("DFA")
+                .arg(arg!(--typecheck     "Typecheck the program you are inputting"))
+                .arg(arg!(--evaluate      "Evaluate the program you are inputting"))
+                .get_matches();
+    
+    if matches.get_one::<String>("typecheck") != None { 
         let type_check_result = typecheck::typecheck_program(&program);
         if type_check_result.is_err() {
             let error = type_check_result.unwrap_err();
             println!("Error: {error}");
         }
     }
+
     // evaluate
     // print verdict
 
