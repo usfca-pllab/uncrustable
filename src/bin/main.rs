@@ -1,7 +1,7 @@
 // use clap derive for argument parsing
 //
 // read a file name as the only argument
-use clap::{arg, Command, Parser};
+use clap::{Arg, Parser};
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
@@ -10,6 +10,10 @@ use uncrustable::typecheck;
 struct Args {
     /// The input program to read
     input: String,
+
+    // The typecheck flag, can be used as --typecheck or --t
+    #[arg(short, long)]
+    typecheck: bool,
 }
 
 fn main() {
@@ -20,17 +24,28 @@ fn main() {
     println!("Parsed program {program:#?}");
 
     // type check
-    let matches = Command::new("DFA")
-        .arg(arg!(--typecheck     "Typecheck the program you are inputting"))
-        .arg(arg!(--evaluate      "Evaluate the program you are inputting"))
-        .get_matches();
-    if matches.get_one::<String>("typecheck") != None {
+
+    if args.typecheck {
         let type_check_result = typecheck::typecheck_program(&program);
         if type_check_result.is_err() {
             let error = type_check_result.unwrap_err();
             println!("Error: {error}");
+        } else {
+            print!("sucess");
         }
     }
+
+    // let matches = command!()
+    //     .arg(Arg::new("typecheck").short('t').long("typecheck"))
+    //     .get_matches();
+
+    // if matches.get_one::<String>("typecheck") != None {
+    //     let type_check_result = typecheck::typecheck_program(&program);
+    //     if type_check_result.is_err() {
+    //         let error = type_check_result.unwrap_err();
+    //         println!("Error: {error}");
+    //     }
+    // }
 
     // evaluate
     // print verdict
@@ -39,3 +54,8 @@ fn main() {
     // - check for equality
     // - compile to DFA
 }
+
+    // let matches = Command::new("DFA")
+    //     .arg(arg!(--typecheck))
+    //     .arg(arg!(--evaluate))
+    //     .get_matches();
