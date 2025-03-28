@@ -26,6 +26,7 @@ fn main() {
         .arg(arg!(--evaluate      "Evaluate the program you are inputting"))
         .get_matches();
     
+    
     if matches.get_one::<String>("typecheck") != None {
         let type_check_result = typecheck::typecheck_program(&program);
         if type_check_result.is_err() {
