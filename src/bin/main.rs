@@ -51,4 +51,3 @@ fn main() {
     // - check for equality
     // - compile to DFA
 }
-
