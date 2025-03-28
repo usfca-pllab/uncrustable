@@ -7,7 +7,6 @@ use uncrustable::parse::parse;
 use uncrustable::typecheck;
 
 #[derive(Parser, Debug)]
-// #[cargo]
 struct Args {
     /// The input program to read
     input: String,
