@@ -2,7 +2,7 @@
 //
 // read a file name as the only argument
 use clap::{Arg, Parser};
-// use chrono::Local;
+use chrono::Local;
 use env_logger::Builder;
 use log::{error, info, warn, LevelFilter};
 use std::io::Write;
@@ -30,8 +30,8 @@ fn main() {
             writeln!(buf,
                 "{} [{}] - {}",
                 Local::now().format("%Y-%m-%d %H:%M:%S"),
-                .record.level(),
-                .record.args()
+                record.level(),
+                record.args()
             )
         })
         .filter(None, LevelFilter::Info)
