@@ -27,7 +27,8 @@ struct Args {
 fn main() {
     Builder::new()
         .format(|buf, record| {
-            writeln!(buf,
+            writeln!(
+                buf,
                 "{} [{}] - {}",
                 Local::now().format("%Y-%m-%d %H:%M:%S"),
                 record.level(),
