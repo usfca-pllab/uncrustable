@@ -3,7 +3,7 @@
 // read a file name as the only argument
 use clap::{Arg, Parser};
 use env_logger::Builder;
-use log::{info, warn, error};
+use log::{error, info, warn};
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
