@@ -1237,9 +1237,6 @@ mod tests {
         };
 
         assert!(typeck_function(&fun_err, &ctx).is_err());
-
-
-
     }
 
     #[test]
