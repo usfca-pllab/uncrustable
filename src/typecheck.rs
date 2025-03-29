@@ -429,6 +429,8 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use super::*;
     use crate::syntax::{
         id, Block, Case, Expr, Function, Map, Overflow, Pattern, Program, Stmt, Symbol, Type,
@@ -1235,6 +1237,9 @@ mod tests {
         };
 
         assert!(typeck_function(&fun_err, &ctx).is_err());
+
+
+
     }
 
     #[test]

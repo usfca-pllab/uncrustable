@@ -2,6 +2,8 @@
 //
 // read a file name as the only argument
 use clap::{Arg, Parser};
+use env_logger::Builder;
+use log::{info, warn, error};
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
@@ -21,6 +23,7 @@ struct Args {
 }
 
 fn main() {
+    env_logger::init();
     let args = Args::parse();
     let input = std::fs::read_to_string(&args.input).expect("Could not read file");
     let program = parse(&input).unwrap_or_else(|err| panic!("Syntax error: {err}"));
@@ -33,10 +36,14 @@ fn main() {
         if type_check_result.is_err() {
             let error = type_check_result.unwrap_err();
             println!("Error: {error}");
+            log::warn!("Error with typecheck");
+        } else {
+            log::info!("Typecheck successful");
         }
     }
 
     // evaluate
+    // Uncomment and debug when we merge the two branches
     // if args.evaluate {
     //     let eval_result = eval::eval(&program, &input);
     //     if eval_result.is_err() {
