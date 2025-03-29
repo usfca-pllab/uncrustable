@@ -1,8 +1,8 @@
 // use clap derive for argument parsing
 //
 // read a file name as the only argument
-use clap::{Arg, Parser};
 use chrono::Local;
+use clap::{Arg, Parser};
 use env_logger::Builder;
 use log::{error, info, warn, LevelFilter};
 use std::io::Write;
