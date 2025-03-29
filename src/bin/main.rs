@@ -2,8 +2,10 @@
 //
 // read a file name as the only argument
 use clap::{Arg, Parser};
+// use chrono::Local;
 use env_logger::Builder;
-use log::{error, info, warn};
+use log::{error, info, warn, LevelFilter};
+use std::io::Write;
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
@@ -23,7 +25,17 @@ struct Args {
 }
 
 fn main() {
-    env_logger::init();
+    Builder::new()
+        .format(|buf, record| {
+            writeln!(buf,
+                "{} [{}] - {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S"),
+                .record.level(),
+                .record.args()
+            )
+        })
+        .filter(None, LevelFilter::Info)
+        .init();
     let args = Args::parse();
     let input = std::fs::read_to_string(&args.input).expect("Could not read file");
     let program = parse(&input).unwrap_or_else(|err| panic!("Syntax error: {err}"));
