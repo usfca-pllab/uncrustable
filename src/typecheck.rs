@@ -89,7 +89,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                         })
                     }
                 }
-                // Comparison operations 
+                // Comparison operations
                 BOp::Lt | BOp::Lte => {
                     if lhs_type != rhs_type {
                         return Err(TypeError::TypeMismatch {
