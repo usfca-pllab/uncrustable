@@ -1274,27 +1274,30 @@ mod tests {
         env_map.insert(id("rem"), Type::NumT(0..3));
 
         let mut functions = Map::new();
-        functions.insert(id("char_to_bit"), Function {
-            params: vec![(id("c"), Type::SymT)],
-            ret_typ: Type::NumT(0..2),
-            body: Expr::Match { 
-                scrutinee: Box::new(Expr::Var(id("c"))), 
-                cases: vec![
-                    // Case 1: '0' -> 0 as int[2]
-                    Case {
-                        pattern: Pattern::Sym(Symbol('0')),
-                        guard: Expr::Bool(true),
-                        result: Expr::Num(0, Type::NumT(0..2)),
-                    },
-                    // Case 2: '1' -> 1 as int[2]
-                    Case {
-                        pattern: Pattern::Sym(Symbol('1')),
-                        guard: Expr::Bool(true),
-                        result: Expr::Num(1, Type::NumT(0..2)),
-                    },
-                ],
-            },
-        });
+        functions.insert(
+            id("char_to_bit"),
+            Function {
+                params: vec![(id("c"), Type::SymT)],
+                ret_typ: Type::NumT(0..2),
+                body: Expr::Match { 
+                    scrutinee: Box::new(Expr::Var(id("c"))), 
+                    cases: vec![
+                        // Case 1: '0' -> 0 as int[2]
+                        Case {
+                            pattern: Pattern::Sym(Symbol('0')),
+                            guard: Expr::Bool(true),
+                            result: Expr::Num(0, Type::NumT(0..2)),
+                        },
+                        // Case 2: '1' -> 1 as int[2]
+                        Case {
+                            pattern: Pattern::Sym(Symbol('1')),
+                            guard: Expr::Bool(true),
+                            result: Expr::Num(1, Type::NumT(0..2)),
+                        },
+                    ],
+                },
+            }
+        );
 
         let nest = TypeCtx {
             env: env_map.clone(),
