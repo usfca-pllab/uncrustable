@@ -54,7 +54,6 @@ fn main() {
             log::info!("Typecheck successful");
         }
     }
-    
     // evaluate
     // Uncomment and debug when we merge the two branches
     // if args.evaluate {
