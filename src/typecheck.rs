@@ -1312,7 +1312,6 @@ mod tests {
         //Check typeck_function works without err if passed in populated ctx and passed in
         //function from the function map
         assert!(typeck_function(nest.funcs.get(&id("char_to_bit")).unwrap(), &nest).is_ok());
-        
         //test that ctx and nested maps are not changed through typeck_function
         assert_eq!(nest.env, nest_check.env);
         assert_eq!(nest.funcs, nest_check.funcs);
