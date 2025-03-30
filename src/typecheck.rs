@@ -355,30 +355,30 @@ pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
     Ok(())
 }
 
-/// Typecheck a function
-pub fn typeck_function(function: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
-    // Extend global environment with the function's parameters
+///Typecheck a function using the given environment and function environment
+pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let mut fun_env = ctx.env.clone();
-    // adds the function parameters to extended environment
-    for (param, param_type) in &function.params {
+
+    for (param, param_type) in &fun.params {
         fun_env.insert(*param, param_type.clone());
     }
-    // Type check the function's body
-    let body_type = typeck_expr(
-        &function.body,
-        &TypeCtx {
-            env: fun_env,
-            funcs: ctx.funcs,
-        },
-    )?;
-    // Check that the body type matches the return type
-    if body_type != function.ret_typ {
-        return Err(TypeError::TypeMismatch {
-            expected: function.ret_typ.clone(),
-            actual: body_type,
-        });
+
+    let fun_ctx = TypeCtx {
+        env: fun_env,
+        funcs: ctx.funcs,
+    };
+
+    let e = typeck_expr(&fun.body, &fun_ctx)?;
+
+    if e == fun.ret_typ {
+        Ok(())
+    } else {
+        let t = fun.ret_typ.clone();
+        Err(TypeError::TypeMismatch {
+            expected: t,
+            actual: e,
+        })
     }
-    Ok(())
 }
 
 /// Type check a program
