@@ -34,7 +34,7 @@ pub enum TypeError {
     EmptyMatchCases,
     /// Type mismatch between pattern and scrutinee
     #[error("Type mismatch between pattern and scrutinee")]
-    TypeMismatchBetweenPatternAndScrutinee {
+    MismatchPatternScrutinee {
         /// Expected type
         expected: Type,
         /// Actual pattern
@@ -241,7 +241,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                     Pattern::Sym(_) if scrutinee_type == Type::SymT => {}
                     // Pattern type doesn't match scrutinee type
                     _ => {
-                        return Err(TypeError::TypeMismatchBetweenPatternAndScrutinee {
+                        return Err(TypeError::MismatchPatternScrutinee {
                             expected: scrutinee_type.clone(),
                             actual: case.pattern.clone(),
                         });
@@ -286,7 +286,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             }
 
             // Return the type of the result
-            result_type.ok_or(TypeError::TypeMismatchBetweenPatternAndScrutinee {
+            result_type.ok_or(TypeError::MismatchPatternScrutinee {
                 expected: scrutinee_type,
                 actual: cases[0].pattern.clone(),
             })
@@ -390,12 +390,18 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     };
 
     // Check that all helper functions are well-typed
-    for (_, function) in &program.helpers {
-        typeck_function(function, &ctx)?;
+    for (func_name, function) in &program.helpers {
+        if let Err(err) = typeck_function(function, &ctx) {
+            println!("Type error in function '{}': {}", func_name, err);
+            return Err(err);
+        }
     }
 
-    // Type check all statements in the start block
-    typeck_block(&program.start, &ctx)?;
+    // Type check all statements in the block
+    if let Err(err) = typeck_block(&program.start, &ctx) {
+        println!("Type error in block: {}", err);
+        return Err(err);
+    }
 
     // Type check the action handler
     let (input_var, action_block) = &program.action;
@@ -1068,7 +1074,7 @@ mod tests {
         };
         assert!(matches!(
             typeck_expr(&invalid_match1, &ctx),
-            Err(TypeError::TypeMismatchBetweenPatternAndScrutinee { .. })
+            Err(TypeError::MismatchPatternScrutinee { .. })
         ));
 
         // Type mismatch between case results
