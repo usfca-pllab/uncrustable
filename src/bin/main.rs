@@ -62,6 +62,9 @@ fn main() {
     //     if eval_result.is_err() {
     //         let error = eval_result.unwrap_err();
     //         println!("Error: {error}");
+    //         log::warn!("Error with evaluation");
+    //     } else {
+    //         log::info!("Evaluation successful");
     //     }
     // }
 
