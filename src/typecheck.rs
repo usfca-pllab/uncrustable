@@ -1119,6 +1119,9 @@ mod tests {
         env.insert(id("X"), Type::NumT(0..1));
         env.insert(id("Y"), Type::BoolT);
         env.insert(id("Z"), Type::SymT);
+        //variables for if case
+        env.insert(id("result1"), Type::NumT(0..2));
+        env.insert(id("result2"), Type::NumT(0..2));
 
         let ctx = TypeCtx {
             env,
@@ -1130,14 +1133,14 @@ mod tests {
         let e2 = Expr::Sym('x');
         let e3 = Expr::Bool(true);
 
-        let test1 = Stmt::Assign(id("A"), e1.clone());
-        let test2 = Stmt::Assign(id("B"), e2.clone());
-        let test3 = Stmt::Assign(id("C"), e3.clone());
+        let assign1 = Stmt::Assign(id("A"), e1.clone());
+        let assign2 = Stmt::Assign(id("B"), e2.clone());
+        let assign3 = Stmt::Assign(id("C"), e3.clone());
 
         //check OK
-        assert!(typeck_stmt(&test1, &ctx).is_ok());
-        assert!(typeck_stmt(&test2, &ctx).is_ok());
-        assert!(typeck_stmt(&test3, &ctx).is_ok());
+        assert!(typeck_stmt(&assign1, &ctx).is_ok());
+        assert!(typeck_stmt(&assign2, &ctx).is_ok());
+        assert!(typeck_stmt(&assign3, &ctx).is_ok());
 
         let err1 = Stmt::Assign(id("X"), e1);
         let err2 = Stmt::Assign(id("Y"), e2);
@@ -1147,9 +1150,21 @@ mod tests {
         assert!(typeck_stmt(&err1, &ctx).is_err());
         assert!(typeck_stmt(&err2, &ctx).is_err());
         assert!(typeck_stmt(&err3, &ctx).is_err());
+
+        let tb1 = Stmt::Assign(id("result1"), Expr::Num(1, Type::NumT(0..2)));
+        let fb1 = Stmt::Assign(id("result2"), Expr::Num(2, Type::NumT(0..2)));
+        let e4 = Expr::Bool(true);
+
+        //test if
+        let if1 = Stmt::If {
+            cond: e4,
+            true_branch: vec![tb1],
+            false_branch: vec![fb1],
+        };
+
+        assert!(typeck_stmt(&if1, &ctx).is_ok());
     }
 
-    // todo need some at least one if block test
     #[test]
     fn block() {
         //make variables with types
