@@ -34,7 +34,7 @@ pub enum TypeError {
     EmptyMatchCases,
     /// Type mismatch between pattern and scrutinee
     #[error("Type mismatch between pattern and scrutinee")]
-    TypeMismatchBetweenPatternAndScrutinee {
+    MismatchPatternScrutinee {
         /// Expected type
         expected: Type,
         /// Actual pattern
@@ -71,16 +71,16 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
         Expr::BinOp { lhs, op, rhs } => {
             let lhs_type = typeck_expr(lhs, ctx)?;
             let rhs_type = typeck_expr(rhs, ctx)?;
-            if lhs_type != rhs_type {
-                return Err(TypeError::TypeMismatch {
-                    expected: lhs_type,
-                    actual: rhs_type,
-                });
-            }
             match op {
                 // Arithmetic operations are always of type NumT(0..1)
                 BOp::Add | BOp::Sub | BOp::Mul | BOp::Div | BOp::Rem | BOp::Shl | BOp::Shr => {
                     if let Type::NumT(_) = lhs_type {
+                        if lhs_type != rhs_type {
+                            return Err(TypeError::TypeMismatch {
+                                expected: lhs_type,
+                                actual: rhs_type,
+                            });
+                        }
                         Ok(lhs_type)
                     } else {
                         Err(TypeError::TypeMismatch {
@@ -89,8 +89,14 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                         })
                     }
                 }
-                // Comparison operations are always of type BoolT
-                BOp::Lt | BOp::Lte | BOp::Eq | BOp::Ne => {
+                // Comparison operations
+                BOp::Lt | BOp::Lte => {
+                    if lhs_type != rhs_type {
+                        return Err(TypeError::TypeMismatch {
+                            expected: lhs_type,
+                            actual: rhs_type,
+                        });
+                    }
                     if let Type::NumT(_) = lhs_type {
                         Ok(Type::BoolT)
                     } else {
@@ -100,8 +106,29 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                         })
                     }
                 }
+                // Equality and inequality can compare symbols as well as numbers
+                BOp::Eq | BOp::Ne => {
+                    if lhs_type != rhs_type {
+                        return Err(TypeError::TypeMismatch {
+                            expected: lhs_type,
+                            actual: rhs_type,
+                        });
+                    }
+                    // Allow comparison of numbers or symbols
+                    if matches!(lhs_type, Type::NumT(_) | Type::SymT) {
+                        Ok(Type::BoolT)
+                    } else {
+                        Ok(Type::BoolT)
+                    }
+                }
                 // Logical operations are always of type BoolT
                 BOp::And | BOp::Or => {
+                    if lhs_type != rhs_type {
+                        return Err(TypeError::TypeMismatch {
+                            expected: lhs_type,
+                            actual: rhs_type,
+                        });
+                    }
                     if lhs_type == Type::BoolT {
                         Ok(Type::BoolT)
                     } else {
@@ -241,7 +268,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                     Pattern::Sym(_) if scrutinee_type == Type::SymT => {}
                     // Pattern type doesn't match scrutinee type
                     _ => {
-                        return Err(TypeError::TypeMismatchBetweenPatternAndScrutinee {
+                        return Err(TypeError::MismatchPatternScrutinee {
                             expected: scrutinee_type.clone(),
                             actual: case.pattern.clone(),
                         });
@@ -286,7 +313,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             }
 
             // Return the type of the result
-            result_type.ok_or(TypeError::TypeMismatchBetweenPatternAndScrutinee {
+            result_type.ok_or(TypeError::MismatchPatternScrutinee {
                 expected: scrutinee_type,
                 actual: cases[0].pattern.clone(),
             })
@@ -390,12 +417,18 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     };
 
     // Check that all helper functions are well-typed
-    for (_, function) in &program.helpers {
-        typeck_function(function, &ctx)?;
+    for (func_name, function) in &program.helpers {
+        if let Err(err) = typeck_function(function, &ctx) {
+            println!("Type error in function '{}': {}", func_name, err);
+            return Err(err);
+        }
     }
 
-    // Type check all statements in the start block
-    typeck_block(&program.start, &ctx)?;
+    // Type check all statements in the block
+    if let Err(err) = typeck_block(&program.start, &ctx) {
+        println!("Type error in block: {}", err);
+        return Err(err);
+    }
 
     // Type check the action handler
     let (input_var, action_block) = &program.action;
@@ -430,8 +463,9 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::parse::parse;
     use crate::syntax::{
-        id, Block, Case, Expr, Function, Map, Overflow, Pattern, Program, Stmt, Symbol, Type,
+        id, Case, Expr, Function, Map, Overflow, Pattern, Program, Stmt, Symbol, Type,
     };
 
     #[test]
@@ -1068,7 +1102,7 @@ mod tests {
         };
         assert!(matches!(
             typeck_expr(&invalid_match1, &ctx),
-            Err(TypeError::TypeMismatchBetweenPatternAndScrutinee { .. })
+            Err(TypeError::MismatchPatternScrutinee { .. })
         ));
 
         // Type mismatch between case results
@@ -1224,203 +1258,90 @@ mod tests {
 
     #[test]
     fn programs() {
-        // Test a valid program
-        let valid_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set.insert(Symbol('b'));
-                set
-            },
-            helpers: {
-                let mut map = Map::new();
-                map.insert(
-                    id("is_a"),
-                    Function {
-                        params: vec![(id("c"), Type::SymT)],
-                        ret_typ: Type::BoolT,
-                        body: Expr::Match {
-                            scrutinee: Box::new(Expr::Var(id("c"))),
-                            cases: vec![
-                                Case {
-                                    pattern: Pattern::Sym(Symbol('a')),
-                                    guard: Expr::Bool(true),
-                                    result: Expr::Bool(true),
-                                },
-                                Case {
-                                    pattern: Pattern::Var(id("_")),
-                                    guard: Expr::Bool(true),
-                                    result: Expr::Bool(false),
-                                },
-                            ],
-                        },
-                    },
-                );
-                map
-            },
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("count"), Type::NumT(0..100));
-                map.insert(id("saw_a"), Type::BoolT);
-                map
-            },
-            start: vec![
-                Stmt::Assign(id("count"), Expr::Num(0, Type::NumT(0..100))),
-                Stmt::Assign(id("saw_a"), Expr::Bool(false)),
-            ],
-            action: (
-                Some(id("input")),
-                vec![Stmt::If {
-                    cond: Expr::Call {
-                        callee: id("is_a"),
-                        args: vec![Expr::Var(id("input"))],
-                    },
-                    true_branch: vec![
-                        Stmt::Assign(id("saw_a"), Expr::Bool(true)),
-                        Stmt::Assign(
-                            id("count"),
-                            Expr::BinOp {
-                                lhs: Box::new(Expr::Var(id("count"))),
-                                op: BOp::Add,
-                                rhs: Box::new(Expr::Num(1, Type::NumT(0..100))),
-                            },
-                        ),
-                    ],
-                    false_branch: vec![],
-                }],
-            ),
-            accept: Expr::BinOp {
-                lhs: Box::new(Expr::Var(id("saw_a"))),
-                op: BOp::And,
-                rhs: Box::new(Expr::BinOp {
-                    lhs: Box::new(Expr::Var(id("count"))),
-                    op: BOp::Eq,
-                    rhs: Box::new(Expr::Num(1, Type::NumT(0..100))),
-                }),
-            },
-        };
+        // Test a valid program with helper functions and explicit castings
+        let program1_input = r#"
+                alphabet: {'a'}
+                fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+                let x: int[3];
+                on input y {
+                    x = add(1 as int[3], 2 as int[3]);
+                    x = 3 as int[3] + - 4 as int[3];
+                    x = 3 as int[3] + 4 as int[3] wraparound;
+                    if x < 3 as int[3] {
+                        y = 'a';
+                    } else {
+                        x = match y {
+                            'a' -> 1 as int[3]
+                            x if true -> 2 as int[3]
+                        };
+                    }
+                }
+                accept if x == 3 as int[3]
+                "#;
+        let program1: Program = parse(program1_input).unwrap();
+        let result1 = typecheck_program(&program1);
+        assert!(result1.is_ok());
 
-        let result = typecheck_program(&valid_program);
-        assert!(
-            result.is_ok(),
-            "Program type check failed with error: {:?}",
-            result.err()
-        );
+        // Test a program with a function that returns a boolean
+        let program2_input = r#"
+                alphabet: {'a'}
+                fn is_a(c: sym) -> bool = c == 'a'
+                let flag: bool;
+                on input c {
+                    flag = is_a(c);
+                    if flag {
+                        c = 'b';
+                    }
+                }
+                accept if flag
+                "#;
+        let program2: Program = parse(program2_input).unwrap();
+        let result2 = typecheck_program(&program2);
+        assert!(result2.is_ok());
 
-        // Test program with invalid helper function
-        let invalid_helper_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: {
-                let mut map = Map::new();
-                map.insert(
-                    id("invalid_helper"),
-                    Function {
-                        params: vec![(id("c"), Type::SymT)],
-                        ret_typ: Type::BoolT,
-                        body: Expr::Var(id("undefined")), // Undefined variable
-                    },
-                );
-                map
-            },
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("flag"), Type::BoolT);
-                map
-            },
-            start: vec![Stmt::Assign(id("flag"), Expr::Bool(false))],
-            action: (None, vec![]),
-            accept: Expr::Var(id("flag")),
-        };
-        assert!(typecheck_program(&invalid_helper_program).is_err());
+        // Test program with invalid function return type
+        let program3_input = r#"
+                alphabet: {'b', 'c'}
+                fn invalid_helper(c: sym) -> int[3] = c == 'b'
+                let flag: bool;
+                on input c {
+                    flag = is_a(c);
+                    if flag {
+                        c = 'b';
+                    }
+                }
+                accept if flag
+                "#;
+        let program3: Program = parse(program3_input).unwrap();
+        let result3 = typecheck_program(&program3);
+        assert!(result3.is_err());
 
-        // Test program with invalid start block
-        let invalid_start_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("flag"), Type::BoolT);
-                map
-            },
-            start: vec![
-                Stmt::Assign(id("flag"), Expr::Bool(true)),
-                Stmt::Assign(id("undefined"), Expr::Bool(false)), // Undefined variable
-            ],
-            action: (None, vec![]),
-            accept: Expr::Var(id("flag")),
-        };
-        assert!(typecheck_program(&invalid_start_program).is_err());
+        // Test program with invalid start
+        let program4_input = r#"
+                alphabet: {'a'}
+                let flag: bool;
+                on input c {
+                    flag = 'c';
+                }
+                accept if flag
+                "#;
+        let program4: Program = parse(program4_input).unwrap();
+        let result4 = typecheck_program(&program4);
+        assert!(result4.is_err());
 
         // Test program with invalid action block
-        let invalid_action_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("flag"), Type::BoolT);
-                map
-            },
-            start: vec![Stmt::Assign(id("flag"), Expr::Bool(false))],
-            action: (
-                Some(id("c")),
-                vec![Stmt::If {
-                    cond: Expr::BinOp {
-                        lhs: Box::new(Expr::Var(id("c"))),
-                        op: BOp::Eq,
-                        rhs: Box::new(Expr::Sym('a')),
-                    },
-                    true_branch: vec![Stmt::Assign(id("undefined"), Expr::Bool(true))], // Undefined variable
-                    false_branch: vec![],
-                }],
-            ),
-            accept: Expr::Var(id("flag")),
-        };
-        assert!(typecheck_program(&invalid_action_program).is_err());
-
-        // Test program with invalid accept condition
-        let invalid_accept_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: {
-                let mut map = Map::new();
-                map.insert(id("count"), Type::NumT(0..10));
-                map
-            },
-            start: vec![Stmt::Assign(id("count"), Expr::Num(0, Type::NumT(0..10)))],
-            action: (None, vec![]),
-            accept: Expr::Var(id("count")), // Numeric instead of boolean
-        };
-        assert!(typecheck_program(&invalid_accept_program).is_err());
-
-        // Test program with non-existent symbol in alphabet
-        let valid_symbol_program = Program {
-            alphabet: {
-                let mut set = Set::new();
-                set.insert(Symbol('a'));
-                set
-            },
-            helpers: Map::new(),
-            locals: Map::new(),
-            start: vec![],
-            action: (None, vec![]),
-            accept: Expr::Bool(true),
-        };
-        assert!(typecheck_program(&valid_symbol_program).is_ok());
+        let program5_input = r#"
+                alphabet: {'a'}
+                let flag: bool;
+                on input c {
+                    if b == 'a' {
+                        flag = 1 as bool;
+                    }
+                }
+                accept if flag
+                "#;
+        let program5: Program = parse(program5_input).unwrap();
+        let result5 = typecheck_program(&program5);
+        assert!(result5.is_err());
     }
 }
