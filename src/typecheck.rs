@@ -1296,7 +1296,7 @@ mod tests {
                         },
                     ],
                 },
-            }
+            },
         );
 
         let nest = TypeCtx {
