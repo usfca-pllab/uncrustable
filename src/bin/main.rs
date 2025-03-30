@@ -13,7 +13,6 @@ struct Args {
 }
 
 fn main() {
-
     let args = Args::parse();
     let input = std::fs::read_to_string(&args.input).expect("Could not read file");
     let program = parse(&input).unwrap_or_else(|err| panic!("Syntax error: {err}"));
@@ -21,7 +20,6 @@ fn main() {
     println!("Parsed program {program:#?}");
 
     // type check
-
 
     // evaluate
     // Uncomment and debug when we merge the two branches
