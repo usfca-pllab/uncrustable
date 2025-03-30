@@ -71,16 +71,16 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
         Expr::BinOp { lhs, op, rhs } => {
             let lhs_type = typeck_expr(lhs, ctx)?;
             let rhs_type = typeck_expr(rhs, ctx)?;
-            if lhs_type != rhs_type {
-                return Err(TypeError::TypeMismatch {
-                    expected: lhs_type,
-                    actual: rhs_type,
-                });
-            }
             match op {
                 // Arithmetic operations are always of type NumT(0..1)
                 BOp::Add | BOp::Sub | BOp::Mul | BOp::Div | BOp::Rem | BOp::Shl | BOp::Shr => {
                     if let Type::NumT(_) = lhs_type {
+                        if lhs_type != rhs_type {
+                            return Err(TypeError::TypeMismatch {
+                                expected: lhs_type,
+                                actual: rhs_type,
+                            });
+                        }
                         Ok(lhs_type)
                     } else {
                         Err(TypeError::TypeMismatch {
@@ -89,8 +89,14 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                         })
                     }
                 }
-                // Comparison operations are always of type BoolT
-                BOp::Lt | BOp::Lte | BOp::Eq | BOp::Ne => {
+                // Comparison operations 
+                BOp::Lt | BOp::Lte => {
+                    if lhs_type != rhs_type {
+                        return Err(TypeError::TypeMismatch {
+                            expected: lhs_type,
+                            actual: rhs_type,
+                        });
+                    }
                     if let Type::NumT(_) = lhs_type {
                         Ok(Type::BoolT)
                     } else {
@@ -100,8 +106,29 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                         })
                     }
                 }
+                // Equality and inequality can compare symbols as well as numbers
+                BOp::Eq | BOp::Ne => {
+                    if lhs_type != rhs_type {
+                        return Err(TypeError::TypeMismatch {
+                            expected: lhs_type,
+                            actual: rhs_type,
+                        });
+                    }
+                    // Allow comparison of numbers or symbols
+                    if matches!(lhs_type, Type::NumT(_) | Type::SymT) {
+                        Ok(Type::BoolT)
+                    } else {
+                        Ok(Type::BoolT)
+                    }
+                }
                 // Logical operations are always of type BoolT
                 BOp::And | BOp::Or => {
+                    if lhs_type != rhs_type {
+                        return Err(TypeError::TypeMismatch {
+                            expected: lhs_type,
+                            actual: rhs_type,
+                        });
+                    }
                     if lhs_type == Type::BoolT {
                         Ok(Type::BoolT)
                     } else {
