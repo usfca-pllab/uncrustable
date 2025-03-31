@@ -1,18 +1,29 @@
-use crate::parse::parse;
 use crate::syntax::*;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use std::result;
+use crate::parse::parse;
+use thiserror::Error;
 
-#[derive(Debug)]
+/// Errors that can occur during type checking
+#[derive(Error, Debug)]
+
 enum RuntimeError {
+    #[error("Invalid expression")]
     InvalidExpression,
+    #[error("Invalid statement")]
     InvalidStatement,
+    #[error("Division by zero")]
     DivisionbyZero,
+    #[error("Type error")]
     TypeError,
+    #[error("Invalid pperand")]
     InvalidOperand,
+    #[error("Modulus by zero")]
     ModulusByZero,
+    #[error("Cast fail: out of expected range")]
     OutOfRange,
+    #[error("Call fail: incorrect args")]
     IncorrectArgs,
 }
 
@@ -113,14 +124,13 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
 // eval. expr.
 fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
-        /* TODO
-            Expr::Call
-        */
+
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
+        
         Expr::Var(id) => Ok(env.get(id).unwrap().clone()),
-        // Ok(env.get(id).unwrap().clone()), // will return a Value
+        
         Expr::BinOp { lhs, op, rhs } => {
             let left = eval_expr(lhs, env, &program)?;
             let right = eval_expr(rhs, env, &program)?;
@@ -301,7 +311,6 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
 // eval. stmt.
 fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
-    // TODO : If
 
     match stmt {
         Stmt::Assign(id, expr) => {
