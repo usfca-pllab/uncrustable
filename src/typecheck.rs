@@ -1238,7 +1238,6 @@ mod tests {
         assert!(typeck_block(&b, &ctx).is_err());
     }
 
-    // todo not testing the nested environment
     #[test]
     fn functions() {
         let ctx = TypeCtx {
@@ -1269,6 +1268,53 @@ mod tests {
         };
 
         assert!(typeck_function(&fun_err, &ctx).is_err());
+
+        //test nested env, following example div3.un program
+        let mut env_map = Map::new();
+        env_map.insert(id("rem"), Type::NumT(0..3));
+
+        let mut functions = Map::new();
+        functions.insert(
+            id("char_to_bit"),
+            Function {
+                params: vec![(id("c"), Type::SymT)],
+                ret_typ: Type::NumT(0..2),
+                body: Expr::Match {
+                    scrutinee: Box::new(Expr::Var(id("c"))),
+                    cases: vec![
+                        // Case 1: '0' -> 0 as int[2]
+                        Case {
+                            pattern: Pattern::Sym(Symbol('0')),
+                            guard: Expr::Bool(true),
+                            result: Expr::Num(0, Type::NumT(0..2)),
+                        },
+                        // Case 2: '1' -> 1 as int[2]
+                        Case {
+                            pattern: Pattern::Sym(Symbol('1')),
+                            guard: Expr::Bool(true),
+                            result: Expr::Num(1, Type::NumT(0..2)),
+                        },
+                    ],
+                },
+            },
+        );
+
+        let nest = TypeCtx {
+            env: env_map.clone(),
+            funcs: &functions.clone(),
+        };
+
+        let nest_check = TypeCtx {
+            env: env_map.clone(),
+            funcs: &functions.clone(),
+        };
+
+        //Check typeck_function works without err if passed in populated ctx and passed in
+        //function from the function map
+        assert!(typeck_function(nest.funcs.get(&id("char_to_bit")).unwrap(), &nest).is_ok());
+        //test that ctx and nested maps are not changed through typeck_function
+        assert_eq!(nest.env, nest_check.env);
+        assert_eq!(nest.funcs, nest_check.funcs);
     }
 
     #[test]
