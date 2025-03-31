@@ -464,9 +464,7 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::{
-        id, Case, Expr, Function, Map, Overflow, Pattern, Program, Stmt, Symbol, Type,
-    };
+    use crate::syntax::*;
 
     #[test]
     fn variables() {
@@ -1173,13 +1171,18 @@ mod tests {
         assert!(typeck_stmt(&if1, &ctx).is_ok());
     }
 
+    // todo use the block field here directly, and pass in a block.
+    // still needs a if block test, might have failed merge, I saw you had it somewhere
     #[test]
     fn block() {
+        // maintain the same style of comments as the rest of the file
+        // e.g Create a type environment with a few variables
         //make variables with types
         let mut env = Map::new();
         env.insert(id("A"), Type::NumT(0..3));
         env.insert(id("B"), Type::SymT);
         env.insert(id("C"), Type::BoolT);
+
         //variables that will be used for err cases
         env.insert(id("X"), Type::NumT(0..1));
         env.insert(id("Y"), Type::BoolT);
@@ -1203,10 +1206,20 @@ mod tests {
 
         assert!(typeck_block(&b, &ctx).is_ok());
 
+        /* Using the block field directly
+        let block: Block = vec![
+            Stmt::Assign(id("A"), e1.clone()),
+            Stmt::Assign(id("B"), e2.clone()),
+            Stmt::Assign(id("C"), e3.clone()),
+        ];
+        assert!(typeck_block(&block, &ctx).is_ok());
+        */
+
         let err1 = Stmt::Assign(id("X"), e1);
         let err2 = Stmt::Assign(id("Y"), e2);
         let err3 = Stmt::Assign(id("Z"), e3);
 
+        // todo use different names for err and if blocks
         let b = vec![err1, err2, err3];
 
         assert!(typeck_block(&b, &ctx).is_err());
