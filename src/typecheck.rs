@@ -575,7 +575,15 @@ mod tests {
         let bool_false = Expr::Bool(false);
 
         // 1. Arithmetic operations with matching types (should succeed)
-        let arithmetic_ops = [BOp::Add, BOp::Sub, BOp::Mul, BOp::Div, BOp::Rem, BOp::Shl, BOp::Shr];
+        let arithmetic_ops = [
+            BOp::Add,
+            BOp::Sub,
+            BOp::Mul,
+            BOp::Div,
+            BOp::Rem,
+            BOp::Shl,
+            BOp::Shr,
+        ];
         for op in &arithmetic_ops {
             let bin_op1 = Expr::BinOp {
                 lhs: Box::new(num1.clone()),
@@ -618,7 +626,7 @@ mod tests {
             // Arithmetic with boolean
             Expr::BinOp {
                 lhs: Box::new(num1.clone()),
-                op: BOp::Add, 
+                op: BOp::Add,
                 rhs: Box::new(bool_true.clone()),
             },
             // Boolean operation with number
@@ -655,23 +663,32 @@ mod tests {
         // Valid operations with variables
         let valid_ops = [
             // x + y (same range)
-            (Expr::BinOp {
-                lhs: Box::new(x_expr.clone()),
-                op: BOp::Add,
-                rhs: Box::new(y_expr.clone()),
-            }, Type::NumT(0..10)),
+            (
+                Expr::BinOp {
+                    lhs: Box::new(x_expr.clone()),
+                    op: BOp::Add,
+                    rhs: Box::new(y_expr.clone()),
+                },
+                Type::NumT(0..10),
+            ),
             // x < y (comparison)
-            (Expr::BinOp {
-                lhs: Box::new(x_expr.clone()),
-                op: BOp::Lt,
-                rhs: Box::new(y_expr.clone()),
-            }, Type::BoolT),
+            (
+                Expr::BinOp {
+                    lhs: Box::new(x_expr.clone()),
+                    op: BOp::Lt,
+                    rhs: Box::new(y_expr.clone()),
+                },
+                Type::BoolT,
+            ),
             // flag1 && flag2 (logical)
-            (Expr::BinOp {
-                lhs: Box::new(flag1_expr.clone()),
-                op: BOp::And,
-                rhs: Box::new(flag2_expr.clone()),
-            }, Type::BoolT),
+            (
+                Expr::BinOp {
+                    lhs: Box::new(flag1_expr.clone()),
+                    op: BOp::And,
+                    rhs: Box::new(flag2_expr.clone()),
+                },
+                Type::BoolT,
+            ),
         ];
 
         for (expr, expected_type) in valid_ops {
