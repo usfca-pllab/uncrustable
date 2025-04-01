@@ -42,12 +42,11 @@ fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
 
     // insert alphabet into env
-    for symbol in &program.alphabet {
-        let id = id(&symbol.to_string());
-        let value = Value::Sym(*symbol);
-        println!("Inserting alpha. id -> {}, value -> {:?}", id, value);
-        env.insert(id, value);
-    }
+    // for symbol in &program.alphabet {
+    //     let id = id(&symbol.to_string());
+    //     let value = Value::Sym(*symbol);
+    //     env.insert(id, value);
+    // }
 
     // insert locals into env
     for (id, typ) in &program.locals {
@@ -64,7 +63,6 @@ fn init_env(program: &Program) -> Env {
             _ => continue, // for now continue, raise error later
         };
 
-        println!("Inserting local id -> {}, value -> {:?}", id, value);
         env.insert(id.clone(), value);
     }
 
@@ -260,9 +258,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
             for i in 0..args.len() {
                 let mut arg_val = eval_expr(args.get(i).unwrap(), env, program).unwrap();
-                println!("argval: {:?}", arg_val);
                 let param_type = function.params.get(i).unwrap().clone().1;
-                println!("param_type: {:?} ", param_type);
                 let mut num_range = 0..0;
                 let mut num_type = false;
                 let mut num = 0;
@@ -283,11 +279,6 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                     _ => false,
                 };
                 if matches {
-                    println!(
-                        "inserting type: {:?}",
-                        function.params.get(i).unwrap().clone().1
-                    );
-                    println!("argval: {:?}", arg_val);
                     if num_type {
                         arg_val = cast(num, num_range, Overflow::Wraparound).unwrap();
                     }
@@ -297,7 +288,6 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             }
             if num_matches == args.len() {
                 let val = eval_expr(&function.body, &env_args, program);
-                println!("val: {:?}", val);
                 return val;
             } else {
                 return Err(RuntimeError::IncorrectArgs);
@@ -313,7 +303,6 @@ fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, Run
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
-            println!("Assigned value {:?} to {}", value, id);
             env.insert(id.clone(), value.clone());
             Ok(value)
         }
@@ -324,7 +313,6 @@ fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, Run
             false_branch,
         } => {
             let cond_val = eval_expr(cond, env, &program)?;
-            println!("Evaluated Condition to -> {:?}", cond_val);
             match cond_val {
                 Value::Bool(true) => {
                     for stmt in true_branch {
