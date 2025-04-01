@@ -138,4 +138,4 @@ Here,
   - `[[on input s*]] = λ(env,σ). [[s*]] env`
 - `fold f a [b₁, …, bₙ]` stands for `f(bₙ, … f(b₂, f(b₁, a)))`.
 - if any partial function fails, execution gets stuck.
-- if the final evaluation does not result in a boolean, execution gets stuck.
+- if the final evaluation does not result in a boolean, execution gets stuck. 
