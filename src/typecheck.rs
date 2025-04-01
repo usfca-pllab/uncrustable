@@ -397,6 +397,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
 
     let e = typeck_expr(&fun.body, &fun_ctx)?;
 
+    //check that body is the same type as the return type, otherwise return error
     if e == fun.ret_typ {
         Ok(())
     } else {
@@ -1116,7 +1117,7 @@ mod tests {
     #[test]
     fn stmt() {
         //test assign
-        //make variables with types
+        //Create a type environment with a few variables
         let mut env = Map::new();
         env.insert(id("A"), Type::NumT(0..3));
         env.insert(id("B"), Type::SymT);
@@ -1161,7 +1162,7 @@ mod tests {
         let fb1 = Stmt::Assign(id("result2"), Expr::Num(2, Type::NumT(0..2)));
         let e4 = Expr::Bool(true);
 
-        //test if
+        //test stmt::if
         let if1 = Stmt::If {
             cond: e4,
             true_branch: vec![tb1],
@@ -1171,13 +1172,9 @@ mod tests {
         assert!(typeck_stmt(&if1, &ctx).is_ok());
     }
 
-    // todo use the block field here directly, and pass in a block.
-    // still needs a if block test, might have failed merge, I saw you had it somewhere
     #[test]
     fn block() {
-        // maintain the same style of comments as the rest of the file
-        // e.g Create a type environment with a few variables
-        //make variables with types
+        //Create a type environment with a few variables
         let mut env = Map::new();
         env.insert(id("A"), Type::NumT(0..3));
         env.insert(id("B"), Type::SymT);
@@ -1193,36 +1190,28 @@ mod tests {
             funcs: &Map::new(),
         };
 
-        //make expressions
+        //make expressions for use in stmt blocks
         let e1 = Expr::Num(1, Type::NumT(0..3));
         let e2 = Expr::Sym('x');
         let e3 = Expr::Bool(true);
 
+        //assign statements
         let s1 = Stmt::Assign(id("A"), e1.clone());
         let s2 = Stmt::Assign(id("B"), e2.clone());
         let s3 = Stmt::Assign(id("C"), e3.clone());
 
-        let b = vec![s1, s2, s3];
+        let b_ok: Block = vec![s1, s2, s3];
 
-        assert!(typeck_block(&b, &ctx).is_ok());
+        assert!(typeck_block(&b_ok, &ctx).is_ok());
 
-        /* Using the block field directly
-        let block: Block = vec![
-            Stmt::Assign(id("A"), e1.clone()),
-            Stmt::Assign(id("B"), e2.clone()),
-            Stmt::Assign(id("C"), e3.clone()),
-        ];
-        assert!(typeck_block(&block, &ctx).is_ok());
-        */
-
+        //assign statements that should result in error
         let err1 = Stmt::Assign(id("X"), e1);
         let err2 = Stmt::Assign(id("Y"), e2);
         let err3 = Stmt::Assign(id("Z"), e3);
 
-        // todo use different names for err and if blocks
-        let b = vec![err1, err2, err3];
+        let b_err: Block = vec![err1, err2, err3];
 
-        assert!(typeck_block(&b, &ctx).is_err());
+        assert!(typeck_block(&b_err, &ctx).is_err());
     }
 
     #[test]

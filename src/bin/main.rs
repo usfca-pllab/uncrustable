@@ -45,52 +45,30 @@ fn main() {
 
     // type check
     if args.typecheck {
-        let type_check_result = typecheck::typecheck_program(&program);
-        if type_check_result.is_err() {
-            let error = type_check_result.unwrap_err();
-            // "TypeCheck Error: {error}" explicitly saying is a typecheck error
-            // we might not know if it is a typecheck error or not
-            println!("Error: {error}");
-            log::warn!("Error with typecheck");
-        } else {
-            // this should also println!("Typecheck successful");
-            log::info!("Typecheck successful");
+        match typecheck::typecheck_program(&program) {
+            Ok(_) => {
+                println!("Typecheck successful");
+                info!("Typecheck successful");
+            }
+            Err(error) => {
+                println!("TypeCheck Error: {error}");
+                warn!("Error with typecheck: {}", error);
+            }
         }
     }
-
-    /* todo upto you here if like this version you can use it.
-    also "log::" is not needed if you use "use log::info"
-    can just use "info!" instead of "log::info!"
-
-    Generally, This pattern is safer because it doesn't risk
-    panicking if the result's state changes between checking and unwrapping.
-    if type_check_result.is_err() { <- check if it is an error
-        let error = type_check_result.unwrap_err(); <- unwrap the error
-        println!("Error: {error}"); <- print the error
-
-    if args.typecheck {
-    match typecheck::typecheck_program(&program) {
-        Ok(_) => {
-            println!("Typecheck successful");
-            info!("Typecheck successful");
-        }
-        Err(error) => {
-            println!("TypeCheck Error: {error}");
-            warn!("Error with typecheck: {}", error);
-        }
-    }
-    */
 
     // evaluate
     // Uncomment and debug when we merge the two branches
     // if args.evaluate {
-    //     let eval_result = eval::eval(&program, &input);
-    //     if eval_result.is_err() {
-    //         let error = eval_result.unwrap_err();
-    //         println!("Error: {error}");
-    //         log::warn!("Error with evaluation");
-    //     } else {
-    //         log::info!("Evaluation successful");
+    //     match eval::eval(&program, &input) {
+    //         Ok(_) => {
+    //             println!("Evaluation successful");
+    //             info!("Evaluation successful");
+    //         }
+    //         Err(error) => {
+    //             println!("Evaluation Error: {error}");
+    //             warn!("Error with Evaluation: {}", error);
+    //         }
     //     }
     // }
 
