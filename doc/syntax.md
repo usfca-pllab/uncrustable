@@ -175,4 +175,4 @@ Some notes:
 - All `if` statements have an `else` block (an empty block is inserted
   automatically).
 - The concrete syntax for natural number types `int[n]` is normalized to
-  `int[0..n]` in the abstract syntax.
+  `int[0..n]` in the abstract syntax. 
