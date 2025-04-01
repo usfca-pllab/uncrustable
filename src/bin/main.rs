@@ -45,25 +45,30 @@ fn main() {
 
     // type check
     if args.typecheck {
-        let type_check_result = typecheck::typecheck_program(&program);
-        if type_check_result.is_err() {
-            let error = type_check_result.unwrap_err();
-            println!("Error: {error}");
-            log::warn!("Error with typecheck");
-        } else {
-            log::info!("Typecheck successful");
+        match typecheck::typecheck_program(&program) {
+            Ok(_) => {
+                println!("Typecheck successful");
+                info!("Typecheck successful");
+            }
+            Err(error) => {
+                println!("TypeCheck Error: {error}");
+                warn!("Error with typecheck: {}", error);
+            }
         }
     }
+
     // evaluate
     // Uncomment and debug when we merge the two branches
     // if args.evaluate {
-    //     let eval_result = eval::eval(&program, &input);
-    //     if eval_result.is_err() {
-    //         let error = eval_result.unwrap_err();
-    //         println!("Error: {error}");
-    //         log::warn!("Error with evaluation");
-    //     } else {
-    //         log::info!("Evaluation successful");
+    //     match eval::eval(&program, &input) {
+    //         Ok(_) => {
+    //             println!("Evaluation successful");
+    //             info!("Evaluation successful");
+    //         }
+    //         Err(error) => {
+    //             println!("Evaluation Error: {error}");
+    //             warn!("Error with Evaluation: {}", error);
+    //         }
     //     }
     // }
 

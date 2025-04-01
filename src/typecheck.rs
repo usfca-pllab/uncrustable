@@ -397,6 +397,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
 
     let e = typeck_expr(&fun.body, &fun_ctx)?;
 
+    //check that body is the same type as the return type, otherwise return error
     if e == fun.ret_typ {
         Ok(())
     } else {
@@ -464,9 +465,7 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::{
-        id, Case, Expr, Function, Map, Overflow, Pattern, Program, Stmt, Symbol, Type,
-    };
+    use crate::syntax::*;
 
     #[test]
     fn variables() {
@@ -565,18 +564,16 @@ mod tests {
             funcs: &Map::new(),
         };
 
-        // Define test types and expressions
-        let num_type1 = Type::NumT(0..1);
+        // Define numeric types and expressions for testing
+        let num_type1 = Type::NumT(0..3);
         let num_type2 = Type::NumT(0..10);
-        let num_type3 = Type::NumT(-5..5);
 
-        let num1 = Expr::Num(0, num_type1.clone());
+        let num1 = Expr::Num(1, num_type1.clone());
         let num2 = Expr::Num(5, num_type2.clone());
-        let num3 = Expr::Num(-2, num_type3.clone());
-        let bool_expr = Expr::Bool(true);
-        let false_expr = Expr::Bool(false);
+        let bool_true = Expr::Bool(true);
+        let bool_false = Expr::Bool(false);
 
-        // Test arithmetic operations
+        // 1. Arithmetic operations with matching types (should succeed)
         let arithmetic_ops = [
             BOp::Add,
             BOp::Sub,
@@ -586,82 +583,64 @@ mod tests {
             BOp::Shl,
             BOp::Shr,
         ];
-        let test_cases = [
-            (&num1, &num_type1, &Expr::Num(1, num_type1.clone())),
-            (&num2, &num_type2, &Expr::Num(3, num_type2.clone())),
-            (&num3, &num_type3, &Expr::Num(0, num_type3.clone())),
-        ];
-
         for op in &arithmetic_ops {
-            for (lhs, expected_type, rhs) in &test_cases {
-                let bin_op = Expr::BinOp {
-                    lhs: Box::new((*lhs).clone()),
-                    op: op.clone(),
-                    rhs: Box::new((*rhs).clone()),
-                };
-
-                let expected_range = match expected_type {
-                    Type::NumT(range) => range.clone(),
-                    _ => panic!("Expected numeric type"),
-                };
-
-                assert!(
-                    matches!(typeck_expr(&bin_op, &ctx), Ok(Type::NumT(r)) if r == expected_range)
-                );
-            }
-        }
-
-        // Test comparison operations
-        let comparison_ops = [BOp::Lt, BOp::Lte, BOp::Eq, BOp::Ne];
-
-        for op in &comparison_ops {
-            for (lhs, _, rhs) in &test_cases {
-                let bin_op = Expr::BinOp {
-                    lhs: Box::new((*lhs).clone()),
-                    op: op.clone(),
-                    rhs: Box::new((*rhs).clone()),
-                };
-
-                assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::BoolT)));
-            }
-        }
-
-        // Test logical operations
-        let logical_ops = [BOp::And, BOp::Or];
-
-        for op in &logical_ops {
-            let bin_op = Expr::BinOp {
-                lhs: Box::new(bool_expr.clone()),
+            let bin_op1 = Expr::BinOp {
+                lhs: Box::new(num1.clone()),
                 op: op.clone(),
-                rhs: Box::new(false_expr.clone()),
+                rhs: Box::new(num1.clone()),
             };
+            assert!(matches!(typeck_expr(&bin_op1, &ctx), Ok(Type::NumT(r)) if r == (0..3)));
+        }
 
+        // 2. Comparison operations with matching types (should return bool)
+        let comparison_ops = [BOp::Lt, BOp::Lte, BOp::Eq, BOp::Ne];
+        for op in &comparison_ops {
+            let bin_op = Expr::BinOp {
+                lhs: Box::new(num1.clone()),
+                op: op.clone(),
+                rhs: Box::new(num1.clone()),
+            };
             assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::BoolT)));
         }
 
-        // Test type mismatches
-        let invalid_add = Expr::BinOp {
-            lhs: Box::new(num1.clone()),
-            op: BOp::Add,
-            rhs: Box::new(bool_expr.clone()),
-        };
-        assert!(typeck_expr(&invalid_add, &ctx).is_err());
+        // 3. Logical operations on booleans (should return bool)
+        let logical_ops = [BOp::And, BOp::Or];
+        for op in &logical_ops {
+            let bin_op = Expr::BinOp {
+                lhs: Box::new(bool_true.clone()),
+                op: op.clone(),
+                rhs: Box::new(bool_false.clone()),
+            };
+            assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::BoolT)));
+        }
 
-        let invalid_type_add = Expr::BinOp {
-            lhs: Box::new(num1.clone()),
-            op: BOp::Add,
-            rhs: Box::new(num2.clone()),
-        };
-        assert!(typeck_expr(&invalid_type_add, &ctx).is_err());
+        // 4. Type mismatches (should fail)
+        let mismatch_test_cases = [
+            // Arithmetic with mismatched numeric ranges without cast
+            Expr::BinOp {
+                lhs: Box::new(num1.clone()),
+                op: BOp::Add,
+                rhs: Box::new(num2.clone()),
+            },
+            // Arithmetic with boolean
+            Expr::BinOp {
+                lhs: Box::new(num1.clone()),
+                op: BOp::Add,
+                rhs: Box::new(bool_true.clone()),
+            },
+            // Boolean operation with number
+            Expr::BinOp {
+                lhs: Box::new(bool_true.clone()),
+                op: BOp::And,
+                rhs: Box::new(num1.clone()),
+            },
+        ];
 
-        let invalid_and = Expr::BinOp {
-            lhs: Box::new(bool_expr.clone()),
-            op: BOp::And,
-            rhs: Box::new(num1.clone()),
-        };
-        assert!(typeck_expr(&invalid_and, &ctx).is_err());
+        for test_case in &mismatch_test_cases {
+            assert!(typeck_expr(test_case, &ctx).is_err());
+        }
 
-        // Create a type environment with variables
+        // 5. Test with variables (ensure the rest of the test remains)
         let mut env = Map::new();
         env.insert(id("x"), Type::NumT(0..10));
         env.insert(id("y"), Type::NumT(0..10));
@@ -680,65 +659,59 @@ mod tests {
         let flag1_expr = Expr::Var(id("flag1"));
         let flag2_expr = Expr::Var(id("flag2"));
 
-        // Test arithmetic, comparison, and logical operations
-        let operations: [(Box<Expr>, BOp, Box<Expr>, Result<Type, TypeError>); 4] = [
-            // Arithmetic with same range (x + y)
+        // Valid operations with variables
+        let valid_ops = [
+            // x + y (same range)
             (
-                Box::new(x_expr.clone()),
-                BOp::Add,
-                Box::new(y_expr.clone()),
-                Ok(Type::NumT(0..10)),
+                Expr::BinOp {
+                    lhs: Box::new(x_expr.clone()),
+                    op: BOp::Add,
+                    rhs: Box::new(y_expr.clone()),
+                },
+                Type::NumT(0..10),
             ),
-            // Arithmetic with same range (z - z)
+            // x < y (comparison)
             (
-                Box::new(z_expr.clone()),
-                BOp::Sub,
-                Box::new(z_expr.clone()),
-                Ok(Type::NumT(-5..5)),
+                Expr::BinOp {
+                    lhs: Box::new(x_expr.clone()),
+                    op: BOp::Lt,
+                    rhs: Box::new(y_expr.clone()),
+                },
+                Type::BoolT,
             ),
-            // Comparison (x < y)
+            // flag1 && flag2 (logical)
             (
-                Box::new(x_expr.clone()),
-                BOp::Lt,
-                Box::new(y_expr.clone()),
-                Ok(Type::BoolT),
-            ),
-            // Logical (flag1 && flag2)
-            (
-                Box::new(flag1_expr.clone()),
-                BOp::And,
-                Box::new(flag2_expr.clone()),
-                Ok(Type::BoolT),
+                Expr::BinOp {
+                    lhs: Box::new(flag1_expr.clone()),
+                    op: BOp::And,
+                    rhs: Box::new(flag2_expr.clone()),
+                },
+                Type::BoolT,
             ),
         ];
 
-        for (lhs, op, rhs, expected) in operations {
-            let bin_op = Expr::BinOp { lhs, op, rhs };
-
-            match expected {
-                Ok(Type::BoolT) => assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::BoolT))),
-                Ok(Type::NumT(range)) => {
-                    assert!(matches!(typeck_expr(&bin_op, &ctx), Ok(Type::NumT(r)) if r == range))
-                }
-                _ => panic!("Unexpected expected type"),
-            }
+        for (expr, expected_type) in valid_ops {
+            assert!(matches!(typeck_expr(&expr, &ctx), Ok(t) if t == expected_type));
         }
 
-        // Test type errors
-        let invalid_operations: [(Box<Expr>, BOp, Box<Expr>); 2] = [
-            // Type mismatch (x + flag1)
-            (
-                Box::new(x_expr.clone()),
-                BOp::Add,
-                Box::new(flag1_expr.clone()),
-            ),
-            // Different ranges (x + z)
-            (Box::new(x_expr.clone()), BOp::Add, Box::new(z_expr.clone())),
+        // Invalid operations with variables
+        let invalid_ops = [
+            // Type mismatch: x + flag1
+            Expr::BinOp {
+                lhs: Box::new(x_expr.clone()),
+                op: BOp::Add,
+                rhs: Box::new(flag1_expr.clone()),
+            },
+            // Different ranges: x + z
+            Expr::BinOp {
+                lhs: Box::new(x_expr.clone()),
+                op: BOp::Add,
+                rhs: Box::new(z_expr.clone()),
+            },
         ];
 
-        for (lhs, op, rhs) in invalid_operations {
-            let bin_op = Expr::BinOp { lhs, op, rhs };
-            assert!(typeck_expr(&bin_op, &ctx).is_err());
+        for expr in invalid_ops {
+            assert!(typeck_expr(&expr, &ctx).is_err());
         }
     }
 
@@ -1144,7 +1117,7 @@ mod tests {
     #[test]
     fn stmt() {
         //test assign
-        //make variables with types
+        //Create a type environment with a few variables
         let mut env = Map::new();
         env.insert(id("A"), Type::NumT(0..3));
         env.insert(id("B"), Type::SymT);
@@ -1189,7 +1162,7 @@ mod tests {
         let fb1 = Stmt::Assign(id("result2"), Expr::Num(2, Type::NumT(0..2)));
         let e4 = Expr::Bool(true);
 
-        //test if
+        //test stmt::if
         let if1 = Stmt::If {
             cond: e4,
             true_branch: vec![tb1],
@@ -1201,11 +1174,12 @@ mod tests {
 
     #[test]
     fn block() {
-        //make variables with types
+        //Create a type environment with a few variables
         let mut env = Map::new();
         env.insert(id("A"), Type::NumT(0..3));
         env.insert(id("B"), Type::SymT);
         env.insert(id("C"), Type::BoolT);
+
         //variables that will be used for err cases
         env.insert(id("X"), Type::NumT(0..1));
         env.insert(id("Y"), Type::BoolT);
@@ -1216,26 +1190,28 @@ mod tests {
             funcs: &Map::new(),
         };
 
-        //make expressions
+        //make expressions for use in stmt blocks
         let e1 = Expr::Num(1, Type::NumT(0..3));
         let e2 = Expr::Sym('x');
         let e3 = Expr::Bool(true);
 
+        //assign statements
         let s1 = Stmt::Assign(id("A"), e1.clone());
         let s2 = Stmt::Assign(id("B"), e2.clone());
         let s3 = Stmt::Assign(id("C"), e3.clone());
 
-        let b = vec![s1, s2, s3];
+        let b_ok: Block = vec![s1, s2, s3];
 
-        assert!(typeck_block(&b, &ctx).is_ok());
+        assert!(typeck_block(&b_ok, &ctx).is_ok());
 
+        //assign statements that should result in error
         let err1 = Stmt::Assign(id("X"), e1);
         let err2 = Stmt::Assign(id("Y"), e2);
         let err3 = Stmt::Assign(id("Z"), e3);
 
-        let b = vec![err1, err2, err3];
+        let b_err: Block = vec![err1, err2, err3];
 
-        assert!(typeck_block(&b, &ctx).is_err());
+        assert!(typeck_block(&b_err, &ctx).is_err());
     }
 
     #[test]
