@@ -3,7 +3,9 @@ use crate::syntax::*;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use std::result;
+use internment::Intern;
 use thiserror::Error;
+use std::collections::BTreeSet;
 
 /// Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -40,13 +42,16 @@ type Env = Map<Id, Value>;
 
 fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
+    let mut alph: BTreeSet<char> = BTreeSet::new();
 
     // insert alphabet into env
-    // for symbol in &program.alphabet {
-    //     let id = id(&symbol.to_string());
-    //     let value = Value::Sym(*symbol);
-    //     env.insert(id, value);
-    // }
+    for symbol in &program.alphabet {
+        let id = id(&symbol.to_string());
+        let value = Value::Sym(*symbol);
+        env.insert(id, value);
+        let ch = &symbol.to_string().chars().next().unwrap();
+        alph.insert(*ch);
+    }
 
     // insert locals into env
     for (id, typ) in &program.locals {
@@ -54,11 +59,11 @@ fn init_env(program: &Program) -> Env {
             // defaults for now are zero values
             Type::BoolT => Value::Bool(false),
 
-            //  default to be beginning of range
+            //  default to be beginning 2of range
             Type::NumT(range) => Value::Num(range.start, range.clone()),
 
             //  default to empty char
-            Type::SymT => Value::Sym(Symbol(' ')),
+            Type::SymT => Value::Sym(Symbol(alph.iter().next().unwrap().clone())),
 
             _ => continue, // for now continue, raise error later
         };
@@ -75,6 +80,9 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
 
     // TODO - figure out what to do with input ("consume each symbol???")
     // consume each symbol
+    // outer for loop: loop over input str
+    // inner for loop: 
+    // fold: input.fold(env, )
 
     // evaluate the final condition
     for stmt in &program.action.1 {
