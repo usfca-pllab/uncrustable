@@ -141,7 +141,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             let right = eval_expr(rhs, env, &program)?;
 
             match (left, right) {
-                (Value::Num(l, l_range), Value::Num(r, range_ignore)) => match op {
+                (Value::Num(l, l_range), Value::Num(r, _)) => match op {
                     // numerical return
                     BOp::Add => cast(l + r, l_range, Overflow::Wraparound),
                     BOp::Sub => cast(l - r, l_range, Overflow::Wraparound),
@@ -213,14 +213,14 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             let val = eval_expr(inner, env, &program)?;
 
             match val {
-                Value::Num(num, range) => match overflow {
+                Value::Num(num, _) => match overflow {
                     Overflow::Fail => cast(num, cast_t, Overflow::Fail),
                     Overflow::Saturate => cast(num, cast_t, Overflow::Saturate),
                     Overflow::Wraparound => cast(num, cast_t, Overflow::Wraparound),
                 },
                 // can only cast ints
-                Value::Bool(b) => Err(RuntimeError::TypeError),
-                Value::Sym(s) => Err(RuntimeError::TypeError),
+                Value::Bool(_) => Err(RuntimeError::TypeError),
+                Value::Sym(_) => Err(RuntimeError::TypeError),
             }
         }
 
@@ -272,7 +272,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                 let mut num = 0;
 
                 let matches = match (&arg_val, param_type) {
-                    (Value::Bool(b), Type::BoolT) => true,
+                    (Value::Bool(_), Type::BoolT) => true,
                     (Value::Num(n, range), Type::NumT(t_range)) => {
                         if range != &t_range {
                             num_range = t_range.clone();
