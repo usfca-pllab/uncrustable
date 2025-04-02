@@ -175,6 +175,14 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                 (Value::Bool(l), Value::Bool(r)) => match op {
                     BOp::And => Ok(Value::Bool(l && r)),
                     BOp::Or => Ok(Value::Bool(l || r)),
+                    BOp::Eq => Ok(Value::Bool(l == r)),
+                    BOp::Ne => Ok(Value::Bool(l != r)),
+
+                    _ => Err(RuntimeError::InvalidOperand),
+                },
+                (Value::Sym(l), Value::Sym(r)) => match op {
+                    BOp::Eq => Ok(Value::Bool(l == r)),
+                    BOp::Ne => Ok(Value::Bool(l != r)),
 
                     _ => Err(RuntimeError::InvalidOperand),
                 },
