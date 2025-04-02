@@ -1,11 +1,11 @@
 use crate::parse::parse;
 use crate::syntax::*;
+use internment::Intern;
+use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use std::result;
-use internment::Intern;
 use thiserror::Error;
-use std::collections::BTreeSet;
 
 /// Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -49,6 +49,7 @@ fn init_env(program: &Program) -> Env {
         let id = id(&symbol.to_string());
         let value = Value::Sym(*symbol);
         env.insert(id, value);
+        // need to sort through entire alphabet, so have to do this on loop
         let ch = &symbol.to_string().chars().next().unwrap();
         alph.insert(*ch);
     }
@@ -81,7 +82,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // TODO - figure out what to do with input ("consume each symbol???")
     // consume each symbol
     // outer for loop: loop over input str
-    // inner for loop: 
+    // inner for loop:
     // fold: input.fold(env, )
 
     // evaluate the final condition
@@ -98,7 +99,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
     let upper = range.end;
     let val = match overflow {
         Overflow::Fail => {
-            if v > upper {
+            if v >= upper {
                 Err(RuntimeError::OutOfRange)
             } else if v < lower {
                 Err(RuntimeError::OutOfRange)
@@ -107,7 +108,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
             }
         }
         Overflow::Saturate => {
-            if v > upper {
+            if v >= upper {
                 Ok(Value::Num(upper - 1, range))
             } else if v < lower {
                 Ok(Value::Num(lower, range))
@@ -122,7 +123,6 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
                 end: upper,
             },
         )),
-        _ => Err(RuntimeError::InvalidExpression),
     };
     return val;
 }
