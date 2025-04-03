@@ -77,8 +77,9 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     for stmt in &program.action.1 {
         eval_stmt(stmt, &mut env, &program)?;
     }
-    let res = eval_expr(&program.accept, &env, &program)?;
-    match res {
+    let accept = eval_expr(&program.accept, &env, &program)?;
+
+    match accept {
         Value::Bool(b) => Ok((b, env)),
         _ => Err(RuntimeError::TypeError),
     }
