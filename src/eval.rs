@@ -221,20 +221,18 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             let val = eval_expr(inner, env, &program)?;
 
             match val {
-                Value::Num(num, _) => match overflow {
-                    Overflow::Fail => cast(num, cast_t, Overflow::Fail),
-                    Overflow::Saturate => cast(num, cast_t, Overflow::Saturate),
-                    Overflow::Wraparound => cast(num, cast_t, Overflow::Wraparound),
-                },
+                Value::Num(num, _) => cast(num, cast_t, overflow.clone()),
                 // can only cast ints
-                Value::Bool(_) => Err(RuntimeError::TypeError),
-                Value::Sym(_) => Err(RuntimeError::TypeError),
+                _ => Err(RuntimeError::TypeError),
             }
         }
 
         Expr::Match { scrutinee, cases } => {
             let raw_val = eval_expr(&scrutinee, env, &program)?;
             for case in cases {
+                // match pattern, val {
+                    //
+                // }
                 let pattern = match case.pattern {
                     Pattern::Bool(b) => Value::Bool(b),
                     Pattern::Num(n) => Value::Num(
@@ -248,11 +246,11 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                     Pattern::Var(id) => env.get(&id).unwrap().clone(),
                 };
                 if raw_val == pattern {
-                    let g = eval_expr(&case.guard, env, &program).unwrap();
+                    let g = eval_expr(&case.guard, env, &program)?;
 
                     if let Value::Bool(b) = g {
                         if b {
-                            return Ok(eval_expr(&case.result, env, &program).unwrap());
+                            return Ok(eval_expr(&case.result, env, &program)?);
                         }
                     } else {
                         return Err(RuntimeError::TypeError);
@@ -266,48 +264,17 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             let mut env_args = Env::new();
             let function = program.helpers.get(callee).unwrap().clone();
 
-            // check to see proper args
-            if args.len() != function.params.len() {
-                return Err(RuntimeError::IncorrectArgs);
-            }
-            let mut num_matches = 0; // checking to see if we've matched every arg
-
             for i in 0..args.len() {
-                let mut arg_val = eval_expr(args.get(i).unwrap(), env, program).unwrap();
+                let mut arg_val = eval_expr(args.get(i).unwrap(), env, program)?;
                 let param_type = function.params.get(i).unwrap().clone().1;
-                let mut num_range = 0..0;
-                let mut num_type = false;
-                let mut num = 0;
 
-                let matches = match (&arg_val, param_type) {
-                    (Value::Bool(_), Type::BoolT) => true,
-                    (Value::Num(n, range), Type::NumT(t_range)) => {
-                        if range != &t_range {
-                            num_range = t_range.clone();
-                        } else {
-                            num_range = range.clone();
-                        }
-                        num_type = true;
-                        num = n.clone();
-                        true
-                    }
-                    (Value::Sym(s), Type::SymT) => true,
-                    _ => false,
+                arg_val = match (arg_val, param_type) {
+                    (Value::Num(n, _), Type::NumT(t_range))  => cast(n, t_range, Overflow::Wraparound)?,
+                    _ => continue,
                 };
-                if matches {
-                    if num_type {
-                        arg_val = cast(num, num_range, Overflow::Wraparound).unwrap();
-                    }
-                    env_args.insert(function.params.get(i).unwrap().clone().0, arg_val.clone());
-                    num_matches += 1;
-                }
+                env_args.insert(function.params.get(i).unwrap().clone().0, arg_val);
             }
-            if num_matches == args.len() {
-                let val = eval_expr(&function.body, &env_args, program);
-                return val;
-            } else {
-                return Err(RuntimeError::IncorrectArgs);
-            }
+            return eval_expr(&function.body, &env_args, program);
         }
 
         _ => Err(RuntimeError::InvalidExpression),
