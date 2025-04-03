@@ -5,13 +5,8 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum TypeError {
     /// Type mismatch between expected and actual types
-    #[error("Type mismatch: expected {expected:?}, found {actual:?}")]
-    TypeMismatch {
-        /// The type that was expected
-        expected: Type,
-        /// The type that was actually found
-        actual: Type,
-    },
+    #[error("Type mismatch")]
+    TypeMismatch,
     /// Variable not found in the environment
     #[error("Undefined variable: '{0}'")]
     UndefinedVariable(Id),
@@ -21,14 +16,6 @@ pub enum TypeError {
     /// Symbol not in alphabet
     #[error("Symbol '{0}' is not in the alphabet")]
     SymbolNotInAlphabet(char),
-    /// Wrong number of arguments
-    #[error("Wrong number of arguments: expected {expected}, actual {actual}")]
-    WrongNumberOfArguments {
-        /// Expected number of arguments
-        expected: usize,
-        /// Actual number of arguments
-        actual: usize,
-    },
     /// Empty match cases
     #[error("Empty match cases")]
     EmptyMatchCases,
@@ -40,6 +27,21 @@ pub enum TypeError {
         /// Actual pattern
         actual: Pattern,
     },
+}
+
+/// Helper function to create a type mismatch error
+fn type_mismatch(actual: &Type, expected: &Type) -> TypeError {
+    log::debug!("type mismatch: {actual:?} != {expected:?}");
+    TypeError::TypeMismatch
+}
+
+/// Helper function to check if two types are equal
+fn expect_equal(actual: &Type, expected: &Type) -> Result<(), TypeError> {
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(type_mismatch(actual, expected))
+    }
 }
 
 /// Type context for type checking
