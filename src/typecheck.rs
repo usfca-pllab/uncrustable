@@ -55,26 +55,18 @@ pub struct TypeCtx<'prog> {
 /// Type check an expression in a given type context
 pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
     match expr {
-        // Variables are always of the type of the variable in the environment
-        Expr::Var(id) => {
-            // Get the type of the variable from the environment
-            ctx.env
-                .get(id)
-                .cloned()
-                .ok_or(TypeError::UndefinedVariable(*id))
-        }
-        // Boolean literals are always of type BoolT
+        Expr::Var(id) => ctx
+            .env
+            .get(id)
+            .cloned()
+            .ok_or(TypeError::UndefinedVariable(*id)),
         Expr::Bool(_) => Ok(Type::BoolT),
-        // Numeric literals are always of the type they are given
         Expr::Num(_n, t) => Ok(t.clone()),
-        // Function calls are always of the type of the function
         Expr::Sym(_) => Ok(Type::SymT),
-        // Binary operations are always of the type of the left hand side
         Expr::BinOp { lhs, op, rhs } => {
             let lhs_type = typeck_expr(lhs, ctx)?;
             let rhs_type = typeck_expr(rhs, ctx)?;
             match op {
-                // Arithmetic operations are always of type NumT(0..1)
                 BOp::Add | BOp::Sub | BOp::Mul | BOp::Div | BOp::Rem | BOp::Shl | BOp::Shr => {
                     if let Type::NumT(_) = lhs_type {
                         if lhs_type != rhs_type {
@@ -168,13 +160,11 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                 }
             }
         }
-        // Casting is always of the type of the inner expression
         Expr::Cast {
             inner,
             typ,
             overflow: _overflow,
         } => {
-            // First, type check the inner expression
             let inner_type = typeck_expr(inner, ctx)?;
 
             // According to the [T-Cast] rule, both the inner expression and the target type
@@ -209,7 +199,6 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
         }
         // Call expressions are always of the type of the function
         Expr::Call { callee, args } => {
-            // Type check each argument
             let mut arg_types: Vec<Type> = Vec::new();
             for arg in args {
                 arg_types.push(typeck_expr(arg, ctx)?);
