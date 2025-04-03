@@ -15,7 +15,7 @@ on input bit {
   // later on, we might consider coercing the result of the function call so
   // that the "as int[3]" part is not necessary.  we need to do this for
   // number literals anyway.
-  rem = (2 as int[3]) * rem + (char_to_bit(bit) as int[3]);
+  rem = 2 as int[3] * rem + char_to_bit(bit) as int[3];
 }
 
-accept if rem == (0 as int[3])
+accept if rem == 0 as int[3]
