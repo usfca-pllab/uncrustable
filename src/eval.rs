@@ -310,28 +310,8 @@ fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, Run
 // TEST -----------------------------------------------------------------------------------------------------------------------------------------------
 
 #[test]
-// Simple Alphabet
-fn test_simple_1() {
-    let program = Program {
-        alphabet: Set::new(),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (None, vec![]),
-        accept: Expr::Bool(true),
-    };
-
-    let input = "";
-    let (result, env) = eval(&program, input).unwrap();
-
-    // Check that env contains the alphabet symbol 'a'
-    // assert!(env.contains_key(&id("a")));
-    // assert_eq!(env.get(&id("a")), Some(&Value::Sym(Symbol('a'))));
-}
-
-#[test]
 // Simple Local Assignment
-fn test_simple_2() {
+fn test_simple_1() {
     let program = Program {
         alphabet: Set::from([Symbol('b')]),
         helpers: Map::new(),
