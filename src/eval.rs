@@ -183,16 +183,9 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
         Expr::UOp { op, inner } => {
             let left = eval_expr(inner, env, &program)?;
 
-            match left {
-                Value::Num(l, range) => match op {
-                    UOp::Negate => cast(-l, range, Overflow::Wraparound),
-                    _ => Err(RuntimeError::InvalidOperand),
-                },
-
-                Value::Bool(b) => match op {
-                    UOp::Not => Ok(Value::Bool(!b)),
-                    _ => Err(RuntimeError::InvalidOperand),
-                },
+            match (left, op) {
+                (Value::Num(l, range), UOp::Negate) => cast(-l, range, Overflow::Wraparound),
+                (Value::Bool(b), UOp::Not) => Ok(Value::Bool(!b)),
                 _ => Err(RuntimeError::TypeError),
             }
         }
