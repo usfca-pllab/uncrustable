@@ -80,7 +80,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     let res = eval_expr(&program.accept, &env, &program)?;
     match res {
         Value::Bool(b) => Ok((b, env)),
-        _ => Err(RuntimeError::TypeError)
+        _ => Err(RuntimeError::TypeError),
     }
 }
 
@@ -213,8 +213,8 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
         Expr::Match { scrutinee, cases } => {
             let raw_val = eval_expr(&scrutinee, env, &program)?;
             for case in cases {
-                // match pattern, val {
-                    //
+                // match pattern, raw_val {
+                //
                 // }
                 let pattern = match case.pattern {
                     Pattern::Bool(b) => Value::Bool(b),
@@ -224,7 +224,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                             start: n,
                             end: n + 1,
                         },
-                    ), // TODO: how would we match on Num, not including the range?
+                    ),
                     Pattern::Sym(s) => Value::Sym(s),
                     Pattern::Var(id) => env.get(&id).unwrap().clone(),
                 };
@@ -252,7 +252,9 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                 let param_type = function.params.get(i).unwrap().clone().1;
 
                 arg_val = match (arg_val, param_type) {
-                    (Value::Num(n, _), Type::NumT(t_range))  => cast(n, t_range, Overflow::Wraparound)?,
+                    (Value::Num(n, _), Type::NumT(t_range)) => {
+                        cast(n, t_range, Overflow::Wraparound)?
+                    }
                     _ => continue,
                 };
                 env_args.insert(function.params.get(i).unwrap().clone().0, arg_val);
