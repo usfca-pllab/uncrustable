@@ -77,9 +77,11 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     for stmt in &program.action.1 {
         eval_stmt(stmt, &mut env, &program)?;
     }
-    eval_expr(&program.accept, &env, &program)?;
-
-    Ok((false, env))
+    let res = eval_expr(&program.accept, &env, &program)?;
+    match res {
+        Value::Bool(b) => Ok((b, env)),
+        _ => Err(RuntimeError::TypeError)
+    }
 }
 
 fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeError> {
