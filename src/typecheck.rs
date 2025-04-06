@@ -70,43 +70,28 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                 BOp::Add | BOp::Sub | BOp::Mul | BOp::Div | BOp::Rem | BOp::Shl | BOp::Shr => {
                     if let Type::NumT(_) = lhs_type {
                         if lhs_type != rhs_type {
-                            return Err(TypeError::TypeMismatch {
-                                expected: lhs_type,
-                                actual: rhs_type,
-                            });
+                            return Err(TypeError::TypeMismatch);
                         }
                         Ok(lhs_type)
                     } else {
-                        Err(TypeError::TypeMismatch {
-                            expected: Type::NumT(0..1),
-                            actual: lhs_type,
-                        })
+                        Err(TypeError::TypeMismatch)
                     }
                 }
                 // Comparison operations
                 BOp::Lt | BOp::Lte => {
                     if lhs_type != rhs_type {
-                        return Err(TypeError::TypeMismatch {
-                            expected: lhs_type,
-                            actual: rhs_type,
-                        });
+                        return Err(TypeError::TypeMismatch);
                     }
                     if let Type::NumT(_) = lhs_type {
                         Ok(Type::BoolT)
                     } else {
-                        Err(TypeError::TypeMismatch {
-                            expected: Type::NumT(0..1),
-                            actual: lhs_type,
-                        })
+                        Err(TypeError::TypeMismatch)
                     }
                 }
                 // Equality and inequality can compare symbols as well as numbers
                 BOp::Eq | BOp::Ne => {
                     if lhs_type != rhs_type {
-                        return Err(TypeError::TypeMismatch {
-                            expected: lhs_type,
-                            actual: rhs_type,
-                        });
+                        return Err(TypeError::TypeMismatch);
                     }
                     // Allow comparison of numbers or symbols
                     if matches!(lhs_type, Type::NumT(_) | Type::SymT) {
@@ -118,18 +103,12 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                 // Logical operations are always of type BoolT
                 BOp::And | BOp::Or => {
                     if lhs_type != rhs_type {
-                        return Err(TypeError::TypeMismatch {
-                            expected: lhs_type,
-                            actual: rhs_type,
-                        });
+                        return Err(TypeError::TypeMismatch);
                     }
                     if lhs_type == Type::BoolT {
                         Ok(Type::BoolT)
                     } else {
-                        Err(TypeError::TypeMismatch {
-                            expected: Type::BoolT,
-                            actual: lhs_type,
-                        })
+                        Err(TypeError::TypeMismatch)
                     }
                 }
             }
@@ -142,20 +121,14 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                     if inner_type == Type::BoolT {
                         Ok(Type::BoolT)
                     } else {
-                        Err(TypeError::TypeMismatch {
-                            expected: Type::BoolT,
-                            actual: inner_type,
-                        })
+                        Err(TypeError::TypeMismatch)
                     }
                 }
                 UOp::Negate => {
                     if let Type::NumT(range) = inner_type {
                         Ok(Type::NumT(range))
                     } else {
-                        Err(TypeError::TypeMismatch {
-                            expected: Type::NumT(0..1),
-                            actual: inner_type,
-                        })
+                        Err(TypeError::TypeMismatch)
                     }
                 }
             }
@@ -176,24 +149,15 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                 }
                 (_, Type::NumT(_)) => {
                     // The inner expression is not a numeric type
-                    Err(TypeError::TypeMismatch {
-                        expected: Type::NumT(0..1), // Example numeric type
-                        actual: inner_type,
-                    })
+                    Err(TypeError::TypeMismatch)
                 }
                 (Type::NumT(_), _) => {
                     // The target type is not a numeric type
-                    Err(TypeError::TypeMismatch {
-                        expected: Type::NumT(0..1), // Example numeric type
-                        actual: typ.clone(),
-                    })
+                    Err(TypeError::TypeMismatch)
                 }
                 _ => {
                     // Neither the inner expression nor the target type are numeric types
-                    Err(TypeError::TypeMismatch {
-                        expected: Type::NumT(0..1), // Example numeric type
-                        actual: inner_type,
-                    })
+                    Err(TypeError::TypeMismatch)
                 }
             }
         }
@@ -212,19 +176,13 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
 
             // Check that the number of arguments matches the number of parameters
             if arg_types.len() != function.params.len() {
-                return Err(TypeError::WrongNumberOfArguments {
-                    expected: function.params.len(),
-                    actual: arg_types.len(),
-                });
+                return Err(TypeError::EmptyMatchCases); 
             }
 
             // Verify that argument types match parameter types
             for (arg_type, (_, param_type)) in arg_types.iter().zip(function.params.iter()) {
                 if arg_type != param_type {
-                    return Err(TypeError::TypeMismatch {
-                        expected: param_type.clone(),
-                        actual: arg_type.clone(),
-                    });
+                    return Err(TypeError::TypeMismatch);
                 }
             }
 
@@ -275,10 +233,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                     },
                 )?;
                 if guard_type != Type::BoolT {
-                    return Err(TypeError::TypeMismatch {
-                        expected: Type::BoolT,
-                        actual: guard_type,
-                    });
+                    return Err(TypeError::TypeMismatch);
                 }
 
                 // Check result type
@@ -293,10 +248,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                 // Ensure consistency with previous cases
                 if let Some(ref t) = result_type {
                     if *t != case_result_type {
-                        return Err(TypeError::TypeMismatch {
-                            expected: t.clone(),
-                            actual: case_result_type,
-                        });
+                        return Err(TypeError::TypeMismatch);
                     }
                 } else {
                     result_type = Some(case_result_type);
@@ -332,10 +284,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 
             // Check that the expression's type matches the variable's type
             if var_type != expr_type {
-                return Err(TypeError::TypeMismatch {
-                    expected: var_type,
-                    actual: expr_type,
-                });
+                return Err(TypeError::TypeMismatch);
             }
             Ok(())
         }
@@ -350,10 +299,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 
             // Check that the condition is a boolean
             if cond_type != Type::BoolT {
-                return Err(TypeError::TypeMismatch {
-                    expected: Type::BoolT,
-                    actual: cond_type,
-                });
+                return Err(TypeError::TypeMismatch);
             };
 
             // Type check both branches
@@ -393,10 +339,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
         Ok(())
     } else {
         let t = fun.ret_typ.clone();
-        Err(TypeError::TypeMismatch {
-            expected: t,
-            actual: e,
-        })
+        Err(TypeError::TypeMismatch)
     }
 }
 
@@ -443,10 +386,7 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     // Type check the accept condition (must be a boolean)
     let final_type = typeck_expr(&program.accept, &ctx)?;
     if final_type != Type::BoolT {
-        return Err(TypeError::TypeMismatch {
-            expected: Type::BoolT,
-            actual: final_type,
-        });
+        return Err(TypeError::TypeMismatch);
     }
 
     Ok(())
@@ -962,10 +902,7 @@ mod tests {
         };
         assert!(matches!(
             typeck_expr(&invalid_call2, &ctx),
-            Err(TypeError::WrongNumberOfArguments {
-                expected: 1,
-                actual: 2
-            })
+            Err(TypeError::EmptyMatchCases)
         ));
 
         // Call with wrong argument type

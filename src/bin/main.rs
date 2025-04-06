@@ -1,9 +1,7 @@
 // use clap derive for argument parsing
 //
 // read a file name as the only argument
-use chrono::Local;
 use clap::{Arg, Parser};
-use env_logger::Builder;
 use log::{error, info, warn, LevelFilter};
 use std::io::Write;
 use uncrustable::eval;
@@ -25,18 +23,7 @@ struct Args {
 }
 
 fn main() {
-    Builder::new()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "{} [{}] - {}",
-                Local::now().format("%Y-%m-%d %H:%M:%S"),
-                record.level(),
-                record.args()
-            )
-        })
-        .filter(None, LevelFilter::Info)
-        .init();
+    env_logger::init();
     let args = Args::parse();
     let input = std::fs::read_to_string(&args.input).expect("Could not read file");
     let program = parse(&input).unwrap_or_else(|err| panic!("Syntax error: {err}"));
