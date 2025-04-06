@@ -1,4 +1,5 @@
 use crate::syntax::*;
+use log::warn;
 use thiserror::Error;
 
 /// Errors that can occur during type checking
@@ -176,7 +177,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
 
             // Check that the number of arguments matches the number of parameters
             if arg_types.len() != function.params.len() {
-                return Err(TypeError::EmptyMatchCases); 
+                return Err(TypeError::EmptyMatchCases);
             }
 
             // Verify that argument types match parameter types
@@ -345,6 +346,9 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
 
 /// Type check a program
 pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
+    // Start the logger for the Typecheck file
+    env_logger::init();
+
     // Create initial context
     let ctx = TypeCtx {
         env: program.locals.clone(),
