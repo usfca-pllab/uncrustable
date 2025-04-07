@@ -1,5 +1,5 @@
 use crate::syntax::*;
-use log::{debug, error};
+use log::{debug, error, warn};
 use thiserror::Error;
 
 /// Errors that can occur during type checking
@@ -21,7 +21,7 @@ pub enum TypeError {
 
 /// Helper function to create a type mismatch error
 fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
-    debug!("In: {expr:?}");
+    debug!("In {expr:?}");
     error!("expected: {expected:?} but got {actual:?}");
     TypeError::TypeMismatch
 }
@@ -78,6 +78,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                     if matches!(inner_type, Type::NumT(_)) {
                         Ok(inner_type.clone())
                     } else {
+                        debug!("In: {expr:?}");
                         error!("expected: NumT but got {inner_type:?}");
                         Err(TypeError::TypeMismatch)
                     }
@@ -109,57 +110,31 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                 .get(callee)
                 .ok_or(TypeError::UndefinedFunction(*callee))?;
 
-            // Check that the number of arguments matches the number of parameters
-            if arg_types.len() != function.params.len() {
-                return Err(TypeError::EmptyMatchCases); 
-            }
-
             // Verify that argument types match parameter types
-            for (arg_type, (_, param_type)) in arg_types.iter().zip(function.params.iter()) {
-                if arg_type != param_type {
-                    return Err(TypeError::TypeMismatch);
-                }
+            let param_types: Vec<Type> = function.params.iter().map(|(_, t)| t.clone()).collect();
+            if arg_types != param_types {
+                return Err(type_mismatch(&arg_types[0], &param_types[0], expr));
             }
-
-            // Return the function's return type
             Ok(function.ret_typ.clone())
         }
-        // Pattern matching is always of the type of the scrutinee
         Expr::Match { scrutinee, cases } => {
-            // Type check the scrutinee
             let scrutinee_type = typeck_expr(scrutinee, ctx)?;
-
-            // If there are no cases, return an error
-            if cases.is_empty() {
-                return Err(TypeError::EmptyMatchCases);
-            }
-
-            // Type check each case and collect result types
-            let mut result_type: Option<Type> = None;
-
-            for case in cases {
-                // Check pattern compatibility with scrutinee type
+            // Define a closure to type check a single case and return its result type
+            let check_case = |case: &Case| -> Result<Type, TypeError> {
                 let mut case_env = ctx.env.clone();
                 match &case.pattern {
-                    // Variable patterns can match any type
                     Pattern::Var(id) => {
-                        // Create environment with the pattern variable
                         case_env.insert(*id, scrutinee_type.clone());
                     }
-                    // Type-specific patterns must match their corresponding types
                     Pattern::Num(_) if matches!(scrutinee_type, Type::NumT(_)) => {}
                     Pattern::Bool(_) if scrutinee_type == Type::BoolT => {}
                     Pattern::Sym(_) if scrutinee_type == Type::SymT => {}
-                    // Pattern type doesn't match scrutinee type
                     _ => {
-                        return Err(TypeError::MismatchPatternScrutinee {
-                            expected: scrutinee_type.clone(),
-                            actual: case.pattern.clone(),
-                        });
+                        debug!("In {case:?}");
+                        error!("expected: {:?} but got {:?}", scrutinee_type, &case.pattern);
+                        return Err(TypeError::TypeMismatch);
                     }
                 };
-
-                // Check guard is boolean
                 let guard_type = typeck_expr(
                     &case.guard,
                     &TypeCtx {
@@ -167,34 +142,28 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                         funcs: ctx.funcs,
                     },
                 )?;
-                if guard_type != Type::BoolT {
-                    return Err(TypeError::TypeMismatch);
-                }
-
-                // Check result type
-                let case_result_type = typeck_expr(
+                expect_equal(&guard_type, &Type::BoolT, &case.guard)?;
+                typeck_expr(
                     &case.result,
                     &TypeCtx {
                         env: case_env,
                         funcs: ctx.funcs,
                     },
-                )?;
-
-                // Ensure consistency with previous cases
-                if let Some(ref t) = result_type {
-                    if *t != case_result_type {
-                        return Err(TypeError::TypeMismatch);
-                    }
-                } else {
-                    result_type = Some(case_result_type);
-                }
+                )
+            };
+            let mut cases_iter = cases.iter();
+            let result_type = if let Some(first_case) = cases_iter.next() {
+                check_case(first_case)?
+            } else {
+                warn!("No cases, returning scrutinee type");
+                scrutinee_type.clone()
+            };
+            for case in cases_iter {
+                let case_type = check_case(case)?;
+                debug!("In {:?}", case);
+                expect_equal(&case_type, &result_type, &case.result)?;
             }
-
-            // Return the type of the result
-            result_type.ok_or(TypeError::MismatchPatternScrutinee {
-                expected: scrutinee_type,
-                actual: cases[0].pattern.clone(),
-            })
+            Ok(result_type)
         }
     }
 }
@@ -219,7 +188,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 
             // Check that the expression's type matches the variable's type
             if var_type != expr_type {
-                return Err(TypeError::TypeMismatch);
+                return Err(type_mismatch(&expr_type, &var_type, expr));
             }
             Ok(())
         }
@@ -234,7 +203,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 
             // Check that the condition is a boolean
             if cond_type != Type::BoolT {
-                return Err(TypeError::TypeMismatch);
+                return Err(type_mismatch(&cond_type, &Type::BoolT, cond));
             };
 
             // Type check both branches
@@ -269,7 +238,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
 
     let e = typeck_expr(&fun.body, &fun_ctx)?;
 
-    //check that body is the same type as the return type, otherwise return error
+    // check that body is the same type as the return type, otherwise return error
     if e == fun.ret_typ {
         Ok(())
     } else {
