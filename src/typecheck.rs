@@ -285,60 +285,44 @@ mod tests {
 
     #[test]
     fn variables() {
-        // Create a type environment with a few variables
-        let mut env = Map::new();
-        env.insert(id("x"), Type::NumT(0..10));
-        env.insert(id("b"), Type::BoolT);
-        env.insert(id("s"), Type::SymT);
-
-        // Create context
+        let env = Map::from([
+            (id("x"), Type::NumT(0..10)),
+            (id("b"), Type::BoolT),
+            (id("s"), Type::SymT),
+        ]);
         let ctx = TypeCtx {
             env,
             funcs: &Map::new(),
         };
-
-        // Test variable lookup for existing variables
         let x_expr = Expr::Var(id("x"));
         let b_expr = Expr::Var(id("b"));
         let s_expr = Expr::Var(id("s"));
-
-        assert!(matches!(typeck_expr(&x_expr, &ctx), Ok(Type::NumT(range)) if range == (0..10)));
-        assert!(matches!(typeck_expr(&b_expr, &ctx), Ok(Type::BoolT)));
-        assert!(matches!(typeck_expr(&s_expr, &ctx), Ok(Type::SymT)));
-
-        // Test variable lookup for non-existent variable
+        assert_eq!(typeck_expr(&x_expr, &ctx).unwrap(), Type::NumT(0..10));
+        assert_eq!(typeck_expr(&b_expr, &ctx).unwrap(), Type::BoolT);
+        assert_eq!(typeck_expr(&s_expr, &ctx).unwrap(), Type::SymT);
         let unknown_expr = Expr::Var(id("unknown"));
         assert!(typeck_expr(&unknown_expr, &ctx).is_err());
     }
 
     #[test]
     fn undefined_variables() {
-        // Create an empty type environment
         let env = Map::new();
         let ctx = TypeCtx {
             env,
             funcs: &Map::new(),
         };
-
-        // Try to access an undefined variable
         let undefined_expr = Expr::Var(id("undefined_flag"));
-
-        // Should result in an error
         assert!(typeck_expr(&undefined_expr, &ctx).is_err());
 
-        // Create an environment with some variables, but not the one we'll try to access
-        let mut env = Map::new();
-        env.insert(id("existing_flag"), Type::BoolT);
-        env.insert(id("count"), Type::NumT(0..100));
+        let env = Map::from([
+            (id("existing_flag"), Type::BoolT),
+            (id("count"), Type::NumT(0..100)),
+        ]);
         let ctx = TypeCtx {
             env,
             funcs: &Map::new(),
         };
-
-        // Try to access a different undefined variable
         let another_undefined_expr = Expr::Var(id("another_flag"));
-
-        // Should also result in an error
         assert!(typeck_expr(&another_undefined_expr, &ctx).is_err());
     }
 
@@ -348,28 +332,16 @@ mod tests {
             env: Map::new(),
             funcs: &Map::new(),
         };
+        assert_eq!(typeck_expr(&Expr::Bool(true), &ctx).unwrap(), Type::BoolT);
+        assert_eq!(typeck_expr(&Expr::Bool(false), &ctx).unwrap(), Type::BoolT);
 
-        // Test boolean literals
-        assert!(matches!(
-            typeck_expr(&Expr::Bool(true), &ctx),
-            Ok(Type::BoolT)
-        ));
-        assert!(matches!(
-            typeck_expr(&Expr::Bool(false), &ctx),
-            Ok(Type::BoolT)
-        ));
-
-        // Test numeric literals with different ranges
         let ranges = [(0..10), (0..100), (-10..10)];
         let values = [5, 42, -5];
-
-        for (_i, (range, value)) in ranges.iter().zip(values.iter()).enumerate() {
+        for (range, value) in ranges.iter().zip(values.iter()) {
             let num = Expr::Num(*value, Type::NumT(range.clone()));
-            assert!(matches!(typeck_expr(&num, &ctx), Ok(Type::NumT(r)) if r == *range));
+            assert_eq!(typeck_expr(&num, &ctx).unwrap(), Type::NumT(range.clone()));
         }
-
-        // Test symbol literals
-        assert!(matches!(typeck_expr(&Expr::Sym('a'), &ctx), Ok(Type::SymT)));
+        assert_eq!(typeck_expr(&Expr::Sym('a'), &ctx).unwrap(), Type::SymT);
     }
 
     #[test]
@@ -888,7 +860,7 @@ mod tests {
         };
         assert!(matches!(
             typeck_expr(&invalid_match1, &ctx),
-            Err(TypeError::MismatchPatternScrutinee { .. })
+            Err(TypeError::TypeMismatch)
         ));
 
         // Type mismatch between case results
