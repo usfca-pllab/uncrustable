@@ -1,12 +1,6 @@
 use crate::syntax::*;
-use env_logger;
-use log::{error, debug, info, warn};
+use log::{debug, error};
 use thiserror::Error;
-
-/// Initialize the logger
-pub fn init_logger() {
-    let _ = env_logger::init();
-}
 
 /// Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -26,17 +20,18 @@ pub enum TypeError {
 }
 
 /// Helper function to create a type mismatch error
-fn type_mismatch(actual: &Type, expected: &Type) -> TypeError {
-    log::debug!("type mismatch: {actual:?} != {expected:?}");
+fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
+    debug!("In: {expr:?}");
+    error!("expected: {expected:?} but got {actual:?}");
     TypeError::TypeMismatch
 }
 
 /// Helper function to check if two types are equal
-fn expect_equal(actual: &Type, expected: &Type) -> Result<(), TypeError> {
+fn expect_equal(actual: &Type, expected: &Type, expr: &Expr) -> Result<(), TypeError> {
     if actual == expected {
         Ok(())
     } else {
-        Err(type_mismatch(actual, expected))
+        Err(type_mismatch(actual, expected, expr))
     }
 }
 
@@ -62,68 +57,28 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
         Expr::BinOp { lhs, op, rhs } => {
             let lhs_type = typeck_expr(lhs, ctx)?;
             let rhs_type = typeck_expr(rhs, ctx)?;
+            if !matches!(lhs_type, Type::NumT(_) | Type::SymT | Type::BoolT) {
+                error!("expected lhs: (NumT(_), SymT or BoolT) but got {lhs_type:?}");
+                return Err(TypeError::TypeMismatch);
+            }
             match op {
                 BOp::Add | BOp::Sub | BOp::Mul | BOp::Div | BOp::Rem | BOp::Shl | BOp::Shr => {
-                    if let Type::NumT(_) = lhs_type {
-                        if lhs_type != rhs_type {
-                            return Err(TypeError::TypeMismatch);
-                        }
-                        Ok(lhs_type)
-                    } else {
-                        Err(TypeError::TypeMismatch)
-                    }
+                    expect_equal(&lhs_type, &rhs_type, &rhs).map(|_| lhs_type.clone())
                 }
-                // Comparison operations
-                BOp::Lt | BOp::Lte => {
-                    if lhs_type != rhs_type {
-                        return Err(TypeError::TypeMismatch);
-                    }
-                    if let Type::NumT(_) = lhs_type {
-                        Ok(Type::BoolT)
-                    } else {
-                        Err(TypeError::TypeMismatch)
-                    }
-                }
-                // Equality and inequality can compare symbols as well as numbers
-                BOp::Eq | BOp::Ne => {
-                    if lhs_type != rhs_type {
-                        return Err(TypeError::TypeMismatch);
-                    }
-                    // Allow comparison of numbers or symbols
-                    if matches!(lhs_type, Type::NumT(_) | Type::SymT) {
-                        Ok(Type::BoolT)
-                    } else {
-                        Ok(Type::BoolT)
-                    }
-                }
-                // Logical operations are always of type BoolT
-                BOp::And | BOp::Or => {
-                    if lhs_type != rhs_type {
-                        return Err(TypeError::TypeMismatch);
-                    }
-                    if lhs_type == Type::BoolT {
-                        Ok(Type::BoolT)
-                    } else {
-                        Err(TypeError::TypeMismatch)
-                    }
+                BOp::Lt | BOp::Lte | BOp::Eq | BOp::Ne | BOp::And | BOp::Or => {
+                    expect_equal(&lhs_type, &rhs_type, &rhs).map(|_| Type::BoolT)
                 }
             }
         }
-        // Unary operations are always of the type of the inner expression
         Expr::UOp { op, inner } => {
             let inner_type = typeck_expr(inner, ctx)?;
             match op {
-                UOp::Not => {
-                    if inner_type == Type::BoolT {
-                        Ok(Type::BoolT)
-                    } else {
-                        Err(TypeError::TypeMismatch)
-                    }
-                }
+                UOp::Not => expect_equal(&inner_type, &Type::BoolT, &inner).map(|_| Type::BoolT),
                 UOp::Negate => {
-                    if let Type::NumT(range) = inner_type {
-                        Ok(Type::NumT(range))
+                    if matches!(inner_type, Type::NumT(_)) {
+                        Ok(inner_type.clone())
                     } else {
+                        error!("expected: NumT but got {inner_type:?}");
                         Err(TypeError::TypeMismatch)
                     }
                 }
@@ -135,36 +90,20 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             overflow: _overflow,
         } => {
             let inner_type = typeck_expr(inner, ctx)?;
-
-            // According to the [T-Cast] rule, both the inner expression and the target type
-            // must be numeric types with bounds
             match (&inner_type, typ) {
-                (Type::NumT(_), Type::NumT(_)) => {
-                    // The cast is valid, return the target type
-                    Ok(typ.clone())
-                }
-                (_, Type::NumT(_)) => {
-                    // The inner expression is not a numeric type
-                    Err(TypeError::TypeMismatch)
-                }
-                (Type::NumT(_), _) => {
-                    // The target type is not a numeric type
-                    Err(TypeError::TypeMismatch)
-                }
+                (Type::NumT(_), Type::NumT(_)) => Ok(typ.clone()),
                 _ => {
-                    // Neither the inner expression nor the target type are numeric types
+                    debug!("In: {expr:?}");
+                    error!("expected: {typ:?} but got {inner_type:?}");
                     Err(TypeError::TypeMismatch)
                 }
             }
         }
-        // Call expressions are always of the type of the function
         Expr::Call { callee, args } => {
             let mut arg_types: Vec<Type> = Vec::new();
             for arg in args {
                 arg_types.push(typeck_expr(arg, ctx)?);
             }
-
-            // Look up the function in the function environment
             let function = ctx
                 .funcs
                 .get(callee)
