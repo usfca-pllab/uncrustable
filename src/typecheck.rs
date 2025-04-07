@@ -1,5 +1,12 @@
 use crate::syntax::*;
+use env_logger;
+use log::{error, debug, info, warn};
 use thiserror::Error;
+
+/// Initialize the logger
+pub fn init_logger() {
+    let _ = env_logger::init();
+}
 
 /// Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -16,17 +23,6 @@ pub enum TypeError {
     /// Symbol not in alphabet
     #[error("Symbol '{0}' is not in the alphabet")]
     SymbolNotInAlphabet(char),
-    /// Empty match cases
-    #[error("Empty match cases")]
-    EmptyMatchCases,
-    /// Type mismatch between pattern and scrutinee
-    #[error("Type mismatch between pattern and scrutinee")]
-    MismatchPatternScrutinee {
-        /// Expected type
-        expected: Type,
-        /// Actual pattern
-        actual: Pattern,
-    },
 }
 
 /// Helper function to create a type mismatch error
