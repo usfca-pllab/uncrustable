@@ -21,7 +21,7 @@ pub enum TypeError {
 
 /// Helper function to create a type mismatch error
 fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
-    debug!("In {expr:?}");
+    debug!("In {expr:#?}");
     error!("expected: {expected:?} but got {actual:?}");
     TypeError::TypeMismatch
 }
@@ -94,7 +94,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             match (&inner_type, typ) {
                 (Type::NumT(_), Type::NumT(_)) => Ok(typ.clone()),
                 _ => {
-                    debug!("In: {expr:?}");
+                    debug!("In {expr:#?}");
                     error!("expected: {typ:?} but got {inner_type:?}");
                     Err(TypeError::TypeMismatch)
                 }
@@ -130,7 +130,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                     Pattern::Bool(_) if scrutinee_type == Type::BoolT => {}
                     Pattern::Sym(_) if scrutinee_type == Type::SymT => {}
                     _ => {
-                        debug!("In {case:?}");
+                        debug!("In {case:#?}");
                         error!("expected: {:?} but got {:?}", scrutinee_type, &case.pattern);
                         return Err(TypeError::TypeMismatch);
                     }
@@ -160,7 +160,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             };
             for case in cases_iter {
                 let case_type = check_case(case)?;
-                debug!("In {:?}", case);
+                debug!("In {:#?}", case);
                 expect_equal(&case_type, &result_type, &case.result)?;
             }
             Ok(result_type)
@@ -187,10 +187,11 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
             let expr_type = typeck_expr(expr, ctx)?;
 
             // Check that the expression's type matches the variable's type
+            // todo expect_equal(&expr_type, &var_type, expr)?;
             if var_type != expr_type {
                 return Err(type_mismatch(&expr_type, &var_type, expr));
             }
-            Ok(())
+            Ok(()) // don't need this
         }
         // If statement: check that the condition is a boolean and type check both branches
         Stmt::If {
@@ -202,6 +203,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
             let cond_type = typeck_expr(cond, ctx)?;
 
             // Check that the condition is a boolean
+            // todo expect_equal(&cond_type, &Type::BoolT, &cond)?;
             if cond_type != Type::BoolT {
                 return Err(type_mismatch(&cond_type, &Type::BoolT, cond));
             };
@@ -209,7 +211,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
             // Type check both branches
             typeck_block(true_branch, ctx)?;
             typeck_block(false_branch, ctx)?;
-            Ok(())
+            Ok(()) // don't need this if typeck_block returns ok
         }
     }
 }
@@ -239,6 +241,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let e = typeck_expr(&fun.body, &fun_ctx)?;
 
     // check that body is the same type as the return type, otherwise return error
+    // todo make sure to log the error
     if e == fun.ret_typ {
         Ok(())
     } else {
@@ -249,36 +252,20 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
 
 /// Type check a program
 pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
-    // Create initial context
     let ctx = TypeCtx {
         env: program.locals.clone(),
         funcs: &program.helpers,
     };
-
-    // Check that all helper functions are well-typed
-    for (func_name, function) in &program.helpers {
-        if let Err(err) = typeck_function(function, &ctx) {
-            println!("Type error in function '{}': {}", func_name, err);
-            return Err(err);
-        }
+    for (_func_name, function) in &program.helpers {
+        typeck_function(function, &ctx)?;
     }
+    typeck_block(&program.start, &ctx)?;
 
-    // Type check all statements in the block
-    if let Err(err) = typeck_block(&program.start, &ctx) {
-        println!("Type error in block: {}", err);
-        return Err(err);
-    }
-
-    // Type check the action handler
     let (input_var, action_block) = &program.action;
-
-    // Add the input variable to the environment as a symbol type if it exists
     let mut action_env = ctx.env.clone();
     if let Some(var) = input_var {
         action_env.insert(*var, Type::SymT);
     }
-
-    // Type check the action block
     typeck_block(
         action_block,
         &TypeCtx {
@@ -286,14 +273,8 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
             funcs: ctx.funcs,
         },
     )?;
-
-    // Type check the accept condition (must be a boolean)
     let final_type = typeck_expr(&program.accept, &ctx)?;
-    if final_type != Type::BoolT {
-        return Err(TypeError::TypeMismatch);
-    }
-
-    Ok(())
+    expect_equal(&final_type, &Type::BoolT, &program.accept)
 }
 
 #[cfg(test)]
