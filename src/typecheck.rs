@@ -36,6 +36,7 @@ fn expect_equal(actual: &Type, expected: &Type, expr: &Expr) -> Result<(), TypeE
 }
 
 /// Type context for type checking
+#[derive(Debug, PartialEq)]
 pub struct TypeCtx<'prog> {
     /// Type environment
     env: Map<Id, Type>,
@@ -281,22 +282,24 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::*;
+    #[allow(unused_imports)]
+    use crate::syntax;
 
     #[test]
     fn variables() {
-        let env = Map::from([
-            (id("x"), Type::NumT(0..10)),
-            (id("b"), Type::BoolT),
-            (id("s"), Type::SymT),
-        ]);
         let ctx = TypeCtx {
-            env,
+            env: Map::from([
+                (id("x"), Type::NumT(0..10)),
+                (id("b"), Type::BoolT),
+                (id("s"), Type::SymT),
+            ]),
             funcs: &Map::new(),
         };
+
         let x_expr = Expr::Var(id("x"));
         let b_expr = Expr::Var(id("b"));
         let s_expr = Expr::Var(id("s"));
+
         assert_eq!(typeck_expr(&x_expr, &ctx).unwrap(), Type::NumT(0..10));
         assert_eq!(typeck_expr(&b_expr, &ctx).unwrap(), Type::BoolT);
         assert_eq!(typeck_expr(&s_expr, &ctx).unwrap(), Type::SymT);
@@ -306,20 +309,18 @@ mod tests {
 
     #[test]
     fn undefined_variables() {
-        let env = Map::new();
         let ctx = TypeCtx {
-            env,
+            env: Map::new(),
             funcs: &Map::new(),
         };
         let undefined_expr = Expr::Var(id("undefined_flag"));
         assert!(typeck_expr(&undefined_expr, &ctx).is_err());
 
-        let env = Map::from([
-            (id("existing_flag"), Type::BoolT),
-            (id("count"), Type::NumT(0..100)),
-        ]);
         let ctx = TypeCtx {
-            env,
+            env: Map::from([
+                (id("existing_flag"), Type::BoolT),
+                (id("count"), Type::NumT(0..100)),
+            ]),
             funcs: &Map::new(),
         };
         let another_undefined_expr = Expr::Var(id("another_flag"));
@@ -772,26 +773,20 @@ mod tests {
 
     #[test]
     fn stmt() {
-        //test assign
-        //Create a type environment with a few variables
-        let mut env = Map::new();
-        env.insert(id("A"), Type::NumT(0..3));
-        env.insert(id("B"), Type::SymT);
-        env.insert(id("C"), Type::BoolT);
-        //variables that will be used for err cases
-        env.insert(id("X"), Type::NumT(0..1));
-        env.insert(id("Y"), Type::BoolT);
-        env.insert(id("Z"), Type::SymT);
-        //variables for if case
-        env.insert(id("result1"), Type::NumT(0..2));
-        env.insert(id("result2"), Type::NumT(0..2));
-
         let ctx = TypeCtx {
-            env,
+            env: Map::from([
+                (id("A"), Type::NumT(0..3)),
+                (id("B"), Type::SymT),
+                (id("C"), Type::BoolT),
+                (id("X"), Type::NumT(0..1)),
+                (id("Y"), Type::BoolT),
+                (id("Z"), Type::SymT),
+                (id("result1"), Type::NumT(0..2)),
+                (id("result2"), Type::NumT(0..2)),
+            ]),
             funcs: &Map::new(),
         };
 
-        //make expressions
         let e1 = Expr::Num(2, Type::NumT(0..3));
         let e2 = Expr::Sym('x');
         let e3 = Expr::Bool(true);
@@ -800,7 +795,6 @@ mod tests {
         let assign2 = Stmt::Assign(id("B"), e2.clone());
         let assign3 = Stmt::Assign(id("C"), e3.clone());
 
-        //check OK
         assert!(typeck_stmt(&assign1, &ctx).is_ok());
         assert!(typeck_stmt(&assign2, &ctx).is_ok());
         assert!(typeck_stmt(&assign3, &ctx).is_ok());
@@ -809,7 +803,6 @@ mod tests {
         let err2 = Stmt::Assign(id("Y"), e2);
         let err3 = Stmt::Assign(id("Z"), e3);
 
-        //check ERR
         assert!(typeck_stmt(&err1, &ctx).is_err());
         assert!(typeck_stmt(&err2, &ctx).is_err());
         assert!(typeck_stmt(&err3, &ctx).is_err());
@@ -818,55 +811,44 @@ mod tests {
         let fb1 = Stmt::Assign(id("result2"), Expr::Num(2, Type::NumT(0..2)));
         let e4 = Expr::Bool(true);
 
-        //test stmt::if
         let if1 = Stmt::If {
             cond: e4,
             true_branch: vec![tb1],
             false_branch: vec![fb1],
         };
-
         assert!(typeck_stmt(&if1, &ctx).is_ok());
     }
 
     #[test]
     fn block() {
-        //Create a type environment with a few variables
-        let mut env = Map::new();
-        env.insert(id("A"), Type::NumT(0..3));
-        env.insert(id("B"), Type::SymT);
-        env.insert(id("C"), Type::BoolT);
-
-        //variables that will be used for err cases
-        env.insert(id("X"), Type::NumT(0..1));
-        env.insert(id("Y"), Type::BoolT);
-        env.insert(id("Z"), Type::SymT);
-
         let ctx = TypeCtx {
-            env,
+            env: Map::from([
+                (id("A"), Type::NumT(0..3)),
+                (id("B"), Type::SymT),
+                (id("C"), Type::BoolT),
+                (id("X"), Type::NumT(0..1)),
+                (id("Y"), Type::BoolT),
+                (id("Z"), Type::SymT),
+            ]),
             funcs: &Map::new(),
         };
 
-        //make expressions for use in stmt blocks
         let e1 = Expr::Num(1, Type::NumT(0..3));
         let e2 = Expr::Sym('x');
         let e3 = Expr::Bool(true);
 
-        //assign statements
         let s1 = Stmt::Assign(id("A"), e1.clone());
         let s2 = Stmt::Assign(id("B"), e2.clone());
         let s3 = Stmt::Assign(id("C"), e3.clone());
 
         let b_ok: Block = vec![s1, s2, s3];
-
         assert!(typeck_block(&b_ok, &ctx).is_ok());
 
-        //assign statements that should result in error
         let err1 = Stmt::Assign(id("X"), e1);
         let err2 = Stmt::Assign(id("Y"), e2);
         let err3 = Stmt::Assign(id("Z"), e3);
 
         let b_err: Block = vec![err1, err2, err3];
-
         assert!(typeck_block(&b_err, &ctx).is_err());
     }
 
@@ -874,79 +856,79 @@ mod tests {
     fn functions() {
         let ctx = TypeCtx {
             env: Map::new(),
-            funcs: &Map::new(),
+            funcs: &Map::from([
+                (
+                    id("add"),
+                    Function {
+                        params: vec![],
+                        ret_typ: Type::NumT(0..1),
+                        body: Expr::BinOp {
+                            lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                            op: (BOp::Add),
+                            rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                        },
+                    },
+                ),
+                (
+                    id("wrong_ret"),
+                    Function {
+                        params: vec![],
+                        ret_typ: Type::BoolT,
+                        body: Expr::BinOp {
+                            lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                            op: (BOp::Add),
+                            rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
+                        },
+                    },
+                ),
+            ]),
         };
 
-        let fun_ok = Function {
-            params: vec![],
-            ret_typ: Type::NumT(0..1),
-            body: Expr::BinOp {
-                lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
-                op: (BOp::Add),
-                rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
-            },
-        };
-
+        let fun_ok = ctx.funcs.get(&id("add")).unwrap();
         assert!(typeck_function(&fun_ok, &ctx).is_ok());
 
-        let fun_err = Function {
-            params: vec![],
-            ret_typ: Type::BoolT,
-            body: Expr::BinOp {
-                lhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
-                op: (BOp::Add),
-                rhs: (Box::new(Expr::Num(1, Type::NumT(0..1)))),
-            },
-        };
-
+        let fun_err = ctx.funcs.get(&id("wrong_ret")).unwrap();
         assert!(typeck_function(&fun_err, &ctx).is_err());
 
-        //test nested env, following example div3.un program
-        let mut env_map = Map::new();
-        env_map.insert(id("rem"), Type::NumT(0..3));
-
-        let mut functions = Map::new();
-        functions.insert(
-            id("char_to_bit"),
-            Function {
-                params: vec![(id("c"), Type::SymT)],
-                ret_typ: Type::NumT(0..2),
-                body: Expr::Match {
-                    scrutinee: Box::new(Expr::Var(id("c"))),
-                    cases: vec![
-                        // Case 1: '0' -> 0 as int[2]
-                        Case {
-                            pattern: Pattern::Sym(Symbol('0')),
-                            guard: Expr::Bool(true),
-                            result: Expr::Num(0, Type::NumT(0..2)),
-                        },
-                        // Case 2: '1' -> 1 as int[2]
-                        Case {
-                            pattern: Pattern::Sym(Symbol('1')),
-                            guard: Expr::Bool(true),
-                            result: Expr::Num(1, Type::NumT(0..2)),
-                        },
-                    ],
-                },
-            },
-        );
-
+        // test nested env, following example div3.un program
         let nest = TypeCtx {
-            env: env_map.clone(),
-            funcs: &functions.clone(),
+            env: Map::from([(id("rem"), Type::NumT(0..3))]),
+            funcs: &Map::from([(
+                id("char_to_bit"),
+                Function {
+                    params: vec![(id("c"), Type::SymT)],
+                    ret_typ: Type::NumT(0..2),
+                    body: Expr::Match {
+                        scrutinee: Box::new(Expr::Var(id("c"))),
+                        cases: vec![
+                            // Case 1: '0' -> 0 as int[2]
+                            Case {
+                                pattern: Pattern::Sym(Symbol('0')),
+                                guard: Expr::Bool(true),
+                                result: Expr::Num(0, Type::NumT(0..2)),
+                            },
+                            // Case 2: '1' -> 1 as int[2]
+                            Case {
+                                pattern: Pattern::Sym(Symbol('1')),
+                                guard: Expr::Bool(true),
+                                result: Expr::Num(1, Type::NumT(0..2)),
+                            },
+                        ],
+                    },
+                },
+            )]),
         };
 
         let nest_check = TypeCtx {
-            env: env_map.clone(),
-            funcs: &functions.clone(),
+            env: nest.env.clone(),
+            funcs: &nest.funcs.clone(),
         };
 
-        //Check typeck_function works without err if passed in populated ctx and passed in
-        //function from the function map
+        // Check typeck_function works without err if passed in populated ctx
         assert!(typeck_function(nest.funcs.get(&id("char_to_bit")).unwrap(), &nest).is_ok());
-        //test that ctx and nested maps are not changed through typeck_function
-        assert_eq!(nest.env, nest_check.env);
-        assert_eq!(nest.funcs, nest_check.funcs);
+
+        // test that ctx and nested maps are not changed through typeck_function
+        assert_eq!(nest, nest_check);
     }
 
     #[test]
