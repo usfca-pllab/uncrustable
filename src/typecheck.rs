@@ -599,30 +599,39 @@ mod tests {
     fn function_calls() {
         let ctx = TypeCtx {
             env: Map::from([
-                    (id("x"), Type::NumT(-10..10)),
-                    (id("flag"), Type::BoolT),
-                    (id("sym"), Type::SymT),
-                ]),
+                (id("x"), Type::NumT(-10..10)),
+                (id("flag"), Type::BoolT),
+                (id("sym"), Type::SymT),
+            ]),
             funcs: &Map::from([
-                (id("is_positive"), Function {
-                    params: vec![(id("n"), Type::NumT(-10..10))],
-                    ret_typ: Type::BoolT,
-                    body: Expr::Bool(true), // dummy body, not used in type checking
-                }),
-                (id("to_number"), Function {
-                    params: vec![(id("b"), Type::BoolT)],
-                    ret_typ: Type::NumT(0..1),
-                    body: Expr::Num(0, Type::NumT(0..1)), // not used in type checking
-                }),
-                (id("complex_func"), Function {
-                    params: vec![
-                        (id("n1"), Type::NumT(-10..10)),
-                        (id("n2"), Type::NumT(-10..10)),
-                        (id("b"), Type::BoolT),
-                    ],
-                    ret_typ: Type::NumT(0..20),
-                    body: Expr::Num(0, Type::NumT(0..20)), // not used in type checking
-                }),
+                (
+                    id("is_positive"),
+                    Function {
+                        params: vec![(id("n"), Type::NumT(-10..10))],
+                        ret_typ: Type::BoolT,
+                        body: Expr::Bool(true), // dummy body, not used in type checking
+                    },
+                ),
+                (
+                    id("to_number"),
+                    Function {
+                        params: vec![(id("b"), Type::BoolT)],
+                        ret_typ: Type::NumT(0..1),
+                        body: Expr::Num(0, Type::NumT(0..1)), // not used in type checking
+                    },
+                ),
+                (
+                    id("complex_func"),
+                    Function {
+                        params: vec![
+                            (id("n1"), Type::NumT(-10..10)),
+                            (id("n2"), Type::NumT(-10..10)),
+                            (id("b"), Type::BoolT),
+                        ],
+                        ret_typ: Type::NumT(0..20),
+                        body: Expr::Num(0, Type::NumT(0..20)), // not used in type checking
+                    },
+                ),
             ]),
         };
 
