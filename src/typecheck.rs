@@ -346,9 +346,6 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
 
 /// Type check a program
 pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
-    // Start the logger for the Typecheck file
-    env_logger::init();
-
     // Create initial context
     let ctx = TypeCtx {
         env: program.locals.clone(),
