@@ -1,9 +1,8 @@
 // use clap derive for argument parsing
 //
 // read a file name as the only argument
-use clap::{Arg, Parser}; // not using Arg
-use log::{error, info, warn, LevelFilter}; // LevelFilter is not used
-use std::io::Write; // this is also not used
+use clap::{Parser};
+use log::{error, info, warn};
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
@@ -34,11 +33,11 @@ fn main() {
         match typecheck::typecheck_program(&program) {
             Ok(_) => {
                 println!("Typecheck successful");
-                info!("Typecheck successful"); // todo, just the print is enough
+                info!("Typecheck successful");
             }
             Err(error) => {
                 println!("TypeCheck Error: {error}");
-                warn!("Error with typecheck: {}", error); // todo, just the print is enough
+                warn!("Error with typecheck: {}", error);
             }
         }
     }
