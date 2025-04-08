@@ -1,7 +1,7 @@
 // use clap derive for argument parsing
 //
 // read a file name as the only argument
-use clap::{Parser};
+use clap::Parser;
 use log::{error, info, warn};
 use uncrustable::eval;
 use uncrustable::parse::parse;
