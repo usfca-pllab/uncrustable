@@ -282,22 +282,24 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::*;
+    #[allow(unused_imports)]
+    use crate::syntax;
 
     #[test]
     fn variables() {
-        let env = Map::from([
+        let ctx = TypeCtx {
+            env: Map::from([
             (id("x"), Type::NumT(0..10)),
             (id("b"), Type::BoolT),
             (id("s"), Type::SymT),
-        ]);
-        let ctx = TypeCtx {
-            env,
+            ]),
             funcs: &Map::new(),
         };
-        let x_expr = Expr::Var(id("x"));
+
+        let x_expr = Expr::Var(id("x")); 
         let b_expr = Expr::Var(id("b"));
         let s_expr = Expr::Var(id("s"));
+
         assert_eq!(typeck_expr(&x_expr, &ctx).unwrap(), Type::NumT(0..10));
         assert_eq!(typeck_expr(&b_expr, &ctx).unwrap(), Type::BoolT);
         assert_eq!(typeck_expr(&s_expr, &ctx).unwrap(), Type::SymT);
@@ -307,20 +309,18 @@ mod tests {
 
     #[test]
     fn undefined_variables() {
-        let env = Map::new();
         let ctx = TypeCtx {
-            env,
+            env: Map::new(),
             funcs: &Map::new(),
         };
         let undefined_expr = Expr::Var(id("undefined_flag"));
         assert!(typeck_expr(&undefined_expr, &ctx).is_err());
 
-        let env = Map::from([
-            (id("existing_flag"), Type::BoolT),
-            (id("count"), Type::NumT(0..100)),
-        ]);
         let ctx = TypeCtx {
-            env,
+            env: Map::from([
+                (id("existing_flag"), Type::BoolT),
+                (id("count"), Type::NumT(0..100)),
+            ]),
             funcs: &Map::new(),
         };
         let another_undefined_expr = Expr::Var(id("another_flag"));
