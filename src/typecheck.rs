@@ -289,14 +289,14 @@ mod tests {
     fn variables() {
         let ctx = TypeCtx {
             env: Map::from([
-            (id("x"), Type::NumT(0..10)),
-            (id("b"), Type::BoolT),
-            (id("s"), Type::SymT),
+                (id("x"), Type::NumT(0..10)),
+                (id("b"), Type::BoolT),
+                (id("s"), Type::SymT),
             ]),
             funcs: &Map::new(),
         };
 
-        let x_expr = Expr::Var(id("x")); 
+        let x_expr = Expr::Var(id("x"));
         let b_expr = Expr::Var(id("b"));
         let s_expr = Expr::Var(id("s"));
 
