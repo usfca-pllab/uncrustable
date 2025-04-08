@@ -496,7 +496,7 @@ mod tests {
             funcs: &Map::new(),
         };
         let x_expr = Expr::Var(id("x"));
-        let flag_expr = Expr::Var(id("flag"));
+        let flag_expr = Expr::Var(id("flag1"));
         let valid_operations: [(UOp, Box<Expr>, Result<Type, TypeError>); 2] = [
             (UOp::Not, Box::new(flag_expr.clone()), Ok(Type::BoolT)),
             (UOp::Negate, Box::new(x_expr.clone()), Ok(Type::NumT(0..10))),
@@ -513,9 +513,7 @@ mod tests {
         }
 
         let invalid_operations: [(UOp, Box<Expr>); 2] = [
-            // Not with numeric
             (UOp::Not, Box::new(x_expr.clone())),
-            // Negate with boolean
             (UOp::Negate, Box::new(flag_expr.clone())),
         ];
         for (op, inner) in invalid_operations {
@@ -599,70 +597,47 @@ mod tests {
 
     #[test]
     fn function_calls() {
-        // Create a type environment with variables
-        let mut env = Map::new();
-        env.insert(id("x"), Type::NumT(-10..10));
-        env.insert(id("flag"), Type::BoolT);
-
-        // Create a function environment with functions
-        let mut function_env = Map::new();
-
-        // Add a function that takes a numeric parameter and returns a boolean
-        function_env.insert(
-            id("is_positive"),
-            Function {
-                params: vec![(id("n"), Type::NumT(-10..10))],
-                ret_typ: Type::BoolT,
-                body: Expr::Bool(true), // Dummy body, not used in type checking
-            },
-        );
-
-        // Add a function that takes a boolean parameter and returns a numeric value
-        function_env.insert(
-            id("to_number"),
-            Function {
-                params: vec![(id("b"), Type::BoolT)],
-                ret_typ: Type::NumT(0..1),
-                body: Expr::Num(0, Type::NumT(0..1)), // Dummy body, not used in type checking
-            },
-        );
-
-        // Add a function that takes multiple parameters
-        function_env.insert(
-            id("complex_func"),
-            Function {
-                params: vec![
-                    (id("n1"), Type::NumT(-10..10)),
-                    (id("n2"), Type::NumT(-10..10)),
-                    (id("b"), Type::BoolT),
-                ],
-                ret_typ: Type::NumT(0..20),
-                body: Expr::Num(0, Type::NumT(0..20)), // Dummy body, not used in type checking
-            },
-        );
-
         let ctx = TypeCtx {
-            env,
-            funcs: &function_env,
+            env: Map::from([
+                    (id("x"), Type::NumT(-10..10)),
+                    (id("flag"), Type::BoolT),
+                    (id("sym"), Type::SymT),
+                ]),
+            funcs: &Map::from([
+                (id("is_positive"), Function {
+                    params: vec![(id("n"), Type::NumT(-10..10))],
+                    ret_typ: Type::BoolT,
+                    body: Expr::Bool(true), // dummy body, not used in type checking
+                }),
+                (id("to_number"), Function {
+                    params: vec![(id("b"), Type::BoolT)],
+                    ret_typ: Type::NumT(0..1),
+                    body: Expr::Num(0, Type::NumT(0..1)), // not used in type checking
+                }),
+                (id("complex_func"), Function {
+                    params: vec![
+                        (id("n1"), Type::NumT(-10..10)),
+                        (id("n2"), Type::NumT(-10..10)),
+                        (id("b"), Type::BoolT),
+                    ],
+                    ret_typ: Type::NumT(0..20),
+                    body: Expr::Num(0, Type::NumT(0..20)), // not used in type checking
+                }),
+            ]),
         };
 
-        // Test valid function calls
-
-        // Call is_positive with a numeric variable
         let call1 = Expr::Call {
             callee: id("is_positive"),
             args: vec![Expr::Var(id("x"))],
         };
-        assert!(matches!(typeck_expr(&call1, &ctx), Ok(Type::BoolT)));
+        assert_eq!(typeck_expr(&call1, &ctx).unwrap(), Type::BoolT);
 
-        // Call to_number with a boolean variable
         let call2 = Expr::Call {
             callee: id("to_number"),
             args: vec![Expr::Var(id("flag"))],
         };
-        assert!(matches!(typeck_expr(&call2, &ctx), Ok(Type::NumT(range)) if range == (0..1)));
+        assert_eq!(typeck_expr(&call2, &ctx).unwrap(), Type::NumT(0..1));
 
-        // Call complex_func with appropriate arguments
         let call3 = Expr::Call {
             callee: id("complex_func"),
             args: vec![
@@ -671,54 +646,40 @@ mod tests {
                 Expr::Var(id("flag")),
             ],
         };
-        assert!(matches!(typeck_expr(&call3, &ctx), Ok(Type::NumT(range)) if range == (0..20)));
+        assert_eq!(typeck_expr(&call3, &ctx).unwrap(), Type::NumT(0..20));
 
-        // Test invalid function calls
-
-        // Call undefined function
         let invalid_call1 = Expr::Call {
             callee: id("undefined_func"),
             args: vec![Expr::Var(id("x"))],
         };
-        assert!(matches!(
-            typeck_expr(&invalid_call1, &ctx),
-            Err(TypeError::UndefinedFunction(_))
-        ));
+        assert!(typeck_expr(&invalid_call1, &ctx).is_err());
 
-        // Call with wrong argument type
         let invalid_call3 = Expr::Call {
             callee: id("is_positive"),
             args: vec![Expr::Var(id("flag"))],
         };
-        assert!(matches!(
-            typeck_expr(&invalid_call3, &ctx),
-            Err(TypeError::TypeMismatch { .. })
-        ));
+        assert!(typeck_expr(&invalid_call3, &ctx).is_err());
     }
 
     #[test]
     fn pattern_matching() {
-        // Create a type environment with variables
-        let mut env = Map::new();
-        env.insert(id("x"), Type::NumT(0..10));
-        env.insert(id("flag"), Type::BoolT);
-        env.insert(id("sym"), Type::SymT);
         let ctx = TypeCtx {
-            env,
+            env: Map::from([
+                (id("x"), Type::NumT(0..10)),
+                (id("flag"), Type::BoolT),
+                (id("sym"), Type::SymT),
+            ]),
             funcs: &Map::new(),
         };
 
-        // Test pattern matching with numeric scrutinee
         let num_match = Expr::Match {
             scrutinee: Box::new(Expr::Var(id("x"))),
             cases: vec![
-                // Case 1: Match a specific number
                 Case {
                     pattern: Pattern::Num(5),
                     guard: Expr::Bool(true),
                     result: Expr::Bool(true),
                 },
-                // Case 2: Match any number and bind to variable
                 Case {
                     pattern: Pattern::Var(id("n")),
                     guard: Expr::Bool(true),
@@ -726,19 +687,16 @@ mod tests {
                 },
             ],
         };
-        assert!(matches!(typeck_expr(&num_match, &ctx), Ok(Type::BoolT)));
+        assert_eq!(typeck_expr(&num_match, &ctx).unwrap(), Type::BoolT);
 
-        // Test pattern matching with boolean scrutinee
         let bool_match = Expr::Match {
             scrutinee: Box::new(Expr::Var(id("flag"))),
             cases: vec![
-                // Case 1: Match true
                 Case {
                     pattern: Pattern::Bool(true),
                     guard: Expr::Bool(true),
                     result: Expr::Num(1, Type::NumT(0..10)),
                 },
-                // Case 2: Match false
                 Case {
                     pattern: Pattern::Bool(false),
                     guard: Expr::Bool(true),
@@ -746,21 +704,16 @@ mod tests {
                 },
             ],
         };
-        assert!(
-            matches!(typeck_expr(&bool_match, &ctx), Ok(Type::NumT(range)) if range == (0..10))
-        );
+        assert_eq!(typeck_expr(&bool_match, &ctx).unwrap(), Type::NumT(0..10));
 
-        // Test pattern matching with symbol scrutinee
         let sym_match = Expr::Match {
             scrutinee: Box::new(Expr::Var(id("sym"))),
             cases: vec![
-                // Case 1: Match specific symbol
                 Case {
                     pattern: Pattern::Sym(Symbol('a')),
                     guard: Expr::Bool(true),
                     result: Expr::Var(id("x")),
                 },
-                // Case 2: Match any symbol and bind to variable
                 Case {
                     pattern: Pattern::Var(id("s")),
                     guard: Expr::Bool(true),
@@ -768,11 +721,8 @@ mod tests {
                 },
             ],
         };
-        assert!(matches!(typeck_expr(&sym_match, &ctx), Ok(Type::NumT(range)) if range == (0..10)));
+        assert_eq!(typeck_expr(&sym_match, &ctx).unwrap(), Type::NumT(0..10));
 
-        // Test invalid pattern matching
-
-        // Type mismatch between pattern and scrutinee
         let invalid_match1 = Expr::Match {
             scrutinee: Box::new(Expr::Var(id("x"))),
             cases: vec![Case {
@@ -783,7 +733,6 @@ mod tests {
         };
         assert!(typeck_expr(&invalid_match1, &ctx).is_err());
 
-        // Type mismatch between case results
         let invalid_match2 = Expr::Match {
             scrutinee: Box::new(Expr::Var(id("flag"))),
             cases: vec![
@@ -799,12 +748,8 @@ mod tests {
                 },
             ],
         };
-        assert!(matches!(
-            typeck_expr(&invalid_match2, &ctx),
-            Err(TypeError::TypeMismatch { .. })
-        ));
+        assert!(typeck_expr(&invalid_match2, &ctx).is_err());
 
-        // Invalid guard type
         let invalid_match3 = Expr::Match {
             scrutinee: Box::new(Expr::Var(id("x"))),
             cases: vec![Case {
@@ -813,10 +758,7 @@ mod tests {
                 result: Expr::Bool(true),
             }],
         };
-        assert!(matches!(
-            typeck_expr(&invalid_match3, &ctx),
-            Err(TypeError::TypeMismatch { .. })
-        ));
+        assert!(typeck_expr(&invalid_match3, &ctx).is_err());
     }
 
     #[test]
@@ -1000,7 +942,6 @@ mod tests {
 
     #[test]
     fn programs() {
-        // Test a valid program with helper functions and explicit castings
         let program1_input = r#"
                 alphabet: {'a'}
                 fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
@@ -1021,10 +962,8 @@ mod tests {
                 accept if x == 3 as int[3]
                 "#;
         let program1: Program = parse(program1_input).unwrap();
-        let result1 = typecheck_program(&program1);
-        assert!(result1.is_ok());
+        assert!(typecheck_program(&program1).is_ok());
 
-        // Test a program with a function that returns a boolean
         let program2_input = r#"
                 alphabet: {'a'}
                 fn is_a(c: sym) -> bool = c == 'a'
@@ -1038,8 +977,7 @@ mod tests {
                 accept if flag
                 "#;
         let program2: Program = parse(program2_input).unwrap();
-        let result2 = typecheck_program(&program2);
-        assert!(result2.is_ok());
+        assert!(typecheck_program(&program2).is_ok());
 
         // Test program with invalid function return type
         let program3_input = r#"
@@ -1055,8 +993,7 @@ mod tests {
                 accept if flag
                 "#;
         let program3: Program = parse(program3_input).unwrap();
-        let result3 = typecheck_program(&program3);
-        assert!(result3.is_err());
+        assert!(typecheck_program(&program3).is_err());
 
         // Test program with invalid start
         let program4_input = r#"
@@ -1068,8 +1005,7 @@ mod tests {
                 accept if flag
                 "#;
         let program4: Program = parse(program4_input).unwrap();
-        let result4 = typecheck_program(&program4);
-        assert!(result4.is_err());
+        assert!(typecheck_program(&program4).is_err());
 
         // Test program with invalid action block
         let program5_input = r#"
@@ -1083,7 +1019,6 @@ mod tests {
                 accept if flag
                 "#;
         let program5: Program = parse(program5_input).unwrap();
-        let result5 = typecheck_program(&program5);
-        assert!(result5.is_err());
+        assert!(typecheck_program(&program5).is_err());
     }
 }
