@@ -50,7 +50,7 @@ fn init_env(program: &Program) -> Env {
             // defaults for now are zero values
             Type::BoolT => Value::Bool(false),
 
-            //  default to be beginning 2of range
+            //  default to be beginning of range
             Type::NumT(range) => Value::Num(range.start, range.clone()),
 
             //  default to empty char
@@ -67,13 +67,14 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
     let mut env = init_env(program);
 
-    // TODO - figure out what to do with input ("consume each symbol???")
-    // consume each symbol
-    // outer for loop: loop over input str
-    // inner for loop:
-    // fold: input.fold(env, )
-
     // evaluate the final condition
+    for sym in input.chars() {
+        match &program.action.0 {
+            Some(id) => env.insert(id.clone(), Value::Sym(Symbol(sym))),
+            // Value::Sym(Symbol(sym)),
+            _ => continue
+        };
+    }
     for stmt in &program.action.1 {
         eval_stmt(stmt, &mut env, &program)?;
     }
