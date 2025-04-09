@@ -72,7 +72,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         match &program.action.0 {
             Some(id) => env.insert(id.clone(), Value::Sym(Symbol(sym))),
             // Value::Sym(Symbol(sym)),
-            _ => continue
+            _ => continue,
         };
     }
     for stmt in &program.action.1 {
