@@ -197,16 +197,14 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             typ,
             overflow,
         } => {
-            let cast_t = match typ {
-                Type::BoolT => Err(RuntimeError::TypeError),
-                Type::SymT => Err(RuntimeError::TypeError),
-                Type::NumT(n) => Ok(n.clone()),
-            }?;
+            let Type::NumT(cast_t) = typ else {
+                return Err(RuntimeError::TypeError);
+            };
 
             let val = eval_expr(inner, env, &program)?;
 
             match val {
-                Value::Num(num, _) => cast(num, cast_t, overflow.clone()),
+                Value::Num(num, _) => cast(num, cast_t.clone(), overflow.clone()),
                 // can only cast ints
                 _ => Err(RuntimeError::TypeError),
             }
