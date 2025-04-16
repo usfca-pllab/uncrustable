@@ -4,7 +4,7 @@ use internment::Intern;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
-use std::os::macos::raw;
+// use std::os::macos::raw;
 use std::result;
 use thiserror::Error;
 
@@ -329,8 +329,6 @@ fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, Run
                 _ => Err(RuntimeError::InvalidStatement),
             }
         }
-
-        _ => Err(RuntimeError::InvalidStatement),
     }
 }
 
