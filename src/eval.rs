@@ -4,6 +4,7 @@ use internment::Intern;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
+use std::os::macos::raw;
 use std::result;
 use thiserror::Error;
 
@@ -71,7 +72,6 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     for sym in input.chars() {
         match &program.action.0 {
             Some(id) => env.insert(id.clone(), Value::Sym(Symbol(sym))),
-            // Value::Sym(Symbol(sym)),
             _ => continue,
         };
     }
@@ -90,15 +90,15 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
     let lower = range.start;
     let upper = range.end;
     let val = match overflow {
-        Overflow::Fail => {
-            if v >= upper {
-                Err(RuntimeError::OutOfRange)
-            } else if v < lower {
-                Err(RuntimeError::OutOfRange)
-            } else {
-                Ok(Value::Num(v, range))
-            }
-        }
+        // Overflow::Fail => {
+        //     if v >= upper {
+        //         Err(RuntimeError::OutOfRange)
+        //     } else if v < lower {
+        //         Err(RuntimeError::OutOfRange)
+        //     } else {
+        //         Ok(Value::Num(v, range))
+        //     }
+        // }
         Overflow::Saturate => {
             if v >= upper {
                 Ok(Value::Num(upper - 1, range))
@@ -108,8 +108,15 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
                 Ok(Value::Num(v, range))
             }
         }
-        Overflow::Wraparound => Ok(Value::Num(
-            ((v - lower).abs() % (upper - lower) + lower),
+        // Overflow::Wraparound => Ok(Value::Num(
+        //     (v - lower).abs() % (upper - lower) + lower,
+        //     Range {
+        //         start: lower,
+        //         end: upper,
+        //     },
+        // )),
+        _ => Ok(Value::Num(
+            (v - lower).abs() % (upper - lower) + lower,
             Range {
                 start: lower,
                 end: upper,
@@ -212,32 +219,55 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
         Expr::Match { scrutinee, cases } => {
             let raw_val = eval_expr(&scrutinee, env, &program)?;
+            println!("raw val: {:?}", raw_val);
             for case in cases {
-                // match pattern, raw_val {
-                //
-                // }
-                let pattern = match case.pattern {
-                    Pattern::Bool(b) => Value::Bool(b),
-                    Pattern::Num(n) => Value::Num(
-                        n,
-                        Range {
-                            start: n,
-                            end: n + 1,
-                        },
-                    ),
-                    Pattern::Sym(s) => Value::Sym(s),
-                    Pattern::Var(id) => env.get(&id).unwrap().clone(),
-                };
-                if raw_val == pattern {
-                    let g = eval_expr(&case.guard, env, &program)?;
-
-                    if let Value::Bool(b) = g {
-                        if b {
-                            return Ok(eval_expr(&case.result, env, &program)?);
+                println!("case {:?}", case);
+                match (case.pattern, raw_val.clone()) {
+                    (Pattern::Var(id), _) => {
+                        let mut env_scope = Env::new();
+                        env_scope.insert(id, raw_val.clone());
+                        let g = eval_expr(&case.guard, &env_scope, &program)?;
+                        if let Value::Bool(b) = g {
+                            if b {
+                                return eval_expr(&case.result, env, &program);
+                            }
+                        } else {
+                            return Err(RuntimeError::TypeError);
                         }
-                    } else {
-                        return Err(RuntimeError::TypeError);
                     }
+                    (Pattern::Bool(bp), Value::Bool(bv)) if bp == bv => {
+                        let g = eval_expr(&case.guard, &env, &program)?;
+                        if let Value::Bool(b) = g {
+                            if b {
+                                return eval_expr(&case.result, env, &program);
+                            }
+                        } else {
+                            return Err(RuntimeError::TypeError);
+                        }
+                    }
+                    (Pattern::Num(np), Value::Num(nv, _)) if np == nv => {
+                        println!("pattern matched on num");
+                        let g = eval_expr(&case.guard, &env, &program)?;
+                        if let Value::Bool(b) = g {
+                            if b {
+                                return eval_expr(&case.result, env, &program);
+                            }
+                        } else {
+                            return Err(RuntimeError::TypeError);
+                        }
+                    }
+                    (Pattern::Sym(sp), Value::Sym(sv)) if sp == sv => {
+                        println!("pattern matched on num");
+                        let g = eval_expr(&case.guard, &env, &program)?;
+                        if let Value::Bool(b) = g {
+                            if b {
+                                return eval_expr(&case.result, env, &program);
+                            }
+                        } else {
+                            return Err(RuntimeError::TypeError);
+                        }
+                    }
+                    _ => continue,
                 }
             }
             return Err(RuntimeError::TypeError);
@@ -777,7 +807,7 @@ fn test_cast_fail() {
 
 #[test]
 // Match
-fn test_match() {
+fn test_match1() {
     let input = "";
     let program = Program {
         alphabet: Set::from([Symbol('d')]),
@@ -816,8 +846,8 @@ fn test_match() {
     // let result = eval(&program, input);
     assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 0..5)));
     // match result {
-    //     // Err(RuntimeError::TypeError) => (),
-    //     _ => panic!("Expected error and got: {:?}", result),
+    // Err(RuntimeError::TypeError) => (),
+    // _ => panic!("Expected error and got: {:?}", result),
     // }
 }
 
@@ -931,4 +961,37 @@ fn test_if4() {
 
     let (result, env) = eval(&program, input).unwrap();
     assert_eq!(env.get(&id("y")), Some(&Value::Num(1, 1..2)));
+}
+
+#[test]
+fn test_match2() {
+    let input = r#"
+        alphabet: {'a'}
+        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+        let x: int[3];
+        on input y {
+                x = 3 + - 4 as int[3];
+                x = 3 + 4 as int[3] wraparound;
+                if x < 3 {
+                    y = 'a';
+                } else {
+                    x = match y {
+                            'a' -> 1
+                            x if true -> 2
+                    };
+                }
+        }
+        accept if x == 3
+    "#;
+    let program = parse(input).unwrap();
+    println!("program: {:?}", program);
+
+    let (result, env) = eval(&program, input).unwrap();
+    // assert_eq!(env.get(&id("y")), Some(&Value::Num(1, 1..2)));
+    // let result = eval(&program, input);
+    assert_eq!(env.get(&id("x")), Some(&Value::Num(2, 2..3)));
+    // match result {
+    //     Err(RuntimeError::TypeError) => (),
+    //     _ => panic!("Expected error and got: {:?}", result),
+    // }
 }
