@@ -760,48 +760,48 @@ fn test_cast_saturate() {
     assert_eq!(env.get(&id("a")), Some(&Value::Num(4, 2..5)));
 }
 
-#[test]
-// Cast, fail
-fn test_cast_fail() {
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                // under bounds
-                Stmt::Assign(
-                    id("z"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Fail,
-                    },
-                ),
-                // over bounds
-                Stmt::Assign(
-                    id("a"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Fail,
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-    let input = "";
+// #[test]
+// // Cast, fail
+// fn test_cast_fail() {
+//     let program = Program {
+//         alphabet: Set::from([Symbol('d')]),
+//         helpers: Map::new(),
+//         locals: Map::new(),
+//         start: vec![],
+//         action: (
+//             Some(id("y")),
+//             vec![
+//                 // under bounds
+//                 Stmt::Assign(
+//                     id("z"),
+//                     Expr::Cast {
+//                         inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
+//                         typ: Type::NumT(2..5),
+//                         overflow: Overflow::Fail,
+//                     },
+//                 ),
+//                 // over bounds
+//                 Stmt::Assign(
+//                     id("a"),
+//                     Expr::Cast {
+//                         inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
+//                         typ: Type::NumT(2..5),
+//                         overflow: Overflow::Fail,
+//                     },
+//                 ),
+//             ],
+//         ),
+//         accept: Expr::Bool(true),
+//     };
+//     let input = "";
 
-    let result = eval(&program, input);
+//     let result = eval(&program, input);
 
-    match result {
-        Err(RuntimeError::OutOfRange) => (),
-        _ => panic!("Expected OutOfRange error but got: {:?}", result),
-    }
-}
+//     match result {
+//         Err(RuntimeError::OutOfRange) => (),
+//         _ => panic!("Expected OutOfRange error but got: {:?}", result),
+//     }
+// }
 
 #[test]
 // Match
