@@ -1,18 +1,31 @@
 use crate::parse::parse;
 use crate::syntax::*;
+use internment::Intern;
+use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use std::result;
+use thiserror::Error;
 
-#[derive(Debug)]
+/// Errors that can occur during type checking
+#[derive(Error, Debug)]
+
 enum RuntimeError {
+    #[error("Invalid expression")]
     InvalidExpression,
+    #[error("Invalid statement")]
     InvalidStatement,
+    #[error("Division by zero")]
     DivisionbyZero,
+    #[error("Type error")]
     TypeError,
+    #[error("Invalid pperand")]
     InvalidOperand,
+    #[error("Modulus by zero")]
     ModulusByZero,
+    #[error("Cast fail: out of expected range")]
     OutOfRange,
+    #[error("Call fail: incorrect args")]
     IncorrectArgs,
 }
 
@@ -29,14 +42,7 @@ type Env = Map<Id, Value>;
 
 fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
-
-    // insert alphabet into env
-    for symbol in &program.alphabet {
-        let id = id(&symbol.to_string());
-        let value = Value::Sym(*symbol);
-        println!("Inserting alpha. id -> {}, value -> {:?}", id, value);
-        env.insert(id, value);
-    }
+    let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
 
     // insert locals into env
     for (id, typ) in &program.locals {
@@ -48,12 +54,9 @@ fn init_env(program: &Program) -> Env {
             Type::NumT(range) => Value::Num(range.start, range.clone()),
 
             //  default to empty char
-            Type::SymT => Value::Sym(Symbol(' ')),
-
-            _ => continue, // for now continue, raise error later
+            Type::SymT => Value::Sym(alph.iter().next().unwrap().clone()),
         };
 
-        println!("Inserting local id -> {}, value -> {:?}", id, value);
         env.insert(id.clone(), value);
     }
 
@@ -64,16 +67,23 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
     let mut env = init_env(program);
 
-    // TODO - figure out what to do with input ("consume each symbol???")
-    // consume each symbol
-
     // evaluate the final condition
+    for sym in input.chars() {
+        match &program.action.0 {
+            Some(id) => env.insert(id.clone(), Value::Sym(Symbol(sym))),
+            // Value::Sym(Symbol(sym)),
+            _ => continue,
+        };
+    }
     for stmt in &program.action.1 {
         eval_stmt(stmt, &mut env, &program)?;
     }
-    eval_expr(&program.accept, &env, &program)?;
+    let accept = eval_expr(&program.accept, &env, &program)?;
 
-    Ok((false, env))
+    match accept {
+        Value::Bool(b) => Ok((b, env)),
+        _ => Err(RuntimeError::TypeError),
+    }
 }
 
 fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeError> {
@@ -81,7 +91,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
     let upper = range.end;
     let val = match overflow {
         Overflow::Fail => {
-            if v > upper {
+            if v >= upper {
                 Err(RuntimeError::OutOfRange)
             } else if v < lower {
                 Err(RuntimeError::OutOfRange)
@@ -90,7 +100,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
             }
         }
         Overflow::Saturate => {
-            if v > upper {
+            if v >= upper {
                 Ok(Value::Num(upper - 1, range))
             } else if v < lower {
                 Ok(Value::Num(lower, range))
@@ -105,7 +115,6 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
                 end: upper,
             },
         )),
-        _ => Err(RuntimeError::InvalidExpression),
     };
     return val;
 }
@@ -113,20 +122,18 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
 // eval. expr.
 fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
-        /* TODO
-            Expr::Call
-        */
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
+
         Expr::Var(id) => Ok(env.get(id).unwrap().clone()),
-        // Ok(env.get(id).unwrap().clone()), // will return a Value
+
         Expr::BinOp { lhs, op, rhs } => {
             let left = eval_expr(lhs, env, &program)?;
             let right = eval_expr(rhs, env, &program)?;
 
             match (left, right) {
-                (Value::Num(l, l_range), Value::Num(r, range_ignore)) => match op {
+                (Value::Num(l, l_range), Value::Num(r, _)) => match op {
                     // numerical return
                     BOp::Add => cast(l + r, l_range, Overflow::Wraparound),
                     BOp::Sub => cast(l - r, l_range, Overflow::Wraparound),
@@ -160,6 +167,14 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                 (Value::Bool(l), Value::Bool(r)) => match op {
                     BOp::And => Ok(Value::Bool(l && r)),
                     BOp::Or => Ok(Value::Bool(l || r)),
+                    BOp::Eq => Ok(Value::Bool(l == r)),
+                    BOp::Ne => Ok(Value::Bool(l != r)),
+
+                    _ => Err(RuntimeError::InvalidOperand),
+                },
+                (Value::Sym(l), Value::Sym(r)) => match op {
+                    BOp::Eq => Ok(Value::Bool(l == r)),
+                    BOp::Ne => Ok(Value::Bool(l != r)),
 
                     _ => Err(RuntimeError::InvalidOperand),
                 },
@@ -170,16 +185,9 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
         Expr::UOp { op, inner } => {
             let left = eval_expr(inner, env, &program)?;
 
-            match left {
-                Value::Num(l, range) => match op {
-                    UOp::Negate => cast(-l, range, Overflow::Wraparound),
-                    _ => Err(RuntimeError::InvalidOperand),
-                },
-
-                Value::Bool(b) => match op {
-                    UOp::Not => Ok(Value::Bool(!b)),
-                    _ => Err(RuntimeError::InvalidOperand),
-                },
+            match (left, op) {
+                (Value::Num(l, range), UOp::Negate) => cast(-l, range, Overflow::Wraparound),
+                (Value::Bool(b), UOp::Not) => Ok(Value::Bool(!b)),
                 _ => Err(RuntimeError::TypeError),
             }
         }
@@ -189,29 +197,25 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             typ,
             overflow,
         } => {
-            let cast_t = match typ {
-                Type::BoolT => Err(RuntimeError::TypeError),
-                Type::SymT => Err(RuntimeError::TypeError),
-                Type::NumT(n) => Ok(n.clone()),
-            }?;
+            let Type::NumT(cast_t) = typ else {
+                return Err(RuntimeError::TypeError);
+            };
 
             let val = eval_expr(inner, env, &program)?;
 
             match val {
-                Value::Num(num, range) => match overflow {
-                    Overflow::Fail => cast(num, cast_t, Overflow::Fail),
-                    Overflow::Saturate => cast(num, cast_t, Overflow::Saturate),
-                    Overflow::Wraparound => cast(num, cast_t, Overflow::Wraparound),
-                },
+                Value::Num(num, _) => cast(num, cast_t.clone(), overflow.clone()),
                 // can only cast ints
-                Value::Bool(b) => Err(RuntimeError::TypeError),
-                Value::Sym(s) => Err(RuntimeError::TypeError),
+                _ => Err(RuntimeError::TypeError),
             }
         }
 
         Expr::Match { scrutinee, cases } => {
             let raw_val = eval_expr(&scrutinee, env, &program)?;
             for case in cases {
+                // match pattern, raw_val {
+                //
+                // }
                 let pattern = match case.pattern {
                     Pattern::Bool(b) => Value::Bool(b),
                     Pattern::Num(n) => Value::Num(
@@ -220,16 +224,16 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                             start: n,
                             end: n + 1,
                         },
-                    ), // TODO: how would we match on Num, not including the range?
+                    ),
                     Pattern::Sym(s) => Value::Sym(s),
                     Pattern::Var(id) => env.get(&id).unwrap().clone(),
                 };
                 if raw_val == pattern {
-                    let g = eval_expr(&case.guard, env, &program).unwrap();
+                    let g = eval_expr(&case.guard, env, &program)?;
 
                     if let Value::Bool(b) = g {
                         if b {
-                            return Ok(eval_expr(&case.result, env, &program).unwrap());
+                            return Ok(eval_expr(&case.result, env, &program)?);
                         }
                     } else {
                         return Err(RuntimeError::TypeError);
@@ -243,56 +247,19 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             let mut env_args = Env::new();
             let function = program.helpers.get(callee).unwrap().clone();
 
-            // check to see proper args
-            if args.len() != function.params.len() {
-                return Err(RuntimeError::IncorrectArgs);
-            }
-            let mut num_matches = 0; // checking to see if we've matched every arg
-
             for i in 0..args.len() {
-                let mut arg_val = eval_expr(args.get(i).unwrap(), env, program).unwrap();
-                println!("argval: {:?}", arg_val);
+                let mut arg_val = eval_expr(args.get(i).unwrap(), env, program)?;
                 let param_type = function.params.get(i).unwrap().clone().1;
-                println!("param_type: {:?} ", param_type);
-                let mut num_range = 0..0;
-                let mut num_type = false;
-                let mut num = 0;
 
-                let matches = match (&arg_val, param_type) {
-                    (Value::Bool(b), Type::BoolT) => true,
-                    (Value::Num(n, range), Type::NumT(t_range)) => {
-                        if range != &t_range {
-                            num_range = t_range.clone();
-                        } else {
-                            num_range = range.clone();
-                        }
-                        num_type = true;
-                        num = n.clone();
-                        true
+                arg_val = match (arg_val, param_type) {
+                    (Value::Num(n, _), Type::NumT(t_range)) => {
+                        cast(n, t_range, Overflow::Wraparound)?
                     }
-                    (Value::Sym(s), Type::SymT) => true,
-                    _ => false,
+                    _ => continue,
                 };
-                if matches {
-                    println!(
-                        "inserting type: {:?}",
-                        function.params.get(i).unwrap().clone().1
-                    );
-                    println!("argval: {:?}", arg_val);
-                    if num_type {
-                        arg_val = cast(num, num_range, Overflow::Wraparound).unwrap();
-                    }
-                    env_args.insert(function.params.get(i).unwrap().clone().0, arg_val.clone());
-                    num_matches += 1;
-                }
+                env_args.insert(function.params.get(i).unwrap().clone().0, arg_val);
             }
-            if num_matches == args.len() {
-                let val = eval_expr(&function.body, &env_args, program);
-                println!("val: {:?}", val);
-                return val;
-            } else {
-                return Err(RuntimeError::IncorrectArgs);
-            }
+            return eval_expr(&function.body, &env_args, program);
         }
 
         _ => Err(RuntimeError::InvalidExpression),
@@ -301,12 +268,9 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
 // eval. stmt.
 fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
-    // TODO : If
-
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
-            println!("Assigned value {:?} to {}", value, id);
             env.insert(id.clone(), value.clone());
             Ok(value)
         }
@@ -317,7 +281,6 @@ fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, Run
             false_branch,
         } => {
             let cond_val = eval_expr(cond, env, &program)?;
-            println!("Evaluated Condition to -> {:?}", cond_val);
             match cond_val {
                 Value::Bool(true) => {
                     for stmt in true_branch {
@@ -341,287 +304,102 @@ fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, Run
     }
 }
 
+pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
+	// do a match then return
+    match eval(program, input) {
+        Ok((result, _)) => Ok(result),
+        Err(e) => Err(e),
+    }
+}
+
 // TEST -----------------------------------------------------------------------------------------------------------------------------------------------
 
 #[test]
-// Simple Alphabet
-fn test_simple_1() {
-    let program = Program {
-        alphabet: Set::from([Symbol('a')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (None, vec![]),
-        accept: Expr::Bool(true),
-    };
-
-    let input = "";
-    let (result, env) = eval(&program, input).unwrap();
-
-    // Check that env contains the alphabet symbol 'a'
-    assert!(env.contains_key(&id("a")));
-    assert_eq!(env.get(&id("a")), Some(&Value::Sym(Symbol('a'))));
-}
-
-#[test]
 // Simple Local Assignment
-fn test_simple_2() {
-    let program = Program {
-        alphabet: Set::from([Symbol('b')]),
-        helpers: Map::new(),
-        locals: Map::from([(id("x"), Type::BoolT), (id("y"), Type::NumT(2..7))]),
-        start: vec![],
-        action: (None, vec![]),
-        accept: Expr::Bool(true),
-    };
+fn test_assign() {
+	let input = r#"
+	        alphabet: {'a'}
+	        let x: int[4];
+	        on input y {
+				x = 3;   
+	        }
+	        accept if x == 3
+	    "#;
+    let program = parse(input).unwrap();
+    println!("program: {:?}", program);
 
-    let input = "";
     let (result, env) = eval(&program, input).unwrap();
-
-    assert_eq!(env.get(&id("x")), Some(&Value::Bool(false)));
-    assert_eq!(env.get(&id("y")), Some(&Value::Num(2, 2..7)));
+    assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 3..4)));
 }
 
 #[test]
 // Simple Addition and Subtraction
 fn test_binop_1() {
-    let program = Program {
-        alphabet: Set::from([Symbol('c')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                Stmt::Assign(
-                    id("x"),
-                    Expr::BinOp {
-                        op: BOp::Add,
-                        lhs: Box::new(Expr::Num(3, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("y"),
-                    Expr::BinOp {
-                        op: BOp::Sub,
-                        lhs: Box::new(Expr::Num(8, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
+    let input = r#"
+        alphabet: {'a'}
+        let x: int[3];
+        let z: int[3];
+        on input y {
+			x = 2 + 1;
+			z = 2 - 1;
+        }
+        accept if x == 3
+    "#;
+    let program = parse(input).unwrap();
+    println!("program: {:?}", program);
 
-    let input = "";
     let (result, env) = eval(&program, input).unwrap();
-
-    assert_eq!(env.get(&id("x")), Some(&Value::Num(7, 0..10)));
-    assert_eq!(env.get(&id("y")), Some(&Value::Num(4, 0..10)));
+    assert_eq!(env.get(&id("x")), Some(&Value::Num(2, 2..3)));
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(1, 1..2)));
 }
 
 #[test]
-// Simple Multipulcation and Division
+// Subtraction test
+fn test_binop_sub() {
+    let input = r#"
+        alphabet: {'a'}
+        let x: int[3];
+        on input y {
+			x = 2-1;
+        }
+        accept if x == 3
+    "#;
+    let program = parse(input).unwrap();
+    println!("program: {:?}", program);
+
+    let (result, env) = eval(&program, input).unwrap();
+    assert_eq!(env.get(&id("x")), Some(&Value::Num(1, 1..2)));
+}
+
+#[test]
+// Boolean BinOp - Relational Operators
 fn test_binop_2() {
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                Stmt::Assign(
-                    id("z"),
-                    Expr::BinOp {
-                        op: BOp::Mul,
-                        lhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("w"),
-                    Expr::BinOp {
-                        op: BOp::Div,
-                        lhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-
-    let input = "";
-    let (result, env) = eval(&program, input).unwrap();
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(8, 0..10)));
-    assert_eq!(env.get(&id("w")), Some(&Value::Num(2, 0..10)));
-}
-
-#[test]
-// Division by Zero
-fn test_binop_3() {
-    let program = Program {
-        alphabet: Set::from([Symbol('e')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![Stmt::Assign(
-                id("v"),
-                Expr::BinOp {
-                    op: BOp::Div,
-                    lhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                    rhs: Box::new(Expr::Num(0, Type::NumT(0..10))),
-                },
-            )],
-        ),
-        accept: Expr::Bool(true),
-    };
-
-    let input = "";
-    let result = eval(&program, input);
-
-    match result {
-        Err(RuntimeError::DivisionbyZero) => (),
-        _ => panic!("Expected DivisionbyZero error but got: {:?}", result),
-    }
-}
-
-#[test]
-// Numerical BinOp - Remainder, Shifts (Left and Right)
-fn test_binop_4() {
-    let program = Program {
-        alphabet: Set::from([Symbol('e')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                Stmt::Assign(
-                    id("v"),
-                    Expr::BinOp {
-                        op: BOp::Rem,
-                        lhs: Box::new(Expr::Num(10, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(3, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("z"),
-                    Expr::BinOp {
-                        op: BOp::Shl,
-                        lhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("w"),
-                    Expr::BinOp {
-                        op: BOp::Shr,
-                        lhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-
-    let input = "";
+    let input = r#"
+        alphabet: {'e'}
+        let v: bool;
+        let x: bool;
+        let y: bool;
+        let z: bool;
+        let a: bool;
+        let b: bool;
+        let w: bool;
+        let c: bool;
+        on input y {
+            v = 10 < 3;
+            x = 3 < 9;
+            y = 2 < 2;
+            z = 2 <= 2;
+            a = 1 <= 2;
+            b = 5 <= 2;
+            w = 4 == 1;
+            c = 4 == 4;
+        }
+        accept if v == false
+    "#;
+    let program = parse(input).unwrap();
     let (result, env) = eval(&program, input).unwrap();
 
-    assert_eq!(env.get(&id("v")), Some(&Value::Num(0, 0..10)));
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(4, 0..10)));
-    assert_eq!(env.get(&id("w")), Some(&Value::Num(2, 0..10)));
-}
-
-#[test]
-// Boolean BinOp - Relational OPerators
-fn test_binop_5() {
-    let program = Program {
-        alphabet: Set::from([Symbol('e')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                Stmt::Assign(
-                    id("v"),
-                    Expr::BinOp {
-                        op: BOp::Lt,
-                        lhs: Box::new(Expr::Num(10, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(3, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("x"),
-                    Expr::BinOp {
-                        op: BOp::Lt,
-                        lhs: Box::new(Expr::Num(3, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("y"),
-                    Expr::BinOp {
-                        op: BOp::Lt,
-                        lhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("z"),
-                    Expr::BinOp {
-                        op: BOp::Lte,
-                        lhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("a"),
-                    Expr::BinOp {
-                        op: BOp::Lte,
-                        lhs: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("b"),
-                    Expr::BinOp {
-                        op: BOp::Lte,
-                        lhs: Box::new(Expr::Num(5, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(2, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("w"),
-                    Expr::BinOp {
-                        op: BOp::Eq,
-                        lhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("c"),
-                    Expr::BinOp {
-                        op: BOp::Eq,
-                        lhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                        rhs: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-
-    let input = "";
-    let (result, env) = eval(&program, input).unwrap();
-
-    assert_eq!(env.get(&id("v")), Some(&Value::Bool(true)));
+    assert_eq!(env.get(&id("v")), Some(&Value::Bool(false)));
     assert_eq!(env.get(&id("x")), Some(&Value::Bool(true)));
     assert_eq!(env.get(&id("y")), Some(&Value::Bool(false)));
     assert_eq!(env.get(&id("z")), Some(&Value::Bool(true)));
@@ -632,38 +410,42 @@ fn test_binop_5() {
 }
 
 #[test]
-// Boolean BinOp - And / Or
-fn test_binop_6() {
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                Stmt::Assign(
-                    id("z"),
-                    Expr::BinOp {
-                        op: BOp::And,
-                        lhs: Box::new(Expr::Bool(true)),
-                        rhs: Box::new(Expr::Bool(false)),
-                    },
-                ),
-                Stmt::Assign(
-                    id("w"),
-                    Expr::BinOp {
-                        op: BOp::Or,
-                        lhs: Box::new(Expr::Bool(true)),
-                        rhs: Box::new(Expr::Bool(false)),
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
+// Numerical BinOp - Remainder, Shifts (Left and Right)
+fn test_binop_3() {
+    let input = r#"
+        alphabet: {'e'}
+        let v: int[10];
+        let z: int[10];
+        let w: int[10];
+        on input y {
+            v = 10 % 3;
+            z = 2 << 1;
+            w = 4 >> 1;
+        }
+        accept if v == 1 && z == 4 && w == 2
+    "#;
+    let program = parse(input).unwrap();
+    let (result, env) = eval(&program, input).unwrap();
 
-    let input = "";
+    assert_eq!(env.get(&id("v")), Some(&Value::Num(1, 0..10)));
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(4, 0..10)));
+    assert_eq!(env.get(&id("w")), Some(&Value::Num(2, 0..10)));
+}
+
+#[test]
+// Boolean BinOp - And / Or
+fn test_binop_4() {
+    let input = r#"
+        alphabet: {'d'}
+        let z: bool;
+        let w: bool;
+        on input y {
+            z = true && false;
+            w = true || false;
+        }
+        accept if z == false
+    "#;
+    let program = parse(input).unwrap();
     let (result, env) = eval(&program, input).unwrap();
 
     assert_eq!(env.get(&id("z")), Some(&Value::Bool(false)));
@@ -671,211 +453,71 @@ fn test_binop_6() {
 }
 
 #[test]
+fn test_div_0() {
+	let input = r#"
+		alphabet: {'a'}
+		let x: int[4];
+		on input y {
+			x = 3 / 0; 
+		}
+		accept if x == 3
+	"#;
+	let program = parse(input).unwrap();
+	println!("program: {:?}", program);
+
+    let retval = eval(&program, input);
+
+    if retval.is_ok() {
+    	panic!("Expected DivisionbyZero error but got: {:?}", retval);
+    } else {
+    	match retval {
+    	   Err(RuntimeError::DivisionbyZero) => (),
+    	   _ => { panic!("Expected DivisionbyZero error but got: {:?}", retval);
+    	   },
+    	}
+    }
+}
+
+#[test]
 // Unary Operations - Negate and Not
 fn test_unop() {
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                Stmt::Assign(
-                    id("z"),
-                    Expr::UOp {
-                        op: UOp::Negate,
-                        inner: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                    },
-                ),
-                Stmt::Assign(
-                    id("w"),
-                    Expr::UOp {
-                        op: UOp::Not,
-                        inner: Box::new(Expr::Bool(true)),
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-
-    let input = "";
+    let input = r#"
+        alphabet: {'d'}
+        let z: int;
+        let w: bool;
+        on input y {
+            z = -4;
+            w = !true;
+        }
+        accept if z == -4 && w == false
+    "#;
+    let program = parse(input).unwrap();
     let (result, env) = eval(&program, input).unwrap();
 
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(4, 0..10)));
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(-4, 0..10)));
     assert_eq!(env.get(&id("w")), Some(&Value::Bool(false)));
-}
-
-#[test]
-// Cast, wraparound
-fn test_cast_wraparound() {
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                // under bounds
-                Stmt::Assign(
-                    id("z"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Wraparound,
-                    },
-                ),
-                // over bounds
-                Stmt::Assign(
-                    id("a"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Wraparound,
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-    let input = "";
-
-    let (result, env) = eval(&program, input).unwrap();
-
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(3, 2..5)));
-    assert_eq!(env.get(&id("a")), Some(&Value::Num(3, 2..5)));
-}
-
-#[test]
-// Cast, saturate
-fn test_cast_saturate() {
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                // under bounds
-                Stmt::Assign(
-                    id("z"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Saturate,
-                    },
-                ),
-                // over bounds
-                Stmt::Assign(
-                    id("a"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Saturate,
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-    let input = "";
-
-    let (result, env) = eval(&program, input).unwrap();
-
-    assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 2..5)));
-    assert_eq!(env.get(&id("a")), Some(&Value::Num(4, 2..5)));
-}
-
-#[test]
-// Cast, fail
-fn test_cast_fail() {
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                // under bounds
-                Stmt::Assign(
-                    id("z"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Fail,
-                    },
-                ),
-                // over bounds
-                Stmt::Assign(
-                    id("a"),
-                    Expr::Cast {
-                        inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                        typ: Type::NumT(2..5),
-                        overflow: Overflow::Fail,
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
-    let input = "";
-
-    let result = eval(&program, input);
-
-    match result {
-        Err(RuntimeError::OutOfRange) => (),
-        _ => panic!("Expected OutOfRange error but got: {:?}", result),
-    }
 }
 
 #[test]
 // Match
 fn test_match() {
-    let input = "";
-    let program = Program {
-        alphabet: Set::from([Symbol('d')]),
-        helpers: Map::new(),
-        locals: Map::new(),
-        start: vec![],
-        action: (
-            Some(id("y")),
-            vec![
-                // under bounds
-                Stmt::Assign(
-                    id("z"),
-                    Expr::Match {
-                        scrutinee: Box::new(Expr::Num(2, Type::NumT(2..3))),
-                        cases: vec![
-                            Case {
-                                pattern: Pattern::Sym(Symbol('a')),
-                                guard: Expr::Bool(true),
-                                result: Expr::Num(1, Type::NumT(1..2)),
-                            },
-                            Case {
-                                pattern: Pattern::Num(2),
-                                guard: Expr::Bool(true),
-                                result: Expr::Num(2, Type::NumT(0..5)),
-                            },
-                        ],
-                    },
-                ),
-            ],
-        ),
-        accept: Expr::Bool(true),
-    };
+    let input = r#"
+        alphabet: {'d'}
+        let z: int[5];
+        on input y {
+            z = match 2 {
+                case 'a' => 1;
+                case 2 => 2;
+            }
+        }
+        accept if z == 2
+    "#;
+    
+    let program = parse(input).unwrap();
     println!("program: {:?}", program);
 
     let (result, env) = eval(&program, input).unwrap();
-    // let result = eval(&program, input);
     assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 0..5)));
-    // match result {
-    //     // Err(RuntimeError::TypeError) => (),
-    //     _ => panic!("Expected error and got: {:?}", result),
-    // }
 }
 
 #[test]
@@ -989,3 +631,48 @@ fn test_if4() {
     let (result, env) = eval(&program, input).unwrap();
     assert_eq!(env.get(&id("y")), Some(&Value::Num(1, 1..2)));
 }
+
+
+
+
+/* Test cast?
+#[test]
+// Cast, wraparound
+fn test_cast_wraparound() {
+    let input = r#"
+        alphabet: {'d'}
+        let z: int;
+        let a: int;
+        on input y {
+            z = cast(1, 2..5, wraparound);
+            a = cast(9, 2..5, wraparound);
+        }
+        accept if z == 3 && a == 3
+    "#;
+    let program = parse(input).unwrap();
+    let (result, env) = eval(&program, input).unwrap();
+
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(3, 2..5)));
+    assert_eq!(env.get(&id("a")), Some(&Value::Num(3, 2..5)));
+}
+
+#[test]
+// Cast, saturate
+fn test_cast_saturate() {
+    let input = r#"
+        alphabet: {'d'}
+        let z: int;
+        let a: int;
+        on input y {
+            z = cast(1, 2..5, saturate);
+            a = cast(9, 2..5, saturate);
+        }
+        accept if z == 2 && a == 4
+    "#;
+    let program = parse(input).unwrap();
+    let (result, env) = eval(&program, input).unwrap();
+
+    assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 2..5)));
+    assert_eq!(env.get(&id("a")), Some(&Value::Num(4, 2..5)));
+}
+*/
