@@ -20,7 +20,7 @@ pub enum RuntimeError {
     DivisionbyZero,
     #[error("Type error")]
     TypeError,
-    #[error("Invalid pperand")]
+    #[error("Invalid operand")]
     InvalidOperand,
     #[error("Modulus by zero")]
     ModulusByZero,
@@ -422,9 +422,9 @@ mod tests {
 	        let z: int[10];
 	        let w: int[10];
 	        on input y {
-	            v = 9 % 3;
-	            z = 2 << 1;
-	            w = 4 >> 1;
+	            v = 9 as int[10] wraparound % 3 as int[10] wraparound;
+	            z = 2 as int[10] wraparound << 1 as int[10] wraparound;
+	            w = 4 as int[10] wraparound >> 1 as int[10] wraparound;
 	        }
 	        accept if v == 1
 	    "#;
