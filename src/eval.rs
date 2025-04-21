@@ -1,8 +1,8 @@
+use crate::syntax::*;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use thiserror::Error;
-use crate::syntax::*;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -83,7 +83,6 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         _ => Err(RuntimeError::TypeError),
     }
 }
-
 
 fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeError> {
     let lower = range.start;
