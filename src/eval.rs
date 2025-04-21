@@ -4,7 +4,7 @@ use std::ops::Range;
 use thiserror::Error;
 use crate::syntax::*;
 
-/// Errors that can occur during type checking
+// Errors that can occur during type checking
 #[derive(Error, Debug)]
 pub enum RuntimeError {
     #[error("Invalid expression")]
@@ -63,16 +63,19 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
     let mut env = init_env(program);
 
-    // evaluate the final condition
-    for sym in input.chars() {
-        match &program.action.0 {
-            Some(id) => env.insert(id.clone(), Value::Sym(Symbol(sym))),
-            _ => continue,
-        };
+    // insert each symbol into the enviornment
+    if let Some(id) = &program.action.0 {
+        for sym in input.chars() {
+            env.insert(id.clone(), Value::Sym(Symbol(sym)));
+        }
     }
+
+    // evaluate action
     for stmt in &program.action.1 {
         eval_stmt(stmt, &mut env, &program)?;
     }
+
+    // evaluate accept
     let accept = eval_expr(&program.accept, &env, &program)?;
 
     match accept {
@@ -81,19 +84,11 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     }
 }
 
+
 fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeError> {
     let lower = range.start;
     let upper = range.end;
     let val = match overflow {
-        // Overflow::Fail => {
-        //     if v >= upper {
-        //         Err(RuntimeError::OutOfRange)
-        //     } else if v < lower {
-        //         Err(RuntimeError::OutOfRange)
-        //     } else {
-        //         Ok(Value::Num(v, range))
-        //     }
-        // }
         Overflow::Saturate => {
             if v >= upper {
                 Ok(Value::Num(upper - 1, range))
@@ -103,13 +98,6 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
                 Ok(Value::Num(v, range))
             }
         }
-        // Overflow::Wraparound => Ok(Value::Num(
-        //     (v - lower).abs() % (upper - lower) + lower,
-        //     Range {
-        //         start: lower,
-        //         end: upper,
-        //     },
-        // )),
         _ => Ok(Value::Num(
             (v - lower).abs() % (upper - lower) + lower,
             Range {
