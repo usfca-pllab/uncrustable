@@ -202,9 +202,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
         Expr::Match { scrutinee, cases } => {
             let raw_val = eval_expr(&scrutinee, env, &program)?;
-            println!("raw val: {:?}", raw_val);
             for case in cases {
-                println!("case {:?}", case);
                 match (case.pattern, raw_val.clone()) {
                     (Pattern::Var(id), _) => {
                         let mut env_scope = Env::new();
@@ -229,7 +227,6 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                         }
                     }
                     (Pattern::Num(np), Value::Num(nv, _)) if np == nv => {
-                        println!("pattern matched on num");
                         let g = eval_expr(&case.guard, &env, &program)?;
                         if let Value::Bool(b) = g {
                             if b {
@@ -240,7 +237,6 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                         }
                     }
                     (Pattern::Sym(sp), Value::Sym(sv)) if sp == sv => {
-                        println!("pattern matched on num");
                         let g = eval_expr(&case.guard, &env, &program)?;
                         if let Value::Bool(b) = g {
                             if b {
