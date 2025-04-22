@@ -211,51 +211,25 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
         Expr::Match { scrutinee, cases } => {
             let raw_val = eval_expr(&scrutinee, env, &program)?;
+            let mut env_scope = Env::new();
             for case in cases {
-                match (case.pattern, raw_val.clone()) {
+                let case_env = match (case.pattern, raw_val.clone()) {
                     (Pattern::Var(id), _) => {
-                        let mut env_scope = Env::new();
                         env_scope.insert(id, raw_val.clone());
-                        let g = eval_expr(&case.guard, &env_scope, &program)?;
-                        if let Value::Bool(b) = g {
-                            if b {
-                                return eval_expr(&case.result, env, &program);
-                            }
-                        } else {
-                            return Err(RuntimeError::TypeError);
-                        }
+                        env_scope.clone()
                     }
-                    (Pattern::Bool(bp), Value::Bool(bv)) if bp == bv => {
-                        let g = eval_expr(&case.guard, &env, &program)?;
-                        if let Value::Bool(b) = g {
-                            if b {
-                                return eval_expr(&case.result, env, &program);
-                            }
-                        } else {
-                            return Err(RuntimeError::TypeError);
-                        }
-                    }
-                    (Pattern::Num(np), Value::Num(nv, _)) if np == nv => {
-                        let g = eval_expr(&case.guard, &env, &program)?;
-                        if let Value::Bool(b) = g {
-                            if b {
-                                return eval_expr(&case.result, env, &program);
-                            }
-                        } else {
-                            return Err(RuntimeError::TypeError);
-                        }
-                    }
-                    (Pattern::Sym(sp), Value::Sym(sv)) if sp == sv => {
-                        let g = eval_expr(&case.guard, &env, &program)?;
-                        if let Value::Bool(b) = g {
-                            if b {
-                                return eval_expr(&case.result, env, &program);
-                            }
-                        } else {
-                            return Err(RuntimeError::TypeError);
-                        }
-                    }
+                    (Pattern::Bool(bp), Value::Bool(bv)) if bp == bv => env.clone(),
+                    (Pattern::Num(np), Value::Num(nv, _)) if np == nv => env.clone(),
+                    (Pattern::Sym(sp), Value::Sym(sv)) if sp == sv => env.clone(),
                     _ => continue,
+                };
+                let g = eval_expr(&case.guard, &case_env, &program)?;
+                if let Value::Bool(b) = g {
+                    if b {
+                        return eval_expr(&case.result, &case_env, &program);
+                    }
+                } else {
+                    return Err(RuntimeError::TypeError);
                 }
             }
             return Err(RuntimeError::TypeError);
@@ -266,15 +240,15 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             let function = program.helpers.get(callee).unwrap().clone();
 
             for (arg, param) in args.iter().zip(function.params.iter()) {
-                let mut arg_val = eval_expr(arg, env, program)?;
+                let arg_val = eval_expr(arg, env, program)?;
                 // let param_type = param.1.clone();
 
-                arg_val = match (arg_val, param.1.clone()) {
-                    (Value::Num(n, _), Type::NumT(t_range)) => {
-                        cast(n, t_range, Overflow::Wraparound)?
-                    }
-                    _ => continue,
-                };
+                // arg_val = match (arg_val, param.1.clone()) {
+                //     (Value::Num(n, _), Type::NumT(t_range)) => {
+                //         cast(n, t_range, Overflow::Wraparound)?
+                //     }
+                //     _ => continue,
+                // };
                 env_args.insert(param.0, arg_val);
             }
             return eval_expr(&function.body, &env_args, program);
@@ -653,10 +627,10 @@ mod tests {
     fn test_call() {
         let input = r#"
 	        alphabet: {'a'}
-	        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
-	        let x: int[3];
+	        fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
+	        let x: int[4];
 	        on input y {
-	                x = add(1, 2);
+	                x = add(1 as int[0..4], 2 as int[0..4]);
 	        }
 	        accept if x == 3
 	    "#;
@@ -664,7 +638,7 @@ mod tests {
         println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
-        assert_eq!(env.get(&id("x")), Some(&Value::Num(0, 0..3)));
+        assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
     }
 
     #[test]
@@ -767,7 +741,7 @@ mod tests {
 	        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
 	        let x: int[3];
 	        on input y {
-	                x = 3 + - 4 as int[3];
+	                x = 3 + - 4 as int[3] wraparound;
 	                x = 3 + 4 as int[3] wraparound;
 	                if x < 3 {
 	                    y = 'a';
@@ -817,7 +791,7 @@ mod tests {
 	        fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
 	        let x: int[4];
 	        on input y {
-	                x = add(1, 2);
+	                x = add(1 as int[0..4], 2 as int[0..4]);
 	        }
 	        accept if x == 3
 	    "#;
