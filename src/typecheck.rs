@@ -22,7 +22,6 @@ pub enum TypeError {
 /// Helper function to create a type mismatch error
 fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
     debug!("In {expr:#?}");
-    error!("expected: {expected:?} but got {actual:?}");
     TypeError::TypeMismatch
 }
 
@@ -58,7 +57,6 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             let lhs_type = typeck_expr(lhs, ctx)?;
             let rhs_type = typeck_expr(rhs, ctx)?;
             if !matches!(lhs_type, Type::NumT(_) | Type::SymT | Type::BoolT) {
-                error!("expected lhs: (NumT(_), SymT or BoolT) but got {lhs_type:?}");
                 return Err(TypeError::TypeMismatch);
             }
             match op {
@@ -79,7 +77,6 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                         Ok(inner_type.clone())
                     } else {
                         debug!("In: {expr:?}");
-                        error!("expected: NumT but got {inner_type:?}");
                         Err(TypeError::TypeMismatch)
                     }
                 }
@@ -95,7 +92,6 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                 (Type::NumT(_), Type::NumT(_)) => Ok(typ.clone()),
                 _ => {
                     debug!("In {expr:#?}");
-                    error!("expected: {typ:?} but got {inner_type:?}");
                     Err(TypeError::TypeMismatch)
                 }
             }
@@ -131,7 +127,6 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
                     Pattern::Sym(_) if scrutinee_type == Type::SymT => {}
                     _ => {
                         debug!("In {case:#?}");
-                        error!("expected: {:?} but got {:?}", scrutinee_type, &case.pattern);
                         return Err(TypeError::TypeMismatch);
                     }
                 };
@@ -226,13 +221,11 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let e = typeck_expr(&fun.body, &fun_ctx)?;
 
     // check that body is the same type as the return type, otherwise return error
-    // todo make sure to log the error
     if e == fun.ret_typ {
         Ok(())
     } else {
         let t = fun.ret_typ.clone();
         debug!("In: typeck_function {fun:?}");
-        error!("Body of {fun:?} not same type as return type. Body : {e:?}, Return Type: {t:?}");
         Err(TypeError::TypeMismatch)
     }
 }
