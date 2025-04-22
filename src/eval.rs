@@ -69,11 +69,10 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         for sym in input.chars() {
             env.insert(id.clone(), Value::Sym(Symbol(sym)));
         }
-    }
-
-    // evaluate action
-    for stmt in &program.action.1 {
-        eval_stmt(stmt, &mut env, &program)?;
+        // evaluate action
+        for stmt in &program.action.1 {
+            eval_stmt(stmt, &mut env, &program)?;
+        }
     }
 
     // evaluate accept
