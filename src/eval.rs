@@ -39,6 +39,7 @@ type Env = Map<Id, Value>;
 fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
     let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
+    let first_symbol = Value::Sym(alph.iter().next().unwrap().clone());
 
     // insert locals into env
     for (id, typ) in &program.locals {
@@ -50,7 +51,7 @@ fn init_env(program: &Program) -> Env {
             Type::NumT(range) => Value::Num(range.start, range.clone()),
 
             //  default to empty char
-            Type::SymT => Value::Sym(alph.iter().next().unwrap().clone()),
+            Type::SymT => first_symbol.clone(),
         };
 
         env.insert(id.clone(), value);
@@ -97,13 +98,22 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
                 Ok(Value::Num(v, range))
             }
         }
-        _ => Ok(Value::Num(
+        Overflow::Wraparound => Ok(Value::Num(
             (v - lower).abs() % (upper - lower) + lower,
             Range {
                 start: lower,
                 end: upper,
             },
         )),
+        Overflow::Fail => {
+            if v >= upper {
+                Err(RuntimeError::OutOfRange)
+            } else if v < lower {
+                Err(RuntimeError::OutOfRange)
+            } else {
+                Ok(Value::Num(v, range))
+            }
+        }
     };
     return val;
 }
@@ -255,17 +265,17 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
             let mut env_args = Env::new();
             let function = program.helpers.get(callee).unwrap().clone();
 
-            for i in 0..args.len() {
-                let mut arg_val = eval_expr(args.get(i).unwrap(), env, program)?;
-                let param_type = function.params.get(i).unwrap().clone().1;
+            for (arg, param) in args.iter().zip(function.params.iter()) {
+                let mut arg_val = eval_expr(arg, env, program)?;
+                // let param_type = param.1.clone();
 
-                arg_val = match (arg_val, param_type) {
+                arg_val = match (arg_val, param.1.clone()) {
                     (Value::Num(n, _), Type::NumT(t_range)) => {
                         cast(n, t_range, Overflow::Wraparound)?
                     }
                     _ => continue,
                 };
-                env_args.insert(function.params.get(i).unwrap().clone().0, arg_val);
+                env_args.insert(param.0, arg_val);
             }
             return eval_expr(&function.body, &env_args, program);
         }
