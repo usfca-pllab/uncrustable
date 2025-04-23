@@ -416,155 +416,91 @@ mod tests {
     #[test]
     // Unary Operations - Negate and Not
     fn test_unop() {
-        let program = Program {
-            alphabet: Set::from([Symbol('d')]),
-            helpers: Map::new(),
-            locals: Map::new(),
-            start: vec![],
-            action: (
-                Some(id("y")),
-                vec![
-                    Stmt::Assign(
-                        id("z"),
-                        Expr::UOp {
-                            op: UOp::Negate,
-                            inner: Box::new(Expr::Num(4, Type::NumT(0..10))),
-                        },
-                    ),
-                    Stmt::Assign(
-                        id("w"),
-                        Expr::UOp {
-                            op: UOp::Not,
-                            inner: Box::new(Expr::Bool(true)),
-                        },
-                    ),
-                ],
-            ),
-            accept: Expr::Bool(true),
-        };
+        let input = r#"
+	        alphabet: {'a'}
+	        let y: int[-5..5];
+	        let w: bool;
+            y = (2 as int[-5..5] saturate);
+	        w = !true;
+	        on input a {
+	            w = false;
+	        }
+	        accept if w == false
+	    "#;
+
+        let program = parse(input).unwrap();
 
         let input = "";
         let (_result, env) = eval(&program, input).unwrap();
-
-        assert_eq!(env.get(&id("z")), Some(&Value::Num(4, 0..10)));
+        println!("{:?}", program);
+        assert_eq!(env.get(&id("y")), Some(&Value::Num(2, -5..5)));
         assert_eq!(env.get(&id("w")), Some(&Value::Bool(false)));
     }
 
     #[test]
     // Cast, wraparound
     fn test_cast_wraparound() {
-        let program = Program {
-            alphabet: Set::from([Symbol('d')]),
-            helpers: Map::new(),
-            locals: Map::new(),
-            start: vec![],
-            action: (
-                Some(id("y")),
-                vec![
-                    // under bounds
-                    Stmt::Assign(
-                        id("z"),
-                        Expr::Cast {
-                            inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                            typ: Type::NumT(2..5),
-                            overflow: Overflow::Wraparound,
-                        },
-                    ),
-                    // over bounds
-                    Stmt::Assign(
-                        id("a"),
-                        Expr::Cast {
-                            inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                            typ: Type::NumT(2..5),
-                            overflow: Overflow::Wraparound,
-                        },
-                    ),
-                ],
-            ),
-            accept: Expr::Bool(true),
-        };
+        let input = r#"
+	        alphabet: {'a'}
+	        let y: int[-5..5];
+	        let a: int[6..10];
+            let w: bool;
+            y = (2 as int[3..5] wraparound);
+	        a = (7 as int[0..1] wraparound);
+	        on input a {
+	            w = false;
+	        }
+	        accept if w == false
+	    "#;
+        let program = parse(input).unwrap();
         let input = "";
 
         let (_result, env) = eval(&program, input).unwrap();
 
-        assert_eq!(env.get(&id("z")), Some(&Value::Num(3, 2..5)));
-        assert_eq!(env.get(&id("a")), Some(&Value::Num(3, 2..5)));
+        assert_eq!(env.get(&id("y")), Some(&Value::Num(4, 3..5)));
+        assert_eq!(env.get(&id("a")), Some(&Value::Num(0, 0..1)));
     }
 
     #[test]
     // Cast, saturate
     fn test_cast_saturate() {
-        let program = Program {
-            alphabet: Set::from([Symbol('d')]),
-            helpers: Map::new(),
-            locals: Map::new(),
-            start: vec![],
-            action: (
-                Some(id("y")),
-                vec![
-                    // under bounds
-                    Stmt::Assign(
-                        id("z"),
-                        Expr::Cast {
-                            inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                            typ: Type::NumT(2..5),
-                            overflow: Overflow::Saturate,
-                        },
-                    ),
-                    // over bounds
-                    Stmt::Assign(
-                        id("a"),
-                        Expr::Cast {
-                            inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                            typ: Type::NumT(2..5),
-                            overflow: Overflow::Saturate,
-                        },
-                    ),
-                ],
-            ),
-            accept: Expr::Bool(true),
-        };
+        let input = r#"
+	        alphabet: {'a'}
+	        let y: int[-5..5];
+	        let a: int[6..10];
+            let w: bool;
+            y = (2 as int[3..5] saturate);
+	        a = (7 as int[0..1] saturate);
+	        on input a {
+	            w = false;
+	        }
+	        accept if w == false
+	    "#;
+        let program = parse(input).unwrap();
         let input = "";
 
         let (_result, env) = eval(&program, input).unwrap();
 
-        assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 2..5)));
-        assert_eq!(env.get(&id("a")), Some(&Value::Num(4, 2..5)));
+        assert_eq!(env.get(&id("y")), Some(&Value::Num(3, 3..5)));
+        assert_eq!(env.get(&id("a")), Some(&Value::Num(0, 0..1)));
     }
 
     #[test]
     // Cast, fail
     fn test_cast_fail() {
-        let program = Program {
-            alphabet: Set::from([Symbol('d')]),
-            helpers: Map::new(),
-            locals: Map::new(),
-            start: vec![],
-            action: (
-                Some(id("y")),
-                vec![
-                    // under bounds
-                    Stmt::Assign(
-                        id("z"),
-                        Expr::Cast {
-                            inner: Box::new(Expr::Num(1, Type::NumT(0..10))),
-                            typ: Type::NumT(2..5),
-                            overflow: Overflow::Fail,
-                        },
-                    ),
-                    // over bounds
-                    Stmt::Assign(
-                        id("a"),
-                        Expr::Cast {
-                            inner: Box::new(Expr::Num(9, Type::NumT(0..10))),
-                            typ: Type::NumT(2..5),
-                            overflow: Overflow::Fail,
-                        },
-                    ),
-                ],
-            ),
-            accept: Expr::Bool(true),
-        };
+        let input = r#"
+	        alphabet: {'a'}
+	        let y: int[-5..5];
+	        let a: int[6..10];
+            let w: bool;
+            y = 2 as int[3..5];
+	        a = 7 as int[0..1];
+	        on input a {
+	            w = false;
+	        }
+	        accept if w == false
+	    "#;
+        let program = parse(input).unwrap();
         let input = "";
 
         let result = eval(&program, input);
@@ -578,42 +514,28 @@ mod tests {
     #[test]
     // Match
     fn test_match1() {
-        let input = "";
-        let program = Program {
-            alphabet: Set::from([Symbol('d')]),
-            helpers: Map::new(),
-            locals: Map::new(),
-            start: vec![],
-            action: (
-                Some(id("y")),
-                vec![
-                    // under bounds
-                    Stmt::Assign(
-                        id("z"),
-                        Expr::Match {
-                            scrutinee: Box::new(Expr::Num(2, Type::NumT(2..3))),
-                            cases: vec![
-                                Case {
-                                    pattern: Pattern::Sym(Symbol('a')),
-                                    guard: Expr::Bool(true),
-                                    result: Expr::Num(1, Type::NumT(1..2)),
-                                },
-                                Case {
-                                    pattern: Pattern::Num(2),
-                                    guard: Expr::Bool(true),
-                                    result: Expr::Num(2, Type::NumT(0..5)),
-                                },
-                            ],
-                        },
-                    ),
-                ],
-            ),
-            accept: Expr::Bool(true),
-        };
+        let input = r#"
+            alphabet: {'a'}
+            let x: int[0..4];
+            let w: int[0..3];
+            let z: bool;
+            x = 2 as int[4] wraparound + 1 as int[4] wraparound;
+            w = match x {
+                3 -> 1
+                2 if true -> 2
+            };
+            on input y {
+                z = false;
+            }
+            accept if z == true
+        "#;
+        let program = parse(input).unwrap();
         println!("program: {:?}", program);
+        let input = "";
 
         let (_result, env) = eval(&program, input).unwrap();
-        assert_eq!(env.get(&id("z")), Some(&Value::Num(2, 0..5)));
+        assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
+        assert_eq!(env.get(&id("w")), Some(&Value::Num(1, 1..2)));
     }
 
     #[test]
