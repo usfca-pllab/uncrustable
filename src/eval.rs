@@ -76,7 +76,6 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         for stmt in &program.action.1 {
             eval_stmt(stmt, &mut env, &program)?;
         }
-        
     }
 
     // evaluate accept
