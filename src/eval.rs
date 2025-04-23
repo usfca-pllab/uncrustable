@@ -63,17 +63,22 @@ fn init_env(program: &Program) -> Env {
 fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
     let mut env = init_env(program);
+    for stmt in &program.start {
+        eval_stmt(stmt, &mut env, &program)?;
+    }
 
-    // insert each symbol into the enviornment
-    if let Some(id) = &program.action.0 {
-        for sym in input.chars() {
+    for sym in input.chars() {
+        // insert each symbol into the enviornment
+        if let Some(id) = &program.action.0 {
             env.insert(id.clone(), Value::Sym(Symbol(sym)));
-        }
+        };
         // evaluate action
         for stmt in &program.action.1 {
             eval_stmt(stmt, &mut env, &program)?;
         }
+        
     }
+
 
     // evaluate accept
     let accept = eval_expr(&program.accept, &env, &program)?;
