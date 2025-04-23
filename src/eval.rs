@@ -79,7 +79,6 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         
     }
 
-
     // evaluate accept
     let accept = eval_expr(&program.accept, &env, &program)?;
 
@@ -245,14 +244,6 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 
             for (arg, param) in args.iter().zip(function.params.iter()) {
                 let arg_val = eval_expr(arg, env, program)?;
-                // let param_type = param.1.clone();
-
-                // arg_val = match (arg_val, param.1.clone()) {
-                //     (Value::Num(n, _), Type::NumT(t_range)) => {
-                //         cast(n, t_range, Overflow::Wraparound)?
-                //     }
-                //     _ => continue,
-                // };
                 env_args.insert(param.0, arg_val);
             }
             return eval_expr(&function.body, &env_args, program);
