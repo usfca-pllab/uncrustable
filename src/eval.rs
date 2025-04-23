@@ -493,8 +493,8 @@ mod tests {
 	        let y: int[-5..5];
 	        let a: int[6..10];
             let w: bool;
-            y = 2 as int[3..5];
-	        a = 7 as int[0..1];
+            y = (2 as int[3..5]);
+	        a = (7 as int[0..1]);
 	        on input a {
 	            w = false;
 	        }
