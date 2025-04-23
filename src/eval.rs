@@ -67,28 +67,6 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         eval_stmt(stmt, &mut env, &program)?;
     }
 
-    /*
-        TODO: use a Map for the following: Map<Env, Map<Sym, Env>>
-        for each Env, run each sym and save the env for that sym
-        
-        use the DFA:
-        pub struct Dfa<Symbol: Hash + Eq> {
-            /// The set of all possible states
-            pub states: Set<State>,
-            /// The set of all possible symbols
-            pub alphabet: Set<Symbol>,
-            /// Curried transition function
-            pub trans: Map<State, Map<Symbol, State>>, // where trans = veritices
-            /// Start state
-            pub start: State,
-            /// Accepting states
-            pub accepting: Set<State>,
-            /// State names, optional
-            pub state_names: Map<State, String>,
-        }
-     */
-
-    // TODO: pull out the following into a helper function (eval_action)
     for sym in input.chars() {
         // insert each symbol into the enviornment
         if let Some(id) = &program.action.0 {
