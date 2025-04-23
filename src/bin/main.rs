@@ -1,11 +1,8 @@
 // use clap derive for argument parsing
 //
 // read a file name as the only argument
-use chrono::Local;
-use clap::{Arg, Parser};
-use env_logger::Builder;
-use log::{error, info, warn, LevelFilter};
-use std::io::Write;
+use clap::Parser;
+use log::{error, info, warn};
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
@@ -25,23 +22,11 @@ struct Args {
 }
 
 fn main() {
-    Builder::new()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "{} [{}] - {}",
-                Local::now().format("%Y-%m-%d %H:%M:%S"),
-                record.level(),
-                record.args()
-            )
-        })
-        .filter(None, LevelFilter::Info)
-        .init();
+    env_logger::init();
     let args = Args::parse();
     let input = std::fs::read_to_string(&args.input).expect("Could not read file");
     let program = parse(&input).unwrap_or_else(|err| panic!("Syntax error: {err}"));
-
-    println!("Parsed program {program:#?}");
+    // println!("Parsed program {program:#?}");
 
     // type check
     if args.typecheck {
@@ -63,11 +48,11 @@ fn main() {
     //     match eval::eval(&program, &input) {
     //         Ok(_) => {
     //             println!("Evaluation successful");
-    //             info!("Evaluation successful");
+    //             info!("Evaluation successful"); // todo, same as above
     //         }
     //         Err(error) => {
     //             println!("Evaluation Error: {error}");
-    //             warn!("Error with Evaluation: {}", error);
+    //             warn!("Error with Evaluation: {}", error); // todo, same as above
     //         }
     //     }
     // }

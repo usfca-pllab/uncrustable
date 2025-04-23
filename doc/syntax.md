@@ -62,7 +62,7 @@ binop ::= `+` | `-` | `*` | `/` | `%`
         | `&&` | `||`
 unop ::= `!` | `-`
 
-overflow ::= `wraparound` | `saturate`
+overflow ::= `wraparound` | `saturate` | `fail`
 ```
 
 ## Valid symbols and identifiers
@@ -176,3 +176,5 @@ Some notes:
   automatically).
 - The concrete syntax for natural number types `int[n]` is normalized to
   `int[0..n]` in the abstract syntax.
+- The default casting behavior (when the overflow part is omitted in the
+  concrete syntax) is wraparound.
