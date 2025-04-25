@@ -60,6 +60,14 @@ fn init_env(program: &Program) -> Env {
     env
 }
 
+fn eval_action(program: &Program, env: &mut Env) -> Env {
+    // evaluate action
+    for stmt in &program.action.1 {
+        eval_stmt(stmt, &mut env, &program);
+    }
+    env.clone()
+}
+
 fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
     let mut env = init_env(program);
@@ -94,10 +102,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         if let Some(id) = &program.action.0 {
             env.insert(id.clone(), Value::Sym(Symbol(sym)));
         };
-        // evaluate action
-        for stmt in &program.action.1 {
-            eval_stmt(stmt, &mut env, &program)?;
-        }
+        eval_action(program, &mut env, input);
     }
 
     // evaluate accept
