@@ -102,7 +102,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         if let Some(id) = &program.action.0 {
             env.insert(id.clone(), Value::Sym(Symbol(sym)));
         };
-        eval_action(program, &mut env, input);
+        eval_action(program, &mut env);
     }
 
     // evaluate accept
