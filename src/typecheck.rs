@@ -224,7 +224,6 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     if e == fun.ret_typ {
         Ok(())
     } else {
-        let t = fun.ret_typ.clone();
         debug!("In: typeck_function {fun:?}");
         Err(TypeError::TypeMismatch)
     }

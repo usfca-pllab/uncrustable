@@ -63,7 +63,7 @@ fn init_env(program: &Program) -> Env {
 fn eval_action(program: &Program, env: &mut Env) -> Env {
     // evaluate action
     for stmt in &program.action.1 {
-        eval_stmt(stmt, &mut env, &program);
+        eval_stmt(stmt, env, &program);
     }
     env.clone()
 }

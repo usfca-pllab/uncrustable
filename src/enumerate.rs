@@ -1,4 +1,14 @@
 //! State enumeration
+use crate::{syntax::*, eval::{self, evaluate}};
+use thiserror::Error;
+
+pub enum EnumError {
+
+}
+
+pub fn enumerate(program: &Program) -> Result<(), EnumError> {
+    Ok(()) //placeholder return , delete later
+}
 
 
 // create a workqueue with the initial state (start, which we get after running program.start)
