@@ -1,14 +1,13 @@
 //! State enumeration
 use crate::eval;
 use crate::eval::RuntimeError;
-use crate::syntax::*;
 use crate::eval::Value;
+use crate::syntax::*;
 use thiserror::Error;
 
 // pub enum EnumError {}
 
 pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
-
     let mut env = eval::init_env(program);
     for stmt in &program.start {
         eval::eval_stmt(stmt, &mut env, &program)?;
@@ -16,15 +15,15 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
 
     // TODO: pull out the following into a helper function (eval_action)
 
-    for sym in input.chars() {
-        // insert each symbol into the enviornment
+    for sym in &program.alphabet {
         if let Some(id) = &program.action.0 {
-            env.insert(id.clone(), Value::Sym(Symbol(sym)));
+            env.insert(id.clone(), Value::Sym(*sym));
         };
 
         for stmt in &program.action.1 {
             eval::eval_stmt(stmt, &mut env, &program)?;
         }
+        //
     }
 
     // evaluate accept
