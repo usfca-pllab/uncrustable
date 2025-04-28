@@ -263,7 +263,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 }
 
 // eval. stmt.
-fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
+pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
