@@ -6,8 +6,28 @@ use thiserror::Error;
 pub enum EnumError {}
 
 pub fn enumerate(program: &Program) -> Result<(), EnumError> {
-    let mut env = eval::init_env(program);
-    let s_init = eval::eval_stmt(program.start, &mut env, program);
+
+    let mut env = init_env(program);
+    for stmt in &program.start {
+        eval_stmt(stmt, &mut env, &program)?;
+    }
+
+    // TODO: pull out the following into a helper function (eval_action)
+
+    for sym in input.chars() {
+        // insert each symbol into the enviornment
+        if let Some(id) = &program.action.0 {
+            env.insert(id.clone(), Value::Sym(Symbol(sym)));
+        };
+
+        for stmt in &program.action.1 {
+            eval_stmt(stmt, &mut env, &program)?;
+        }
+    }
+
+    // evaluate accept
+    let accept = eval_expr(&program.accept, &env, &program)?;
+
 
     Ok(()) //placeholder return , delete later
 }
