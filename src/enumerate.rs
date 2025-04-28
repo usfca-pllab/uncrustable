@@ -1,9 +1,9 @@
 //! State enumeration
-use crate::syntax::*;
 use crate::eval;
-use thiserror::Error;
-use crate::eval::Value;
 use crate::eval::RuntimeError;
+use crate::syntax::*;
+use crate::eval::Value;
+use thiserror::Error;
 
 // pub enum EnumError {}
 
