@@ -3,8 +3,9 @@ import Editor from '@monaco-editor/react';
 import { createAutomataMonacoLanguage } from './components/Monaco-Editor';
 import { generateDiagramFromProgram } from './services/AutomataBridge';
 import MermaidComponent from './components/Mermaid';
-import ThemeToggle from './components/ThemeToggle';
 import { useTheme } from './contexts/ThemeContext';
+import Header from './components/Header';
+import Footer from './components/Footer';
 
 // Sample code for the automata language
 const DEFAULT_CODE = `// div3.un - Checks if a binary number is divisible by 3
@@ -64,30 +65,11 @@ function App() {
 
   return (
     <div className={`flex flex-col h-screen bg-${themePrefix}-bg`}>
-      <header className={`flex justify-between items-center shadow-md ${
-        theme === 'dark' 
-          ? 'bg-green-800 text-gray-100'
-          : 'bg-green-600 text-white'
-      }`}>
-        <div className="flex items-center px-4 py-3">
-          <h1 className="text-2xl font-semibold">Uncrustables</h1>
-        </div>
-        <div className="flex items-center space-x-4 px-4 py-3">
-          <a
-            href="https://github.com/usfca-pllab/uncrustable"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:underline font-medium text-white"
-          >
-            GitHub
-          </a>
-          <ThemeToggle />
-        </div>
-      </header>
+      <Header />
 
-      <div className="flex flex-1 gap-4 h-full p-4">
+      <div className="flex flex-1 gap-1 h-full p-1">
         <div className="w-1/2 flex flex-col">
-          <div className={`bg-${themePrefix}-canvas-overlay p-2 rounded shadow flex-1 flex flex-col`}>
+          <div className={`bg-${themePrefix}-canvas-overlay p-1 shadow flex-1 flex flex-col`}>
             <div className="flex justify-between mb-2">
               <h2 className={`text-lg font-semibold text-${themePrefix}-text`}>Code Editor</h2>
               <button
@@ -103,7 +85,7 @@ function App() {
               </button>
             </div>
 
-            <div className={`flex-1 rounded`}>
+            <div className={`flex-1`}>
               <Editor
                 height="100%"
                 defaultLanguage="c"
@@ -111,7 +93,7 @@ function App() {
                 onChange={handleEditorChange}
                 theme={monacoTheme}
                 options={{
-                  minimap: { enabled: false },
+                  minimap: { enabled: true },
                   fontSize: 14,
                   scrollBeyondLastLine: false,
                 }}
@@ -120,11 +102,11 @@ function App() {
           </div>
         </div>
 
-        <div className={`w-1/2 bg-${themePrefix}-canvas-overlay p-4 rounded shadow`}>
+        <div className={`w-1/2 bg-${themePrefix}-canvas-overlay p-1 shadow`}>
           <h2 className={`text-lg font-semibold mb-2 text-${themePrefix}-text`}>DFA Visualization</h2>
 
           {error ? (
-            <div className={`text-${themePrefix}-danger p-4 border border-${themePrefix}-danger rounded bg-${themePrefix}-canvas-inset bg-opacity-50`}>
+            <div className={`text-${themePrefix}-danger p-4 border border-${themePrefix}-danger bg-${themePrefix}-canvas-inset bg-opacity-50`}>
               {error}
             </div>
           ) : isLoading ? (
@@ -132,7 +114,7 @@ function App() {
               <p className={`text-${themePrefix}-fg-muted`}>Generating diagram...</p>
             </div>
           ) : mermaidCode ? (
-            <div className={`rounded p-4 flex-1 h-full`}>
+            <div className={`p-1 flex-1 h-full`}>
               <MermaidComponent chart={mermaidCode} />
             </div>
           ) : (
@@ -143,13 +125,7 @@ function App() {
         </div>
       </div>
 
-      <footer className={`text-center text-sm shadow-sm ${
-        theme === 'dark'
-          ? 'bg-green-800 text-gray-100'
-          : 'bg-green-600 text-white'
-      }`}>
-        <p className="py-3">University of San Francisco Programming Languages Lab &copy; {new Date().getFullYear()}</p>
-      </footer>
+      <Footer />
     </div>
   );
 }
