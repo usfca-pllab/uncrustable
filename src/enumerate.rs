@@ -2,14 +2,16 @@
 use crate::syntax::*;
 use crate::eval;
 use thiserror::Error;
+use crate::eval::Value;
+use crate::eval::RuntimeError;
 
-pub enum EnumError {}
+// pub enum EnumError {}
 
-pub fn enumerate(program: &Program) -> Result<(), EnumError> {
+pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
 
-    let mut env = init_env(program);
+    let mut env = eval::init_env(program);
     for stmt in &program.start {
-        eval_stmt(stmt, &mut env, &program)?;
+        eval::eval_stmt(stmt, &mut env, &program)?;
     }
 
     // TODO: pull out the following into a helper function (eval_action)
@@ -21,12 +23,12 @@ pub fn enumerate(program: &Program) -> Result<(), EnumError> {
         };
 
         for stmt in &program.action.1 {
-            eval_stmt(stmt, &mut env, &program)?;
+            eval::eval_stmt(stmt, &mut env, &program)?;
         }
     }
 
     // evaluate accept
-    let accept = eval_expr(&program.accept, &env, &program)?;
+    let accept = eval::eval_expr(&program.accept, &env, &program)?;
 
 
     Ok(()) //placeholder return , delete later
