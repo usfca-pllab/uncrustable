@@ -1,12 +1,18 @@
 //! State enumeration
 use crate::syntax::*;
+use crate::eval;
 use thiserror::Error;
 
 pub enum EnumError {}
 
 pub fn enumerate(program: &Program) -> Result<(), EnumError> {
+    let mut env = eval::init_env(program);
+    let s_init = eval::eval_stmt(program.start, &mut env, program);
+
     Ok(()) //placeholder return , delete later
 }
+
+
 
 // create a workqueue with the initial state (start, which we get after running program.start)
 // states = {} (visited states)
