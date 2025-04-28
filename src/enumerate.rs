@@ -30,11 +30,8 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
     // evaluate accept
     let accept = eval::eval_expr(&program.accept, &env, &program)?;
 
-
     Ok(()) //placeholder return , delete later
 }
-
-
 
 // create a workqueue with the initial state (start, which we get after running program.start)
 // states = {} (visited states)
