@@ -40,6 +40,7 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
     for sym in &program.alphabet {
         if let Some(id) = &program.action.0 {
             env.insert(id.clone(), Value::Sym(*sym));
+            //TODO figure out how to collect transitions?? Is that here???
         };
         // clone env before we do this...
 
@@ -58,12 +59,15 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
             workqueue.insert(workqueue.len(), s);
         }
 
+        //TODO add state names to the state name DFA map, how do we know state names tho?????
+
         // workqueue.push(env.clone());
 
         // is this a final state that accepts?
         // evaluate accept
         let accept = eval::eval_expr(&program.accept, &env, &program)?;
-        if accept == Value::Bool(true){ //assuming that all the accept statments of programs are bools
+        if accept == Value::Bool(true) {
+            //assuming that all the accept statments of programs are bools
             accepting.insert(s);
         }
     }
