@@ -160,7 +160,7 @@ mod tests {
 		        on input y {
 					x = 3;   
 		        }
-		        accept if x == 3
+		        accept if x == 2
 		    "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
