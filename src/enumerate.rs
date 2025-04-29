@@ -72,3 +72,11 @@ while let Some(s) = w.pop { // not sure if this is where it goes
     i.e. 0: '[is_even: false]'
          1: '[is_even: true]'
 */
+
+/* in enumberation clone environment before doing the action to it
+dont clone in eval action clone in enumberate 
+
+• can either find accepting states after discovering all the states 
+OR in the while some(s) loop 
+
+after would look like this : let accepting = states.iter()*/
