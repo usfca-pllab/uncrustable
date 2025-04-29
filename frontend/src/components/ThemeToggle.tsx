@@ -7,11 +7,7 @@ const ThemeToggle: React.FC = () => {
   return (
     <button 
       onClick={toggleTheme} 
-      className={`inline-flex p-2 rounded-lg transition-colors ${
-        theme === 'dark' 
-          ? 'bg-github-dark-canvas-overlay text-github-dark-text hover:bg-github-dark-canvas-subtle' 
-          : 'bg-github-light-canvas-overlay text-github-light-text hover:bg-github-light-canvas-subtle'
-      }`}
+      className="inline-flex p-2 rounded-lg transition-colors theme-panel theme-text"
       aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
     >
       {theme === 'light' ? (
