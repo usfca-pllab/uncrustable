@@ -38,7 +38,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
     while workqueue.is_empty() == false {
         let s = workqueue.pop().unwrap();
-        let mut env_clone = state_lookup.get(&s).clone().unwrap();
+        let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
             //evaluate each part of alphabet for each state
             if let Some(id) = &program.action.0 {
@@ -51,7 +51,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             //see if new env
             let mut new = false;
             for x in state_lookup.keys() {
-                if state_lookup.get(x).unwrap() == env_clone {
+                if state_lookup.get(x).unwrap() == &env_clone {
                     new = true;
                 }
             }
@@ -64,7 +64,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
         let accept = eval::eval_expr(&program.accept, &env, &program)?;
         if accept == Value::Bool(true) {
             //assuming that all the accept statments of programs are bools
-            // accepting.insert(s_new);
+            accepting.insert(s);
         }
     }
 
