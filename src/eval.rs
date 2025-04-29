@@ -321,6 +321,29 @@ mod tests {
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 3..4)));
     }
+    
+    #[test]
+    // Simple Local Assignment
+    fn test_eval_expr() {
+        let input = r#"
+		        alphabet: {'a'}
+		        let x: int[4];
+		        on input y {
+					x = 2;   
+		        }
+		        accept if x == 3
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+        // fn eval_expr(expr: &Expr, env: &Env, program: &Program)
+
+        let (_result, env) = eval(&program, input).unwrap();
+        // let expr = Expr::BinOp { lhs: Type::Var("x"), op: Eq, rhs: Num(3, NumT(3..4)) };
+        // let res = eval_expr(&expr, &env, &program).unwrap();
+        let res = eval_expr(&program.accept, &env, &program);
+        // assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 3..4)));
+        println!("res: {:?}", res);
+    }
 
     #[test]
     fn test_binop_1() {
