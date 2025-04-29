@@ -37,6 +37,7 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
     let mut accepting: Set<State> = Set::new();
     // check acceptance for init env
 
+    //TODO is this the workqueue pop loop, or where would that be??
     for sym in &program.alphabet {
         if let Some(id) = &program.action.0 {
             env.insert(id.clone(), Value::Sym(*sym));
