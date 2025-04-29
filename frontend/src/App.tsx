@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
-import { createAutomataMonacoLanguage } from './components/Monaco-Editor';
+import { useState } from 'react';
 import { generateDiagramFromProgram } from './services/AutomataBridge';
 import MermaidComponent from './components/Mermaid';
 import { useTheme } from './contexts/ThemeContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import EditorTabs from './components/EditorTabs';
 
 // Sample code for the automata language
 const DEFAULT_CODE = `// div3.un - Checks if a binary number is divisible by 3
@@ -27,21 +26,46 @@ on input {
 }`;
 
 function App() {
-  const { theme } = useTheme();
+  useTheme();
   const [code, setCode] = useState(DEFAULT_CODE);
   const [mermaidCode, setMermaidCode] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Register the automata language with Monaco
-    createAutomataMonacoLanguage();
-  }, []);
-
   const handleEditorChange = (value: string | undefined) => {
     if (value !== undefined) {
       setCode(value);
     }
+  };
+
+  const handleMermaidCodeChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setMermaidCode(value);
+    }
+  };
+  
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Check if it's a .un file
+    if (!file.name.endsWith('.un')) {
+      setError('Please upload a file with .un extension');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        setCode(content);
+        setError(null);
+      }
+    };
+    reader.onerror = () => {
+      setError('Error reading the file');
+    };
+    reader.readAsText(file);
   };
 
   const handleVisualize = async () => {
@@ -58,70 +82,52 @@ function App() {
     }
   };
 
-  // Dynamically choose theme colors based on current theme
-  const themePrefix = theme === 'dark' ? 'github-dark' : 'github-light';
-  // Monaco editor theme based on current theme
-  const monacoTheme = theme === 'dark' ? 'vs-dark' : 'vs-light';
-
   return (
-    <div className={`flex flex-col h-screen bg-${themePrefix}-bg`}>
+    <div className="flex flex-col h-screen theme-bg">
       <Header />
 
       <div className="flex flex-1 gap-1 h-full p-1">
-        <div className="w-1/2 flex flex-col">
-          <div className={`bg-${themePrefix}-canvas-overlay p-1 shadow flex-1 flex flex-col`}>
-            <div className="flex justify-between mb-2">
-              <h2 className={`text-lg font-semibold text-${themePrefix}-text`}>Code Editor</h2>
-              <button
-                onClick={handleVisualize}
-                disabled={isLoading}
-                className={`px-4 py-1 rounded hover:opacity-90 disabled:opacity-50 text-white ${
-                  theme === 'dark'
-                    ? 'bg-github-dark-accent'
-                    : 'bg-github-light-accent'
-                }`}
-              >
-                {isLoading ? 'Processing...' : 'Visualize'}
-              </button>
-            </div>
-
-            <div className={`flex-1`}>
-              <Editor
-                height="100%"
-                defaultLanguage="c"
-                defaultValue={code}
-                onChange={handleEditorChange}
-                theme={monacoTheme}
-                options={{
-                  minimap: { enabled: true },
-                  fontSize: 14,
-                  scrollBeyondLastLine: false,
-                }}
-              />
-            </div>
+        <div className="w-1/2 flex flex-col gap-1 shadow theme-panel">
+          <h2 className="font-medium px-2 py-1 theme-text">Code Editor</h2>
+          <div className="flex-1">
+            <EditorTabs
+              automataCode={code}
+              mermaidCode={mermaidCode}
+              onAutomataCodeChange={handleEditorChange}
+              onMermaidCodeChange={handleMermaidCodeChange}
+              onVisualize={handleVisualize}
+              isLoading={isLoading}
+              onFileUpload={handleFileUpload}
+            />
           </div>
         </div>
 
-        <div className={`w-1/2 bg-${themePrefix}-canvas-overlay p-1 shadow`}>
-          <h2 className={`text-lg font-semibold mb-2 text-${themePrefix}-text`}>DFA Visualization</h2>
+        <div className="w-1/2 p-1 shadow flex flex-col theme-panel">
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="font-medium px-2 py-1 theme-text">Diagram</h2>
+            </div>
 
-          {error ? (
-            <div className={`text-${themePrefix}-danger p-4 border border-${themePrefix}-danger bg-${themePrefix}-canvas-inset bg-opacity-50`}>
-              {error}
-            </div>
-          ) : isLoading ? (
-            <div className="flex justify-center items-center h-full">
-              <p className={`text-${themePrefix}-fg-muted`}>Generating diagram...</p>
-            </div>
-          ) : mermaidCode ? (
-            <div className={`p-1 flex-1 h-full`}>
-              <MermaidComponent chart={mermaidCode} />
-            </div>
-          ) : (
-            <div className="flex justify-center items-center h-full">
-              <p className={`text-${themePrefix}-fg-muted`}>Press "Visualize" to generate a diagram</p>
-            </div>
-          )}
+            {error ? (
+              <div className="p-4 border theme-error-container">
+                {error}
+              </div>
+            ) : isLoading ? (
+              <div className="flex justify-center items-center h-full">
+                <p className="theme-text-muted">Generating diagram...</p>
+              </div>
+            ) : mermaidCode ? (
+              <div className="flex-1 h-full overflow-auto">
+                <div className="h-full">
+                  <MermaidComponent chart={mermaidCode} />
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-full">
+                <p className="theme-text-muted">Press "Visualize" to generate a diagram</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
