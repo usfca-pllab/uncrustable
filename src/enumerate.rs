@@ -58,7 +58,7 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
             let s_new = dfa::State::fresh();
             if new == false {
                 state_lookup.insert(s_new, env.clone());
-                workqueue.insert(workqueue.len(), s);
+                workqueue.insert(workqueue.len(), s.unwrap());
             }
         }
         let accept = eval::eval_expr(&program.accept, &env, &program)?;
