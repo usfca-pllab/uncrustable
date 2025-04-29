@@ -22,6 +22,7 @@ pub enum TypeError {
 /// Helper function to create a type mismatch error
 fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
     debug!("In {expr:#?}");
+    error!("Type mismatch: expected {expected:?}, found {actual:?}");
     TypeError::TypeMismatch
 }
 
@@ -43,7 +44,7 @@ pub struct TypeCtx<'prog> {
 }
 
 /// Type check an expression in a given type context
-pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
+fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
     match expr {
         Expr::Var(id) => ctx
             .env
@@ -164,7 +165,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
 }
 
 /// Typecheck a statement in a given environment
-pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
+fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             let var_type = ctx
@@ -197,7 +198,7 @@ pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 }
 
 /// Typecheck a block of statements in the given environment using typeck_stmt
-pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
+fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
     // type check each stmt in the vector sequence is ok
     for stmt in block {
         typeck_stmt(stmt, ctx)?;
@@ -206,7 +207,7 @@ pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
 }
 
 ///Typecheck a function using the given environment and function environment
-pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
+fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let mut fun_env = ctx.env.clone();
 
     for (param, param_type) in &fun.params {
@@ -219,15 +220,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     };
 
     let e = typeck_expr(&fun.body, &fun_ctx)?;
-
-    // check that body is the same type as the return type, otherwise return error
-    if e == fun.ret_typ {
-        Ok(())
-    } else {
-        let t = fun.ret_typ.clone();
-        debug!("In: typeck_function {fun:?}");
-        Err(TypeError::TypeMismatch)
-    }
+    expect_equal(&e, &fun.ret_typ, &fun.body)
 }
 
 /// Type check a program
@@ -261,7 +254,6 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::*;
 
     #[test]
     fn variables() {
