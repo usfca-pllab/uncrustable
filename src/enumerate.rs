@@ -1,9 +1,9 @@
 //! State enumeration
+use crate::dfa;
 use crate::dfa::State;
 use crate::eval;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
-use crate::dfa;
 use crate::syntax::*;
 use env_logger::init;
 use thiserror::Error;
@@ -24,11 +24,10 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
         eval::eval_stmt(stmt, &mut env, &program)?;
     }
 
-    //add inital state 
+    //add inital state
     let init_s = dfa::State::fresh();
     let init_e = env.clone();
     // state_lookup.insert(init_s, init_e);
-
 
     // TODO: pull out the following into a helper function (eval_action) -- done
 
@@ -44,15 +43,14 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
         // clone env before we do this...
 
         eval::eval_action(program, &mut env);
-        //see if new env 
+        //see if new env
         let new = false;
-        for s in state_lookup.keys() {
-            // if state_lookup.get(s) == env {
-            //     new = true;
-            // }
-        }
-
-
+        // for s in state_lookup.keys() {
+        //     // if state_lookup.get(s) == env {
+        //     //     new = true;
+        //     // }
+        //     continue;
+        // }
 
         // workqueue.push(env.clone());
 
@@ -63,7 +61,6 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
         //     accepting.insert(state)
         // }
     }
-
 
     Ok(()) //placeholder return , delete later
 }
