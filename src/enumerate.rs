@@ -37,28 +37,45 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
     let mut accepting: Set<State> = Set::new();
     // check acceptance for init env
 
-    //TODO is this the workqueue pop loop, or where would that be??
-    for sym in &program.alphabet {
-        if let Some(id) = &program.action.0 {
-            env.insert(id.clone(), Value::Sym(*sym));
-            //TODO figure out how to collect transitions?? Is that here???
-        };
-        // clone env before we do this...
+    while workqueue.is_empty() == false { 
+        let s = workqueue.pop(); 
+        for sym in &program.alphabet { //evaluate each part of alphabet for each state
+            if let Some(id) = &program.action.0 {
+                env.insert(id.clone(), Value::Sym(*sym));
+                //TODO figure out how to collect transitions?? Is that here???
+            };
+        
+            eval::eval_action(program, &mut env); //TODO should this env be a clone??
 
-        eval::eval_action(program, &mut env); //TODO should this env be a clone??
-
-        //see if new env
-        let mut new = false;
-        for s in state_lookup.keys() {
-            if state_lookup.get(s).unwrap() == &env {
-                new = true;
+            //see if new env
+            let mut new = false;
+            for s in state_lookup.keys() {
+                if state_lookup.get(s).unwrap() == &env {
+                    new = true;
+                }
+            }
+            let s = dfa::State::fresh();
+            if new == false {
+                state_lookup.insert(s, env.clone());
+                workqueue.insert(workqueue.len(), s);
             }
         }
-        let s = dfa::State::fresh();
-        if new == false {
-            state_lookup.insert(s, env.clone());
-            workqueue.insert(workqueue.len(), s);
+        let accept = eval::eval_expr(&program.accept, &env, &program)?;
+        if accept == Value::Bool(true) {
+            //assuming that all the accept statments of programs are bools
+            accepting.insert(s);
         }
+    }
+
+    //TODO is this the workqueue pop loop, or where would that be??
+    // for sym in &program.alphabet {
+    //     if let Some(id) = &program.action.0 {
+    //         env.insert(id.clone(), Value::Sym(*sym));
+    //         //TODO figure out how to collect transitions?? Is that here???
+    //     };
+        // clone env before we do this...
+
+        
 
         //TODO add state names to the state name DFA map, how do we know state names tho?????
 
@@ -66,12 +83,8 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
 
         // is this a final state that accepts?
         // evaluate accept
-        let accept = eval::eval_expr(&program.accept, &env, &program)?;
-        if accept == Value::Bool(true) {
-            //assuming that all the accept statments of programs are bools
-            accepting.insert(s);
-        }
-    }
+
+    // }
 
     Ok(()) //placeholder return , delete later
 }
