@@ -317,6 +317,8 @@ pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
 
 #[cfg(test)]
 mod tests {
+    use std::result;
+
     use super::*;
     use crate::parse::parse;
     use crate::syntax::*;
@@ -335,8 +337,9 @@ mod tests {
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
-        let (_result, env) = eval(&program, input).unwrap();
+        let (result, env) = eval(&program, "a").unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 3..4)));
+        assert_eq!(result, true)
     }
 
     #[test]
