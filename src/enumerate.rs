@@ -1,7 +1,7 @@
 //! State enumeration
 use crate::dfa;
-use crate::dfa::State;
 use crate::dfa::Dfa;
+use crate::dfa::State;
 use crate::eval;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
@@ -46,7 +46,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 env.insert(id.clone(), Value::Sym(*sym));
                 // TODO figure out how to collect transitions?? Is that here???
             };
-            
+
             eval::eval_action(program, &mut env_clone); // cloned env
 
             //see if new env
@@ -103,7 +103,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // evaluate accept
 
     // }
-
 }
 
 // create a workqueue with the initial state (start, which we get after running program.start)
@@ -170,6 +169,3 @@ mod tests {
         println!("res: {:?}", result);
     }
 }
-
-
-
