@@ -42,20 +42,22 @@ fn main() {
         }
     }
 
+    print!("here");
+
     // evaluate
     // Uncomment and debug when we merge the two branches
-    // if args.evaluate {
-    //     match eval::eval(&program, &input) {
-    //         Ok(_) => {
-    //             println!("Evaluation successful");
-    //             info!("Evaluation successful"); // todo, same as above
-    //         }
-    //         Err(error) => {
-    //             println!("Evaluation Error: {error}");
-    //             warn!("Error with Evaluation: {}", error); // todo, same as above
-    //         }
-    //     }
-    // }
+    if args.evaluate {
+        match eval::evaluate(&program, &input) {
+            Ok(_) => {
+                println!("Evaluation successful");
+                info!("Evaluation successful"); // todo, same as above
+            }
+            Err(error) => {
+                println!("Evaluation Error: {error}");
+                warn!("Error with Evaluation: {}", error); // todo, same as above
+            }
+        }
+    }
 
     // print verdict
 
