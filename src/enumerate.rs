@@ -54,7 +54,7 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
                     new = true;
                 }
             }
-            let s = dfa::State::fresh();
+            let s_new = dfa::State::fresh();
             if new == false {
                 state_lookup.insert(s, env.clone());
                 workqueue.insert(workqueue.len(), s);
@@ -63,7 +63,7 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
         let accept = eval::eval_expr(&program.accept, &env, &program)?;
         if accept == Value::Bool(true) {
             //assuming that all the accept statments of programs are bools
-            accepting.insert(s);
+            // accepting.insert(s_new);
         }
     }
 
