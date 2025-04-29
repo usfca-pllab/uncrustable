@@ -1,6 +1,7 @@
 //! State enumeration
 use crate::dfa;
 use crate::dfa::State;
+use crate::dfa::Dfa;
 use crate::eval;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
@@ -60,13 +61,29 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 state_lookup.insert(s_new, env_clone.clone());
                 workqueue.insert(workqueue.len(), s);
             }
-        }
-        let accept = eval::eval_expr(&program.accept, &env, &program)?;
-        if accept == Value::Bool(true) {
-            //assuming that all the accept statments of programs are bools
-            accepting.insert(s);
+            let accept = eval::eval_expr(&program.accept, &env_clone, &program)?;
+            if accept == Value::Bool(true) {
+                //assuming that all the accept statments of programs are bools
+                accepting.insert(s);
+            }
         }
     }
+    println!("state lookups: {:?}", state_lookup);
+    println!("accepting states {:?}", accepting);
+    Ok(())
+
+    // let dfa = Dfa::try_new(
+    //     Set::from(['a', 'b']),
+    //     Map::from([
+    //         sta
+    //         (State(1), Map::from([('a', State(1)), ('b', State(0))])),
+    //     ]),
+    //     State(0),
+    //     Set::from([State(1)]),
+    //     Map::new(),
+    // )
+    // .unwrap();
+    // return Ok(accepting);
 
     //TODO is this the workqueue pop loop, or where would that be??
     // for sym in &program.alphabet {
@@ -85,7 +102,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
     // }
 
-    Ok(()) //placeholder return , delete later
 }
 
 // create a workqueue with the initial state (start, which we get after running program.start)
@@ -127,3 +143,31 @@ dont clone in eval action clone in enumberate
 OR in the while some(s) loop
 
 after would look like this : let accepting = states.iter()*/
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse::parse;
+    use crate::syntax::*;
+
+    #[test]
+    // Simple Local Assignment
+    fn test_assign() {
+        let input = r#"
+		        alphabet: {'a'}
+		        let x: int[4];
+		        on input y {
+					x = 3;   
+		        }
+		        accept if x == 3
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+
+        let result = enumerate(&program, input).unwrap();
+        println!("res: {:?}", result);
+    }
+}
+
+
+
