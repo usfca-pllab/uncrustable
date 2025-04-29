@@ -130,7 +130,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
 }
 
 /**
- * 
+ *
  */
 pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
@@ -265,7 +265,7 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
 
 // eval. stmt.
 /**
- * 
+ *
  */
 pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
     match stmt {
@@ -303,7 +303,7 @@ pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value,
 }
 
 /**
- * 
+ *
  */
 pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
     // do a match then return
