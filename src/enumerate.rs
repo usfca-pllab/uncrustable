@@ -16,9 +16,10 @@ type Env = Map<Id, Value>;
  *
  */
 pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
-    let mut state_lookup: Map<State, Env>;
-    let mut env_lookup: Map<Env, State>;
+    //keep track of visited states and their environments
+    let mut state_lookup: Map<State, Env> = Map::new();
 
+    //get initial state
     let mut env = eval::init_env(program);
     for stmt in &program.start {
         eval::eval_stmt(stmt, &mut env, &program)?;
@@ -27,13 +28,13 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
     //add inital state
     let init_s = dfa::State::fresh();
     let init_e = env.clone();
-    // state_lookup.insert(init_s, init_e);
+    state_lookup.insert(init_s, init_e);
 
     // TODO: pull out the following into a helper function (eval_action) -- done
 
-    let mut workqueue: Vec<State>;
-    // workqueue.insert(0, init_s);
-    let mut accepting: Set<State>;
+    let mut workqueue: Vec<State> = Vec::new();
+    workqueue.insert(0, init_s);
+    let mut accepting: Set<State> = Set::new();
     // check acceptance for init env
 
     for sym in &program.alphabet {
@@ -42,24 +43,29 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
         };
         // clone env before we do this...
 
-        eval::eval_action(program, &mut env);
+        eval::eval_action(program, &mut env); //TODO should this env be a clone??
+
         //see if new env
-        let new = false;
-        // for s in state_lookup.keys() {
-        //     // if state_lookup.get(s) == env {
-        //     //     new = true;
-        //     // }
-        //     continue;
-        // }
+        let mut new = false;
+        for s in state_lookup.keys() {
+            if state_lookup.get(s).unwrap() == &env {
+                new = true;
+            }
+        }
+        let s = dfa::State::fresh();
+        if new == false {
+            state_lookup.insert(s, env.clone());
+            workqueue.insert(workqueue.len(), s);
+        }
 
         // workqueue.push(env.clone());
 
         // is this a final state that accepts?
         // evaluate accept
-        // let accept = eval::eval_expr(&program.accept, &env, &program)?;
-        // if accept {
-        //     accepting.insert(state)
-        // }
+        let accept = eval::eval_expr(&program.accept, &env, &program)?;
+        if accept == Value::Bool(true){ //assuming that all the accept statments of programs are bools
+            accepting.insert(s);
+        }
     }
 
     Ok(()) //placeholder return , delete later
