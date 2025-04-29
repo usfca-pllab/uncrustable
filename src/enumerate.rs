@@ -20,16 +20,18 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
     // TODO: pull out the following into a helper function (eval_action)
 
     let mut workqueue: Vec<State>;
+    // check acceptance for init env
 
     for sym in &program.alphabet {
         if let Some(id) = &program.action.0 {
             env.insert(id.clone(), Value::Sym(*sym));
         };
+        // clone env before we do this...
 
-        for stmt in &program.action.1 {
-            eval::eval_stmt(stmt, &mut env, &program)?;
-        }
-        workqueue.push(env.clone());
+        eval::eval_action(program, &mut env);
+        // workqueue.push(env.clone());
+
+        // is this a final state that accepts?
         
     }
 

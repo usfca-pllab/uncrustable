@@ -60,12 +60,11 @@ pub fn init_env(program: &Program) -> Env {
     env
 }
 
-fn eval_action(program: &Program, env: &mut Env) -> Env {
+pub fn eval_action(program: &Program, env: &mut Env) {
     // evaluate action
     for stmt in &program.action.1 {
         eval_stmt(stmt, env, &program);
     }
-    env.clone()
 }
 
 fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
