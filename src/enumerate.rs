@@ -6,6 +6,7 @@ use crate::eval::RuntimeError;
 use crate::eval::Value;
 use crate::syntax::*;
 use env_logger::init;
+use pest::state;
 use thiserror::Error;
 
 // pub enum EnumError {}
@@ -15,7 +16,7 @@ type Env = Map<Id, Value>;
 /**
  *
  */
-pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
+pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     //keep track of visited states and their environments
     let mut state_lookup: Map<State, Env> = Map::new();
 
@@ -30,35 +31,34 @@ pub fn enumerate(program: &Program, input: &str) -> Result<(), RuntimeError> {
     let init_e = env.clone();
     state_lookup.insert(init_s, init_e);
 
-    // TODO: pull out the following into a helper function (eval_action) -- done
-
     let mut workqueue: Vec<State> = Vec::new();
     workqueue.insert(0, init_s);
     let mut accepting: Set<State> = Set::new();
     // check acceptance for init env
 
     while workqueue.is_empty() == false {
-        let s = workqueue.pop();
+        let s = workqueue.pop().unwrap();
+        let mut env_clone = state_lookup.get(&s).clone().unwrap();
         for sym in &program.alphabet {
             //evaluate each part of alphabet for each state
             if let Some(id) = &program.action.0 {
                 env.insert(id.clone(), Value::Sym(*sym));
-                //TODO figure out how to collect transitions?? Is that here???
+                // TODO figure out how to collect transitions?? Is that here???
             };
-
-            eval::eval_action(program, &mut env); //TODO should this env be a clone??
+            
+            eval::eval_action(program, &mut env_clone); // cloned env
 
             //see if new env
             let mut new = false;
             for x in state_lookup.keys() {
-                if state_lookup.get(x).unwrap() == &env {
+                if state_lookup.get(x).unwrap() == env_clone {
                     new = true;
                 }
             }
             let s_new = dfa::State::fresh();
             if new == false {
-                state_lookup.insert(s_new, env.clone());
-                workqueue.insert(workqueue.len(), s.unwrap());
+                state_lookup.insert(s_new, env_clone.clone());
+                workqueue.insert(workqueue.len(), s);
             }
         }
         let accept = eval::eval_expr(&program.accept, &env, &program)?;
