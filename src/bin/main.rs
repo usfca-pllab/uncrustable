@@ -42,8 +42,6 @@ fn main() {
         }
     }
 
-    print!("here");
-
     // evaluate
     // Uncomment and debug when we merge the two branches
     if args.evaluate {
