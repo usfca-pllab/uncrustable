@@ -37,7 +37,9 @@ body {
 }
 
 .theme-header {
-  background-color: theme('colors.github-light.header');
+  /* Changed to USF Colors */
+  background-color: #2e7d32;
+  color: #ffd700;
 }
 
 .theme-btn-primary {
@@ -88,7 +90,8 @@ body {
 }
 
 .dark .theme-header {
-  background-color: theme('colors.github-dark.header');
+  background-color: #1b5e20;
+  color: #ffd700;
 }
 
 .dark .theme-btn-primary {

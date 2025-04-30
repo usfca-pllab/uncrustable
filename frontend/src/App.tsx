@@ -88,7 +88,7 @@ function App() {
 
       <div className="flex flex-1 gap-1 h-full p-1">
         <div className="w-1/2 flex flex-col gap-1 shadow theme-panel">
-          <h2 className="font-medium px-2 py-1 theme-text">Code Editor</h2>
+          <h2 className="font-medium px-2 py-1 theme-text">Editor</h2>
           <div className="flex-1">
             <EditorTabs
               automataCode={code}
