@@ -62,7 +62,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 state_lookup.insert(s_new, env_clone.clone());
                 workqueue.insert(workqueue.len(), s);
             }
-            let accept = eval::eval_expr(&program.accept, &env_clone, &program)?;
+            let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
             println!("accept: {:?}", accept);
             if accept == Value::Bool(true) {
                 //assuming that all the accept statments of programs are bools
