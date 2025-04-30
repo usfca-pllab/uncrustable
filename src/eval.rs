@@ -64,7 +64,6 @@ pub fn eval_action(program: &Program, env: &mut Env) {
     // evaluate action
     for stmt in &program.action.1 {
         eval_stmt(stmt, env, &program);
-        println!("IN EVAL ACTION");
     }
 }
 
@@ -138,8 +137,11 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
-        
-        Expr::Var(id) => Ok(env.get(id).unwrap().clone()),
+
+        Expr::Var(id) => {
+            println!("id: {:?}", id);
+            Ok(env.get(id).unwrap().clone())
+        },
 
         Expr::BinOp { lhs, op, rhs } => {
             let left = eval_expr(lhs, env, &program)?;

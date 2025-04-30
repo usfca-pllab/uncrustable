@@ -22,15 +22,15 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     let mut state_lookup: Map<State, Env> = Map::new();
 
     //get initial state
-    let mut env = eval::init_env(program);
+    let mut init_e = eval::init_env(program);
     for stmt in &program.start {
-        eval::eval_stmt(stmt, &mut env, &program)?;
+        eval::eval_stmt(stmt, &mut init_e, &program)?;
     }
 
     //add inital state
     let init_s = dfa::State::fresh();
-    let init_e = env.clone();
-    state_lookup.insert(init_s, init_e);
+    // let init_e = env.clone();
+    state_lookup.insert(init_s, init_e.clone());
 
     let mut workqueue: Vec<State> = Vec::new();
     workqueue.insert(0, init_s);
@@ -43,7 +43,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
         for sym in &program.alphabet {
             //evaluate each part of alphabet for each state
             if let Some(id) = &program.action.0 {
-                env.insert(id.clone(), Value::Sym(*sym));
+                env_clone.insert(id.clone(), Value::Sym(*sym));
                 // TODO figure out how to collect transitions?? Is that here???
             };
             
@@ -171,23 +171,23 @@ mod tests {
         println!("res: {:?}", result);
     }
 
-    // #[test]
-    // fn test_end() {
-    //     let input = r#"
-    //             alphabet: {'0','1'}
-    //             let ends_with_zero: bool;
-    //             on input x {
-    //                 ends_with_zero = x == '0';
-    //             }
-    //             accept if ends_with_zero
-	// 	    "#;
-    //     let program = parse(input).unwrap();
-    //     println!("program: {:?}", program);
+    #[test]
+    fn test_end() {
+        let input = r#"
+                alphabet: {'0','1'}
+                let ends_with_zero: bool;
+                on input x {
+                    ends_with_zero = x == '0';
+                }
+                accept if ends_with_zero
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
 
-    //     eval::evaluate(&program, input);
+        eval::evaluate(&program, "1");
          
-    //     println!("here");
-    //     let result = enumerate(&program, input).unwrap();
-    //     println!("res: {:?}", result);
-    // }
+        println!("here");
+        let result = enumerate(&program, "1").unwrap();
+        println!("res: {:?}", result);
+    }
 }
