@@ -46,9 +46,10 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 env.insert(id.clone(), Value::Sym(*sym));
                 // TODO figure out how to collect transitions?? Is that here???
             };
-
+            
+            println!("env: {:?}", &env_clone);
             eval::eval_action(program, &mut env_clone); // cloned env
-
+            println!("HEREEEE");
             //see if new env
             let mut new = false;
             for x in state_lookup.keys() {
@@ -72,6 +73,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     println!("program accept: {:?}", program.accept);
     println!("state lookups: {:?}", state_lookup);
     println!("accepting states {:?}", accepting);
+    println!("here in enum");
     Ok(())
 
     // let dfa = Dfa::try_new(
@@ -168,4 +170,24 @@ mod tests {
         let result = enumerate(&program, input).unwrap();
         println!("res: {:?}", result);
     }
+
+    // #[test]
+    // fn test_end() {
+    //     let input = r#"
+    //             alphabet: {'0','1'}
+    //             let ends_with_zero: bool;
+    //             on input x {
+    //                 ends_with_zero = x == '0';
+    //             }
+    //             accept if ends_with_zero
+	// 	    "#;
+    //     let program = parse(input).unwrap();
+    //     println!("program: {:?}", program);
+
+    //     eval::evaluate(&program, input);
+         
+    //     println!("here");
+    //     let result = enumerate(&program, input).unwrap();
+    //     println!("res: {:?}", result);
+    // }
 }
