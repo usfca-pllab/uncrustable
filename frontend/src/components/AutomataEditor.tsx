@@ -25,6 +25,7 @@ const AutomataEditor: React.FC<AutomataEditorProps> = ({
       options={{
         minimap: { enabled: false },
         fontSize: 14,
+        wordWrap: 'on',
         scrollBeyondLastLine: false,
       }}
     />
