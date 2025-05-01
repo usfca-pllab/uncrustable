@@ -61,7 +61,9 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             // }
 
             //-----------------------------------------
-
+            // filters the lookup environment based on matched to env_clone
+            // then sees if the list is empty or not to tell if the env is
+            // new and should be added
             let contains_env = env_lookup.keys().any(|env| env == &env_clone);
 
             if contains_env.to_string() != "{}" {
