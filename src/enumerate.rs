@@ -17,7 +17,7 @@ type Env = Map<Id, Value>;
 pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // keep track of visited states and their environments
     let mut state_lookup: Map<State, Env> = Map::new();
-    // 
+    //
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
 
     let mut env_lookup: Map<Env, State> = Map::new();
@@ -45,12 +45,13 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             //evaluate each part of alphabet for each state
             // let map = trans.entry(s) or default();
             // for sym t alphabet:
-                // m.insert(sym, t)
-            if let Some(id) = &program.action.0 { // apparently this is in eval_action
+            // m.insert(sym, t)
+            if let Some(id) = &program.action.0 {
+                // apparently this is in eval_action
                 env_clone.insert(id.clone(), Value::Sym(*sym));
                 // TODO figure out how to collect transitions?? Is that here???
             };
-            
+
             eval::eval_action(program, &mut env_clone); // cloned env
 
             //see if new env
@@ -59,11 +60,15 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             //     new = false;
             // }
 
+            //-----------------------------------------
+
             let contains_env = env_lookup.keys().any(|env| env == &env_clone);
-            
-            if  contains_env.to_string() != "{}" {
+
+            if contains_env.to_string() != "{}" {
                 new = true
             }
+
+            //------------------------------------------
 
             for x in state_lookup.keys() {
                 if state_lookup.get(x).unwrap() == &env_clone {
@@ -197,7 +202,7 @@ mod tests {
 		    "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
-         
+
         let result = enumerate(&program, "1").unwrap();
         println!("res: {:?}", result);
         println!("--------------");
