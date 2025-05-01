@@ -6,9 +6,6 @@ use crate::eval;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
 use crate::syntax::*;
-use env_logger::init;
-use pest::state;
-use thiserror::Error;
 
 // pub enum EnumError {}
 
@@ -17,7 +14,7 @@ type Env = Map<Id, Value>;
 /**
  *
  */
-pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
+pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
     //keep track of visited states and their environments
     let mut state_lookup: Map<State, Env> = Map::new();
 
@@ -42,14 +39,16 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
             //evaluate each part of alphabet for each state
+            // let map = trans.entry(s) or default();
+            // for sym t alphabet:
+            // m.insert(sym, t)
             if let Some(id) = &program.action.0 {
                 env_clone.insert(id.clone(), Value::Sym(*sym));
                 // TODO figure out how to collect transitions?? Is that here???
             };
             
-            println!("env: {:?}", &env_clone);
             eval::eval_action(program, &mut env_clone); // cloned env
-            println!("HEREEEE");
+
             //see if new env
             let mut new = false;
             for x in state_lookup.keys() {
@@ -62,32 +61,31 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 state_lookup.insert(s_new, env_clone.clone());
                 workqueue.insert(workqueue.len(), s);
             }
+
             let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
-            println!("accept: {:?}", accept);
+
             if accept == Value::Bool(true) {
                 //assuming that all the accept statments of programs are bools
                 accepting.insert(s);
             }
         }
     }
+    // TODO: Make state names
+
     println!("program accept: {:?}", program.accept);
     println!("state lookups: {:?}", state_lookup);
     println!("accepting states {:?}", accepting);
-    println!("here in enum");
-    Ok(())
 
-    // let dfa = Dfa::try_new(
-    //     Set::from(['a', 'b']),
-    //     Map::from([
-    //         sta
-    //         (State(1), Map::from([('a', State(1)), ('b', State(0))])),
-    //     ]),
-    //     State(0),
-    //     Set::from([State(1)]),
-    //     Map::new(),
-    // )
-    // .unwrap();
-    // return Ok(accepting);
+    let dfa = Dfa::try_new(
+        Set::from(program.alphabet),
+         //     pub trans: Map<State, Map<Symbol, State>>,
+        state_lookup, // trans.iter().map(target)
+        init_s,
+        Set::from(accepting),
+        state_lookup, // pub state_names: Map<State, String>,
+    )
+    .unwrap();
+    return Ok(dfa);
 
     //TODO is this the workqueue pop loop, or where would that be??
     // for sym in &program.alphabet {
@@ -169,6 +167,7 @@ mod tests {
 
         let result = enumerate(&program, input).unwrap();
         println!("res: {:?}", result);
+        println!("--------------");
     }
 
     #[test]
@@ -183,11 +182,9 @@ mod tests {
 		    "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
-
-        eval::evaluate(&program, "1");
          
-        println!("here");
         let result = enumerate(&program, "1").unwrap();
         println!("res: {:?}", result);
+        println!("--------------");
     }
 }

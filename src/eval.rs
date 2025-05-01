@@ -138,10 +138,7 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Sym(symbol) => Ok(Value::Sym(Symbol(*symbol))),
 
-        Expr::Var(id) => {
-            println!("id: {:?}", id);
-            Ok(env.get(id).unwrap().clone())
-        },
+        Expr::Var(id) => Ok(env.get(id).unwrap().clone()),
 
         Expr::BinOp { lhs, op, rhs } => {
             let left = eval_expr(lhs, env, &program)?;
