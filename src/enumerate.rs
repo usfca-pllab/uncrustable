@@ -14,9 +14,11 @@ type Env = Map<Id, Value>;
 /**
  *
  */
-pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
-    //keep track of visited states and their environments
+pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
+    // keep track of visited states and their environments
     let mut state_lookup: Map<State, Env> = Map::new();
+    // 
+    let mut trans: Map<State, Map<Symbol, State>> = Map::new();
 
     //get initial state
     let mut init_e = eval::init_env(program);
@@ -41,8 +43,8 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             //evaluate each part of alphabet for each state
             // let map = trans.entry(s) or default();
             // for sym t alphabet:
-            // m.insert(sym, t)
-            if let Some(id) = &program.action.0 {
+                // m.insert(sym, t)
+            if let Some(id) = &program.action.0 { // apparently this is in eval_action
                 env_clone.insert(id.clone(), Value::Sym(*sym));
                 // TODO figure out how to collect transitions?? Is that here???
             };
@@ -51,6 +53,9 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
 
             //see if new env
             let mut new = false;
+            // if state_lookup.contains_key(&env_clone) {
+            //     new = false;
+            // }
             for x in state_lookup.keys() {
                 if state_lookup.get(x).unwrap() == &env_clone {
                     new = true;
@@ -76,16 +81,17 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
     println!("state lookups: {:?}", state_lookup);
     println!("accepting states {:?}", accepting);
 
-    let dfa = Dfa::try_new(
-        Set::from(program.alphabet),
-         //     pub trans: Map<State, Map<Symbol, State>>,
-        state_lookup, // trans.iter().map(target)
-        init_s,
-        Set::from(accepting),
-        state_lookup, // pub state_names: Map<State, String>,
-    )
-    .unwrap();
-    return Ok(dfa);
+    // let dfa = Dfa::try_new(
+    //     Set::from(program.alphabet),
+    //      //     pub trans: Map<State, Map<Symbol, State>>,
+    //     state_lookup, // trans.iter().map(target)
+    //     init_s,
+    //     Set::from(accepting),
+    //     state_lookup, // pub state_names: Map<State, String>,
+    // )
+    // .unwrap();
+    // return Ok(dfa);
+    Ok(())
 
     //TODO is this the workqueue pop loop, or where would that be??
     // for sym in &program.alphabet {
