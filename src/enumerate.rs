@@ -20,6 +20,8 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // 
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
 
+    let mut env_lookup: Map<Env, State> = Map::new();
+
     //get initial state
     let mut init_e = eval::init_env(program);
     for stmt in &program.start {
@@ -56,6 +58,13 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             // if state_lookup.contains_key(&env_clone) {
             //     new = false;
             // }
+
+            let contains_env = env_lookup.keys().any(|env| env == &env_clone);
+            
+            if  contains_env.to_string() != "{}" {
+                new = true
+            }
+
             for x in state_lookup.keys() {
                 if state_lookup.get(x).unwrap() == &env_clone {
                     new = true;
