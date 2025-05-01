@@ -27,7 +27,7 @@ pub enum RuntimeError {
 
 // abstraction for values making up expressions
 #[derive(Debug, Clone, PartialEq)]
-enum Value {
+pub enum Value {
     Bool(bool),
     Num(i64, Range<i64>),
     Sym(Symbol),
@@ -36,7 +36,7 @@ enum Value {
 // map of variable names to values
 type Env = Map<Id, Value>;
 
-fn init_env(program: &Program) -> Env {
+pub fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
     let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
     let first_symbol = Value::Sym(alph.iter().next().unwrap().clone());
@@ -121,7 +121,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
 }
 
 // eval. expr.
-fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
+pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
@@ -253,7 +253,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 }
 
 // eval. stmt.
-fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
+pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
