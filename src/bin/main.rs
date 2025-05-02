@@ -45,12 +45,14 @@ fn main() {
     if args.evaluate {
         match eval::evaluate(&program, &input) {
             Ok(_) => {
-                println!("Evaluation successful");
-                println!("Program accepts the input");
+                if true {
+                    println!("program accepts the input");
+                } else {
+                    println!("program rejects the input");
+                }
             }
             Err(error) => {
                 println!("Evaluation Error: {error}");
-                println!("program rejects the input");
             }
         }
     }
