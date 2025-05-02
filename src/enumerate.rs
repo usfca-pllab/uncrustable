@@ -20,7 +20,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     //
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
 
-    let mut env_lookup: Map<Env, State> = Map::new();
+    let mut env_lookup: Map<Env, State> = Map::new(); //TODO Use BTree map instead of hash??
 
     //get initial state
     let mut init_e = eval::init_env(program);
@@ -72,13 +72,20 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
             //------------------------------------------
 
-            for x in state_lookup.keys() {
-                if state_lookup.get(x).unwrap() == &env_clone {
-                    new = true;
-                }
-            }
+            // for x in state_lookup.keys() {
+            //     if state_lookup.get(x).unwrap() == &env_clone {
+            //         new = true;
+            //     }
+            // }
+            // let s_new = dfa::State::fresh();
+            // if new == false {
+            //     state_lookup.insert(s_new, env_clone.clone());
+            //     workqueue.insert(workqueue.len(), s);
+            // }
+
             let s_new = dfa::State::fresh();
             if new == false {
+                env_lookup.insert(env_clone.clone(), s_new);
                 state_lookup.insert(s_new, env_clone.clone());
                 workqueue.insert(workqueue.len(), s);
             }
