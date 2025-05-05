@@ -27,7 +27,7 @@ pub enum RuntimeError {
 }
 
 // abstraction for values making up expressions
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
     Bool(bool),
     Num(i64, Range<i64>),
