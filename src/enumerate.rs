@@ -25,7 +25,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     //
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
 
-    let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new(); 
+    let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new();
 
     //get initial state
     let mut init_e = eval::init_env(program);
@@ -44,6 +44,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
     while workqueue.is_empty() == false {
         let s = workqueue.pop().unwrap();
+        let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
             //evaluate each part of alphabet for each state
@@ -61,7 +62,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             //see if new env
             let mut new = true;
             if env_lookup.contains_key(&env_clone) {
-                new =  false;
+                new = false;
             }
 
             let s_new = dfa::State::fresh();
@@ -71,6 +72,10 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 workqueue.insert(workqueue.len(), s);
             }
 
+            if &env_clone != state_lookup.get(&s).unwrap() {
+                s_edges.insert(*sym, s_new);
+            }
+
             let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
 
             if accept == Value::Bool(true) {
@@ -78,12 +83,14 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 accepting.insert(s);
             }
         }
+        trans.insert(s, s_edges);
     }
     // TODO: Make state names
 
     println!("program accept: {:?}", program.accept);
     println!("state lookups: {:?}", state_lookup);
     println!("accepting states {:?}", accepting);
+    println!("transitions {:?}", trans);
 
     // let dfa = Dfa::try_new(
     //     Set::from(program.alphabet),

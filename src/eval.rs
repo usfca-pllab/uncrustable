@@ -1,10 +1,10 @@
 use crate::syntax::*;
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use thiserror::Error;
-use std::cmp::Ordering;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -47,12 +47,10 @@ impl PartialOrd for Value {
             (Num(_, _), Bool(_)) | (Sym(_), Bool(_)) => Ordering::Greater,
 
             // Num comparison: by value, then range.start, then range.end
-            (Num(a_val, a_rng), Num(b_val, b_rng)) => {
-                a_val
-                    .cmp(b_val)
-                    .then(a_rng.start.cmp(&b_rng.start))
-                    .then(a_rng.end.cmp(&b_rng.end))
-            }
+            (Num(a_val, a_rng), Num(b_val, b_rng)) => a_val
+                .cmp(b_val)
+                .then(a_rng.start.cmp(&b_rng.start))
+                .then(a_rng.end.cmp(&b_rng.end)),
 
             // Num < Sym
             (Num(_, _), Sym(_)) => Ordering::Less,
