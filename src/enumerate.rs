@@ -79,7 +79,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
 
             if accept == Value::Bool(true) {
-                //assuming that all the accept statments of programs are bools
+                // assuming that all the accept statments of programs are bools
                 accepting.insert(s);
             }
         }
