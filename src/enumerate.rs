@@ -76,7 +76,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 s_edges.insert(*sym, s);
             }
         }
-        
+
         let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
 
         if accept == Value::Bool(true) {
