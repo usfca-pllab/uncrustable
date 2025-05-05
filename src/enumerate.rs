@@ -9,7 +9,6 @@ use crate::syntax::*;
 use std::collections::BTreeMap;
 
 // pub enum EnumError {}
-
 type Env = BTreeMap<Id, Value>;
 
 fn eval_action(program: &Program, env: &mut Env) {
@@ -62,9 +61,9 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             eval_action(program, &mut env_clone); // cloned env
 
             //see if new env
-            let mut new = false;
-            // if state_lookup.contains_key(&env_clone) {
-            //     new = false;
+            let mut new = true;
+            // if env_lookup.contains_key(&env_clone) {
+
             // }
 
             //-----------------------------------------
@@ -74,7 +73,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             let contains_env = env_lookup.keys().any(|env| env == &env_clone);
 
             if contains_env.to_string() != "{}" {
-                new = true
+                new = false;
             }
 
             //------------------------------------------
@@ -91,8 +90,8 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             // }
 
             let s_new = dfa::State::fresh();
-            if new == false {
-                //env_lookup.insert(env_clone.clone(), s_new);
+            if new == true {
+                // env_lookup.insert(env_clone.clone(), s_new);
                 state_lookup.insert(s_new, env_clone.clone());
                 workqueue.insert(workqueue.len(), s);
             }

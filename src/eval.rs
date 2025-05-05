@@ -1,9 +1,9 @@
 use crate::syntax::*;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use thiserror::Error;
-use std::collections::BTreeMap;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
