@@ -64,6 +64,12 @@ impl PartialOrd for Value {
     }
 }
 
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 // map of variable names to values
 type Env = BTreeMap<Id, Value>;
 
