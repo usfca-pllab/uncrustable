@@ -26,7 +26,7 @@ fn main() {
     let args = Args::parse();
     let input = std::fs::read_to_string(&args.input).expect("Could not read file");
     let program = parse(&input).unwrap_or_else(|err| panic!("Syntax error: {err}"));
-    println!("Parsed program {:?}", program);
+    // println!("Parsed program {:?}", program);
 
     // type check
     if args.typecheck {
@@ -47,12 +47,14 @@ fn main() {
     if args.evaluate {
         match eval::evaluate(&program, &input) {
             Ok(_) => {
-                println!("Evaluation successful");
-                info!("Evaluation successful"); // todo, same as above
+                if true {
+                    println!("program accepts the input");
+                } else {
+                    println!("program rejects the input");
+                }
             }
             Err(error) => {
                 println!("Evaluation Error: {error}");
-                warn!("Error with Evaluation: {}", error); // todo, same as above
             }
         }
     }
