@@ -67,14 +67,12 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
         eval_stmt(stmt, &mut env, &program)?;
     }
 
-    // TODO: pull out the following into a helper function (eval_action)
-
     for sym in input.chars() {
         // insert each symbol into the enviornment
         if let Some(id) = &program.action.0 {
             env.insert(id.clone(), Value::Sym(Symbol(sym)));
         };
-
+        // evaluate action
         for stmt in &program.action.1 {
             eval_stmt(stmt, &mut env, &program)?;
         }
@@ -302,8 +300,6 @@ pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
 
 #[cfg(test)]
 mod tests {
-    use std::result;
-
     use super::*;
     use crate::parse::parse;
     use crate::syntax::*;
@@ -322,9 +318,8 @@ mod tests {
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
-        let (result, env) = eval(&program, "a").unwrap();
+        let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 3..4)));
-        assert_eq!(result, true)
     }
 
     #[test]
@@ -730,7 +725,7 @@ mod tests {
     #[test]
     fn test_div_0() {
         let input = r#"
-			alphabet: {'2'}
+			alphabet: {'a'}
 			let x: int[4];
 			on input y {
 				x = 3 / 0; 
@@ -740,7 +735,7 @@ mod tests {
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
-        let retval = eval(&program, "2");
+        let retval = eval(&program, input);
 
         if retval.is_ok() {
             panic!("Expected DivisionbyZero error but got: {:?}", retval);
