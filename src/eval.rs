@@ -36,7 +36,7 @@ pub enum Value {
 // map of variable names to values
 type Env = Map<Id, Value>;
 
-pub fn init_env(program: &Program) -> Env {
+fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
     let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
     let first_symbol = Value::Sym(alph.iter().next().unwrap().clone());
@@ -60,7 +60,7 @@ pub fn init_env(program: &Program) -> Env {
     env
 }
 
-pub fn eval_action(program: &Program, env: &mut Env) {
+fn eval_action(program: &Program, env: &mut Env) {
     // evaluate action
     for stmt in &program.action.1 {
         eval_stmt(stmt, env, &program);
@@ -132,7 +132,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
 /**
  *
  */
-pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
+fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
@@ -267,7 +267,7 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
 /**
  *
  */
-pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
+fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
@@ -305,7 +305,7 @@ pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value,
 /**
  *
  */
-pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
+fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
     // do a match then return
     match eval(program, input) {
         Ok((result, _)) => Ok(result),
