@@ -12,13 +12,12 @@ use std::collections::BTreeMap;
 
 type Env = Map<Id, Value>;
 
-
-// fn eval_action(program: &Program, env: &mut Env) {
-//     // evaluate action
-//     for stmt in &program.action.1 {
-//         eval_stmt(stmt, env, &program);
-//     }
-// }
+fn eval_action(program: &Program, env: &mut Env) {
+    // evaluate action
+    for stmt in &program.action.1 {
+        eval::eval_stmt(stmt, env, &program);
+    }
+}
 /**
  *
  */
@@ -60,7 +59,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 // TODO figure out how to collect transitions?? Is that here???
             };
 
-            eval::eval_action(program, &mut env_clone); // cloned env
+            eval_action(program, &mut env_clone); // cloned env
 
             //see if new env
             let mut new = false;
