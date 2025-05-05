@@ -12,6 +12,13 @@ use std::collections::BTreeMap;
 
 type Env = Map<Id, Value>;
 
+
+// fn eval_action(program: &Program, env: &mut Env) {
+//     // evaluate action
+//     for stmt in &program.action.1 {
+//         eval_stmt(stmt, env, &program);
+//     }
+// }
 /**
  *
  */
