@@ -39,22 +39,20 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
     let mut workqueue: Vec<State> = Vec::new();
     workqueue.insert(0, init_s);
+    println!("workqueue: {:?}", workqueue);
     let mut accepting: Set<State> = Set::new();
     // check acceptance for init env
 
     while workqueue.is_empty() == false {
         let s = workqueue.pop().unwrap();
+        println!("workqueue: {:?}", workqueue);
         let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
-            //evaluate each part of alphabet for each state
-            // let map = trans.entry(s) or default();
-            // for sym t alphabet:
-            // m.insert(sym, t)
+
             if let Some(id) = &program.action.0 {
                 // apparently this is in eval_action
                 env_clone.insert(id.clone(), Value::Sym(*sym));
-                // TODO figure out how to collect transitions?? Is that here???
             };
 
             eval_action(program, &mut env_clone); // cloned env
@@ -62,28 +60,28 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             //see if new env
             let mut new = true;
             if env_lookup.contains_key(&env_clone) {
+                println!("env_lookup:");
                 new = false;
             }
 
-            // let s_new = dfa::State::fresh();
             if new == true {
                 let s_new = dfa::State::fresh();
                 env_lookup.insert(env_clone.clone(), s_new);
                 state_lookup.insert(s_new, env_clone.clone());
-                workqueue.insert(workqueue.len(), s);
+                workqueue.insert(workqueue.len(), s_new);
                 s_edges.insert(*sym, s_new);
             } else {
                 s_edges.insert(*sym, s);
             }
-        }
+            let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
 
-        let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
-
-        if accept == Value::Bool(true) {
-            // assuming that all the accept statments of programs are bools
-            accepting.insert(s);
+            if accept == Value::Bool(true) {
+                // assuming that all the accept statments of programs are bools
+                accepting.insert(s);
+            }
         }
         trans.insert(s, s_edges);
+        
     }
     // TODO: Make state names
 
@@ -104,6 +102,53 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // return Ok(dfa);
     Ok(())
 
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parse::parse;
+    use crate::syntax::*;
+
+    #[test]
+    // Simple Local Assignment
+    fn test_assign() {
+        let input = r#"
+		        alphabet: {'a'}
+		        let x: int[4];
+		        on input y {
+					x = 3;   
+		        }
+		        accept if x == 2
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+
+        let result = enumerate(&program, input).unwrap();
+        println!("res: {:?}", result);
+        println!("--------------");
+    }
+
+    #[test]
+    fn test_end() {
+        let input = r#"
+                alphabet: {'0','1'}
+                let ends_with_zero: bool;
+                on input x {
+                    ends_with_zero = x == '0';
+                }
+                accept if ends_with_zero == true
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+
+        let result = enumerate(&program, "1").unwrap();
+        println!("res: {:?}", result);
+        println!("--------------");
+    }
+}
+
+
     //TODO is this the workqueue pop loop, or where would that be??
     // for sym in &program.alphabet {
     //     if let Some(id) = &program.action.0 {
@@ -120,7 +165,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // evaluate accept
 
     // }
-}
+
 
 // create a workqueue with the initial state (start, which we get after running program.start)
 // states = {} (visited states)
@@ -161,47 +206,3 @@ dont clone in eval action clone in enumberate
 OR in the while some(s) loop
 
 after would look like this : let accepting = states.iter()*/
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::parse::parse;
-    use crate::syntax::*;
-
-    #[test]
-    // Simple Local Assignment
-    fn test_assign() {
-        let input = r#"
-		        alphabet: {'a'}
-		        let x: int[4];
-		        on input y {
-					x = 3;   
-		        }
-		        accept if x == 2
-		    "#;
-        let program = parse(input).unwrap();
-        println!("program: {:?}", program);
-
-        let result = enumerate(&program, input).unwrap();
-        println!("res: {:?}", result);
-        println!("--------------");
-    }
-
-    #[test]
-    fn test_end() {
-        let input = r#"
-                alphabet: {'0','1'}
-                let ends_with_zero: bool;
-                on input x {
-                    ends_with_zero = x == '0';
-                }
-                accept if ends_with_zero
-		    "#;
-        let program = parse(input).unwrap();
-        println!("program: {:?}", program);
-
-        let result = enumerate(&program, "1").unwrap();
-        println!("res: {:?}", result);
-        println!("--------------");
-    }
-}
