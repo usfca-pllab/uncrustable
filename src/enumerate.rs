@@ -8,7 +8,6 @@ use crate::eval::Value;
 use crate::syntax::*;
 use std::collections::BTreeMap;
 
-// pub enum EnumError {}
 type Env = BTreeMap<Id, Value>;
 
 fn eval_action(program: &Program, env: &mut Env) {
@@ -26,7 +25,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     //
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
 
-    let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new(); //TODO Use BTree map instead of hash??
+    let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new(); 
 
     //get initial state
     let mut init_e = eval::init_env(program);
@@ -36,7 +35,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
     //add inital state
     let init_s = dfa::State::fresh();
-    // let init_e = env.clone();
     state_lookup.insert(init_s, init_e.clone());
 
     let mut workqueue: Vec<State> = Vec::new();
@@ -62,36 +60,13 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
             //see if new env
             let mut new = true;
-            // if env_lookup.contains_key(&env_clone) {
-
-            // }
-
-            //-----------------------------------------
-            // filters the lookup environment based on matched to env_clone
-            // then sees if the list is empty or not to tell if the env is
-            // new and should be added
-            let contains_env = env_lookup.keys().any(|env| env == &env_clone);
-
-            if contains_env.to_string() != "{}" {
-                new = false;
+            if env_lookup.contains_key(&env_clone) {
+                new =  false;
             }
-
-            //------------------------------------------
-
-            // for x in state_lookup.keys() {
-            //     if state_lookup.get(x).unwrap() == &env_clone {
-            //         new = true;
-            //     }
-            // }
-            // let s_new = dfa::State::fresh();
-            // if new == false {
-            //     state_lookup.insert(s_new, env_clone.clone());
-            //     workqueue.insert(workqueue.len(), s);
-            // }
 
             let s_new = dfa::State::fresh();
             if new == true {
-                // env_lookup.insert(env_clone.clone(), s_new);
+                env_lookup.insert(env_clone.clone(), s_new);
                 state_lookup.insert(s_new, env_clone.clone());
                 workqueue.insert(workqueue.len(), s);
             }
