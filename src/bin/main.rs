@@ -33,11 +33,9 @@ fn main() {
         match typecheck::typecheck_program(&program) {
             Ok(_) => {
                 println!("Typecheck successful");
-                info!("Typecheck successful");
             }
             Err(error) => {
                 println!("TypeCheck Error: {error}");
-                warn!("Error with typecheck: {}", error);
             }
         }
     }
