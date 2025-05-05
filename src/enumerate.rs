@@ -21,6 +21,7 @@ fn eval_action(program: &Program, env: &mut Env) {
  */
 pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // keep track of visited states and their environments
+    // let mut state_lookup: Map<State, Env> = Map::new();
     let mut state_lookup: Map<State, Env> = Map::new();
     //
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
@@ -73,14 +74,21 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             } else {
                 s_edges.insert(*sym, s);
             }
-            let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
+            // let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
 
+            // if accept == Value::Bool(true) {
+            //     // assuming that all the accept statments of programs are bools
+            //     accepting.insert(s);
+            // }
+        }
+        trans.insert(s, s_edges);
+        for state in state_lookup.clone() {
+            let accept = eval::eval_expr(&program.accept.clone(),&state_lookup.get(&s).unwrap().clone(), &program)?;
             if accept == Value::Bool(true) {
                 // assuming that all the accept statments of programs are bools
                 accepting.insert(s);
             }
         }
-        trans.insert(s, s_edges);
         
     }
     // TODO: Make state names
