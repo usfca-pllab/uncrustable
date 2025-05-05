@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use thiserror::Error;
+use std::cmp::Ordering;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -28,11 +29,39 @@ pub enum RuntimeError {
 
 // abstraction for values making up expressions
 #[derive(Debug, Clone, PartialEq, Eq)]
-// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Value {
     Bool(bool),
     Num(i64, Range<i64>),
     Sym(Symbol),
+}
+
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use Value::*;
+        Some(match (self, other) {
+            // Bool comparison: false < true (default Rust behavior)
+            (Bool(a), Bool(b)) => a.cmp(b),
+
+            // Bool < Num < Sym
+            (Bool(_), Num(_, _)) | (Bool(_), Sym(_)) => Ordering::Less,
+            (Num(_, _), Bool(_)) | (Sym(_), Bool(_)) => Ordering::Greater,
+
+            // Num comparison: by value, then range.start, then range.end
+            (Num(a_val, a_rng), Num(b_val, b_rng)) => {
+                a_val
+                    .cmp(b_val)
+                    .then(a_rng.start.cmp(&b_rng.start))
+                    .then(a_rng.end.cmp(&b_rng.end))
+            }
+
+            // Num < Sym
+            (Num(_, _), Sym(_)) => Ordering::Less,
+            (Sym(_), Num(_, _)) => Ordering::Greater,
+
+            // Sym comparison
+            (Sym(a), Sym(b)) => a.cmp(b),
+        })
+    }
 }
 
 // map of variable names to values
