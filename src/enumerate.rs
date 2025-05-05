@@ -65,23 +65,23 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 new = false;
             }
 
-            let s_new = dfa::State::fresh();
+            // let s_new = dfa::State::fresh();
             if new == true {
+                let s_new = dfa::State::fresh();
                 env_lookup.insert(env_clone.clone(), s_new);
                 state_lookup.insert(s_new, env_clone.clone());
                 workqueue.insert(workqueue.len(), s);
-            }
-
-            if &env_clone != state_lookup.get(&s).unwrap() {
                 s_edges.insert(*sym, s_new);
+            } else {
+                s_edges.insert(*sym, s);
             }
+        }
+        
+        let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
 
-            let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
-
-            if accept == Value::Bool(true) {
-                // assuming that all the accept statments of programs are bools
-                accepting.insert(s);
-            }
+        if accept == Value::Bool(true) {
+            // assuming that all the accept statments of programs are bools
+            accepting.insert(s);
         }
         trans.insert(s, s_edges);
     }
