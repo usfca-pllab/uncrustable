@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 // pub enum EnumError {}
 
-type Env = Map<Id, Value>;
+type Env = BTreeMap<Id, Value>;
 
 fn eval_action(program: &Program, env: &mut Env) {
     // evaluate action
@@ -27,7 +27,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     //
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
 
-    let mut env_lookup: Map<Env, State> = Map::new(); //TODO Use BTree map instead of hash??
+    let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new(); //TODO Use BTree map instead of hash??
 
     //get initial state
     let mut init_e = eval::init_env(program);

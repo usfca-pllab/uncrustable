@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
 use std::ops::Range;
 use thiserror::Error;
+use std::collections::BTreeMap;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -34,7 +35,7 @@ pub enum Value {
 }
 
 // map of variable names to values
-type Env = Map<Id, Value>;
+type Env = BTreeMap<Id, Value>;
 
 pub fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
