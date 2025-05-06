@@ -4,7 +4,9 @@ use std::collections::BTreeMap;
 pub use std::collections::{HashMap as Map, HashSet as Set};
 use std::fmt::Debug;
 use std::hash::Hash;
-
+use std::fmt;
+use crate::syntax::Symbol;
+use std::io::Write;
 pub mod parser;
 
 /// DFA states.  Never create a state object yourself, always use
@@ -21,6 +23,52 @@ impl State {
         State(NEXT_STATE.fetch_add(1, Ordering::SeqCst))
     }
 }
+
+/*
+
+flowchart TD
+  q0((("0")))
+  q1(("1"))
+  q2(("2"))
+
+  q0 --0--> q0 
+  q0 --1--> q1
+  q1 --0--> q2
+  q1 --1--> q0
+  q2 --0--> q1
+  q2 --1--> q2
+
+*/
+
+// Pretty Print for DFA
+impl fmt::Display for Dfa<char> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "flowchart TD")?; // Mermaid header
+
+        //  nodes: iterate through all the states, mark accepting states
+        self.states.iter().try_for_each(|state| {
+            let state_id = format!("q{}", state.0);
+            let label = self.state_names.get(state).cloned().unwrap();
+            let layer = if self.accepting.contains(state) {
+                format!("  {}(((\"{}\")))", state_id, label) 	// double circle for accepting
+            } else {
+                format!("  {}((\"{}\"))", state_id, label)	
+            };
+
+            writeln!(f, "{}", layer)
+        })?;
+
+        // transitions
+        self.trans.iter().try_for_each(|(from_state, trans_map)| {
+            trans_map.iter().try_for_each(|(symbol, to_state)| {
+                writeln!(f, "  q{} --{}--> q{}", from_state.0, symbol, to_state.0)
+            })
+        })?;
+
+        Ok(())
+    }
+}
+
 
 /// Potential errors during DFA construction
 #[derive(Debug)]
@@ -202,6 +250,24 @@ impl<Symbol: Hash + Eq + Ord + Debug> Dfa<Symbol> {
 mod tests {
     use super::*;
 
+    /*
+
+    #[test]
+        fn test_display() {
+            let expected_output = r#"flowchart TD
+								      q0(("0))
+								      q1(("1))
+								    
+								      q0 --a--> q1
+								      q0 --b--> q0
+								      q1 --a--> q1
+								      q1 --b--> q0
+								    "#;
+
+        }
+
+      */
+
     #[test]
     fn test_new_valid() {
         let dfa = Dfa::try_new(
@@ -323,4 +389,6 @@ mod tests {
 
         assert_eq!(dfa1.compare(&dfa4), Some(vec!['a']));
     }
+
+    
 }

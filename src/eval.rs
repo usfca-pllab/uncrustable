@@ -128,7 +128,6 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     let mut env = init_env(program);
     for stmt in &program.start {
         eval_stmt(stmt, &mut env, &program)?;
-    }
 
     for sym in input.chars() {
         eval_action(program, &mut env, &Symbol(sym))?;
