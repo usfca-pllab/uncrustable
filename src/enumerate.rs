@@ -199,28 +199,28 @@ mod tests {
         println!("res: {}", dfa);
     }
 
-    // #[test]
-    // fn test_div3_pic() {
-    //     let input = r#"
-    //             alphabet: { '0', '1' }
-    //             on input {
-    //                 let rem = 0;
-    //                 for c in input {
-    //                     if c == '0' {
-    //                         rem = (2 * rem) % 3;
-    //                     } else if c == '1' {
-    //                         rem = (2 * rem + 1) % 3;
-    //                     }
-    //                 }
-    //                 accept if rem == 0
-    //             }
+    #[test]
+    fn test_div3_pic() {
+        let input = r#"
+                alphabet: { '0', '1' }
+                let rem = 0;
+                on input {
+                    for c in input {
+                        if c == '0' {
+                            rem = (2 * rem) % 3;
+                        } else if c == '1' {
+                            rem = (2 * rem + 1) % 3;
+                        }
+                    }
+                }
+                accept if rem == 0
                 
-	// 	    "#;
-    //     let program = parse(input).unwrap();
-    //     println!("program: {:?}", program);
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
 
-    //     let result = enumerate(&program, "01").unwrap();
-    //     println!("res: {}", result);
-    //     println!("--------------");
-    // }
+        let result = enumerate(&program, "01").unwrap();
+        println!("res: {}", result);
+        println!("--------------");
+    }
 }
