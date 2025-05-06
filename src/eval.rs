@@ -3,8 +3,10 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
+use std::fmt::Display;
 use std::ops::Range;
 use thiserror::Error;
+use std::fmt;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -61,6 +63,17 @@ impl PartialOrd for Value {
         })
     }
 }
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Bool(b) => write!(f, "{}", b),
+            Value::Num(n, range) => write!(f, "{} in [{}..{})", n, range.start, range.end),
+            Value::Sym(sym) => write!(f, "{}", sym),
+        }
+    }
+}
+
 
 impl Ord for Value {
     fn cmp(&self, other: &Self) -> Ordering {

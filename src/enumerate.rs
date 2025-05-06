@@ -7,6 +7,8 @@ use crate::eval::RuntimeError;
 use crate::eval::Value;
 use crate::syntax::*;
 use std::collections::BTreeMap;
+use std::fmt::Debug;
+use std::string;
 
 type Env = BTreeMap<Id, Value>;
 
@@ -19,7 +21,7 @@ fn eval_action(program: &Program, env: &mut Env) {
 /**
  *
  */
-pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
+pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
     // keep track of visited states and their environments
     // let mut state_lookup: Map<State, Env> = Map::new();
     let mut state_lookup: Map<State, Env> = Map::new();
@@ -96,30 +98,27 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             // assuming that all the accept statments of programs are bools
             accepting.insert(*st);
         }
-        // let mut name = "";
-        // let state_env = state_lookup.get(st).unwrap();
-        // let f = state_env.first_key_value().unwrap();
-        // name = &(f.0.to_string() + " = " + f.1.fmt());
-        
+
+        let state_env = state_lookup.get(st).unwrap();
+        let f = state_env.first_key_value().unwrap();
+        names.insert(*st, format!("{} = {}", f.0, f.1).to_string());
     }
-    // TODO: Make state names
 
     println!("program accept: {:?}", program.accept);
     println!("state lookups: {:?}", state_lookup);
     println!("accepting states {:?}", accepting);
     println!("transitions {:?}", trans);
+    println!("state names: {:?}", names);
 
-    // let dfa = Dfa::try_new(
-    //     Set::from(program.alphabet),
-    //      //     pub trans: Map<State, Map<Symbol, State>>,
-    //     state_lookup, // trans.iter().map(target)
-    //     init_s,
-    //     Set::from(accepting),
-    //     state_lookup, // pub state_names: Map<State, String>,
-    // )
-    // .unwrap();
-    // return Ok(dfa);
-    Ok(())
+    let dfa = Dfa::try_new(
+        Set::from(program.alphabet.clone()),
+        trans,
+        init_s,
+        Set::from(accepting),
+        names,
+    )
+    .unwrap();
+    return Ok(dfa);
 }
 
 #[cfg(test)]
