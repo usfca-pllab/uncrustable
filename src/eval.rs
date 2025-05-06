@@ -108,6 +108,21 @@ pub fn init_env(program: &Program) -> Env {
     env
 }
 
+pub fn eval_action(program: &Program, env: &mut Env, sym:  &Symbol) -> Result<(), RuntimeError> {
+    // Insert each symbol into the environment
+    if let Some(id) = &program.action.0 {
+        env.insert(id.clone(), Value::Sym(*sym));
+    }
+
+    // Evaluate each statement in the action
+    for stmt in &program.action.1 {
+        eval_stmt(stmt, env, program)?; // propagate errors
+    }
+
+    Ok(())
+}
+
+
 fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
     let mut env = init_env(program);
@@ -116,14 +131,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     }
 
     for sym in input.chars() {
-        // insert each symbol into the enviornment
-        if let Some(id) = &program.action.0 {
-            env.insert(id.clone(), Value::Sym(Symbol(sym)));
-        };
-        // evaluate action
-        for stmt in &program.action.1 {
-            eval_stmt(stmt, &mut env, &program)?;
-        }
+        eval_action(program, &mut env, &Symbol(sym))?;
     }
 
     // evaluate accept
@@ -188,9 +196,12 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
                     BOp::Sub => cast(l - r, l_range, Overflow::Wraparound),
                     BOp::Mul => cast(l * r, l_range, Overflow::Wraparound),
                     BOp::Div => {
+                        // println!("r: {:?}", r);
                         if r == 0 {
-                            Err(RuntimeError::DivisionbyZero)
+                            println!("r: {:?}", r);
+                            return Err(RuntimeError::DivisionbyZero)
                         } else {
+                            println!("casting: {:?}", r);
                             cast(l / r, l_range, Overflow::Wraparound)
                         }
                     }
@@ -774,16 +785,16 @@ mod tests {
     fn test_div_0() {
         let input = r#"
 			alphabet: {'a'}
-			let x: int[4];
+			let x: int[2..4];
 			on input y {
 				x = 3 / 0; 
 			}
-			accept if x == 3
+			accept if x == 2
 		"#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
-        let retval = eval(&program, input);
+        let retval = eval(&program, "a");
 
         if retval.is_ok() {
             panic!("Expected DivisionbyZero error but got: {:?}", retval);
