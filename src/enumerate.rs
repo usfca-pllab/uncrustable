@@ -40,17 +40,17 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
 
     let mut workqueue: Vec<State> = Vec::new();
     workqueue.insert(0, init_s);
-    println!("workqueue: {:?}", workqueue);
+    // println!("workqueue: {:?}", workqueue);
     let mut accepting: Set<State> = Set::new();
     // check acceptance for init env
 
+    let mut first = true;
     while workqueue.is_empty() == false {
-        let s = workqueue.pop().unwrap();
         println!("workqueue: {:?}", workqueue);
+        let s = workqueue.pop().unwrap();
         let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
-
             if let Some(id) = &program.action.0 {
                 // apparently this is in eval_action
                 env_clone.insert(id.clone(), Value::Sym(*sym));
@@ -74,22 +74,19 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             } else {
                 s_edges.insert(*sym, s);
             }
-            // let accept = eval::eval_expr(&program.accept.clone(), &env_clone.clone(), &program)?;
-
-            // if accept == Value::Bool(true) {
-            //     // assuming that all the accept statments of programs are bools
-            //     accepting.insert(s);
-            // }
         }
         trans.insert(s, s_edges);
-        for state in state_lookup.clone() {
-            let accept = eval::eval_expr(&program.accept.clone(),&state_lookup.get(&s).unwrap().clone(), &program)?;
-            if accept == Value::Bool(true) {
-                // assuming that all the accept statments of programs are bools
-                accepting.insert(s);
-            }
+    }
+    for st in state_lookup.keys().clone() {
+        let accept = eval::eval_expr(
+            &program.accept.clone(),
+            &state_lookup.get(&st).unwrap().clone(),
+            &program,
+        )?;
+        if accept == Value::Bool(true) {
+            // assuming that all the accept statments of programs are bools
+            accepting.insert(*st);
         }
-        
     }
     // TODO: Make state names
 
@@ -109,7 +106,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // .unwrap();
     // return Ok(dfa);
     Ok(())
-
 }
 
 #[cfg(test)]
@@ -156,24 +152,22 @@ mod tests {
     }
 }
 
+//TODO is this the workqueue pop loop, or where would that be??
+// for sym in &program.alphabet {
+//     if let Some(id) = &program.action.0 {
+//         env.insert(id.clone(), Value::Sym(*sym));
+//         //TODO figure out how to collect transitions?? Is that here???
+//     };
+// clone env before we do this...
 
-    //TODO is this the workqueue pop loop, or where would that be??
-    // for sym in &program.alphabet {
-    //     if let Some(id) = &program.action.0 {
-    //         env.insert(id.clone(), Value::Sym(*sym));
-    //         //TODO figure out how to collect transitions?? Is that here???
-    //     };
-    // clone env before we do this...
+//TODO add state names to the state name DFA map, how do we know state names tho?????
 
-    //TODO add state names to the state name DFA map, how do we know state names tho?????
+// workqueue.push(env.clone());
 
-    // workqueue.push(env.clone());
+// is this a final state that accepts?
+// evaluate accept
 
-    // is this a final state that accepts?
-    // evaluate accept
-
-    // }
-
+// }
 
 // create a workqueue with the initial state (start, which we get after running program.start)
 // states = {} (visited states)
