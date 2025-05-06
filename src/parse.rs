@@ -58,6 +58,8 @@ enum Token {
     Wraparound,
     #[token("saturate")]
     Saturate,
+    #[token("fail")]
+    Fail,
 
     // Operators and punctuation
     #[token("+")]
@@ -492,10 +494,14 @@ impl Parser {
                         self.bump();
                         Overflow::Saturate
                     }
-                    _ => Overflow::Fail,
+                    Token::Fail => {
+                        self.bump();
+                        Overflow::Fail
+                    }
+                    _ => Overflow::Wraparound,
                 }
             } else {
-                Overflow::Fail
+                Overflow::Wraparound
             };
             expr = Expr::Cast {
                 inner: Box::new(expr),
@@ -763,6 +769,8 @@ mod tests {
                         x = add(1, 2);
                         x = 3 + - 4 as int[3];
                         x = 3 + 4 as int[3] wraparound;
+                        x = 3 + 4 as int[3] saturate;
+                        x = 3 + 4 as int[3] fail;
                         if x < 3 {
                                 y = 'a';
                         } else {
@@ -776,203 +784,251 @@ mod tests {
                 "#;
         let program = parse(input).unwrap();
         let expected = expect![[r#"
-                Program {
-                    alphabet: {
-                        Symbol(
-                            'a',
-                        ),
-                    },
-                    helpers: {
-                        "add": Function {
-                            params: [
-                                (
-                                    "a",
-                                    NumT(
-                                        0..3,
-                                    ),
+            Program {
+                alphabet: {
+                    Symbol(
+                        'a',
+                    ),
+                },
+                helpers: {
+                    "add": Function {
+                        params: [
+                            (
+                                "a",
+                                NumT(
+                                    0..3,
                                 ),
-                                (
-                                    "b",
-                                    NumT(
-                                        0..3,
-                                    ),
-                                ),
-                            ],
-                            ret_typ: NumT(
-                                0..3,
                             ),
-                            body: BinOp {
-                                lhs: Var(
-                                    "a",
+                            (
+                                "b",
+                                NumT(
+                                    0..3,
                                 ),
-                                op: Add,
-                                rhs: Var(
-                                    "b",
-                                ),
-                            },
-                        },
-                    },
-                    locals: {
-                        "x": NumT(
+                            ),
+                        ],
+                        ret_typ: NumT(
                             0..3,
                         ),
+                        body: BinOp {
+                            lhs: Var(
+                                "a",
+                            ),
+                            op: Add,
+                            rhs: Var(
+                                "b",
+                            ),
+                        },
                     },
-                    start: [],
-                    action: (
-                        Some(
-                            "y",
+                },
+                locals: {
+                    "x": NumT(
+                        0..3,
+                    ),
+                },
+                start: [],
+                action: (
+                    Some(
+                        "y",
+                    ),
+                    [
+                        Assign(
+                            "x",
+                            Call {
+                                callee: "add",
+                                args: [
+                                    Num(
+                                        1,
+                                        NumT(
+                                            1..2,
+                                        ),
+                                    ),
+                                    Num(
+                                        2,
+                                        NumT(
+                                            2..3,
+                                        ),
+                                    ),
+                                ],
+                            },
                         ),
-                        [
-                            Assign(
-                                "x",
-                                Call {
-                                    callee: "add",
-                                    args: [
-                                        Num(
-                                            1,
-                                            NumT(
-                                                1..2,
-                                            ),
-                                        ),
-                                        Num(
-                                            2,
-                                            NumT(
-                                                2..3,
-                                            ),
-                                        ),
-                                    ],
-                                },
-                            ),
-                            Assign(
-                                "x",
-                                BinOp {
-                                    lhs: Num(
-                                        3,
-                                        NumT(
-                                            3..4,
-                                        ),
+                        Assign(
+                            "x",
+                            BinOp {
+                                lhs: Num(
+                                    3,
+                                    NumT(
+                                        3..4,
                                     ),
-                                    op: Add,
-                                    rhs: Cast {
-                                        inner: UOp {
-                                            op: Negate,
-                                            inner: Num(
-                                                4,
-                                                NumT(
-                                                    4..5,
-                                                ),
-                                            ),
-                                        },
-                                        typ: NumT(
-                                            0..3,
-                                        ),
-                                        overflow: Fail,
-                                    },
-                                },
-                            ),
-                            Assign(
-                                "x",
-                                BinOp {
-                                    lhs: Num(
-                                        3,
-                                        NumT(
-                                            3..4,
-                                        ),
-                                    ),
-                                    op: Add,
-                                    rhs: Cast {
+                                ),
+                                op: Add,
+                                rhs: Cast {
+                                    inner: UOp {
+                                        op: Negate,
                                         inner: Num(
                                             4,
                                             NumT(
                                                 4..5,
                                             ),
                                         ),
-                                        typ: NumT(
-                                            0..3,
-                                        ),
-                                        overflow: Wraparound,
                                     },
+                                    typ: NumT(
+                                        0..3,
+                                    ),
+                                    overflow: Wraparound,
                                 },
-                            ),
-                            If {
-                                cond: BinOp {
-                                    lhs: Var(
-                                        "x",
-                                    ),
-                                    op: Lt,
-                                    rhs: Num(
-                                        3,
-                                        NumT(
-                                            3..4,
-                                        ),
-                                    ),
-                                },
-                                true_branch: [
-                                    Assign(
-                                        "y",
-                                        Sym(
-                                            'a',
-                                        ),
-                                    ),
-                                ],
-                                false_branch: [
-                                    Assign(
-                                        "x",
-                                        Match {
-                                            scrutinee: Var(
-                                                "y",
-                                            ),
-                                            cases: [
-                                                Case {
-                                                    pattern: Sym(
-                                                        Symbol(
-                                                            'a',
-                                                        ),
-                                                    ),
-                                                    guard: Bool(
-                                                        true,
-                                                    ),
-                                                    result: Num(
-                                                        1,
-                                                        NumT(
-                                                            1..2,
-                                                        ),
-                                                    ),
-                                                },
-                                                Case {
-                                                    pattern: Var(
-                                                        "x",
-                                                    ),
-                                                    guard: Bool(
-                                                        true,
-                                                    ),
-                                                    result: Num(
-                                                        2,
-                                                        NumT(
-                                                            2..3,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        },
-                                    ),
-                                ],
                             },
-                        ],
-                    ),
-                    accept: BinOp {
-                        lhs: Var(
+                        ),
+                        Assign(
                             "x",
+                            BinOp {
+                                lhs: Num(
+                                    3,
+                                    NumT(
+                                        3..4,
+                                    ),
+                                ),
+                                op: Add,
+                                rhs: Cast {
+                                    inner: Num(
+                                        4,
+                                        NumT(
+                                            4..5,
+                                        ),
+                                    ),
+                                    typ: NumT(
+                                        0..3,
+                                    ),
+                                    overflow: Wraparound,
+                                },
+                            },
                         ),
-                        op: Eq,
-                        rhs: Num(
-                            3,
-                            NumT(
-                                3..4,
-                            ),
+                        Assign(
+                            "x",
+                            BinOp {
+                                lhs: Num(
+                                    3,
+                                    NumT(
+                                        3..4,
+                                    ),
+                                ),
+                                op: Add,
+                                rhs: Cast {
+                                    inner: Num(
+                                        4,
+                                        NumT(
+                                            4..5,
+                                        ),
+                                    ),
+                                    typ: NumT(
+                                        0..3,
+                                    ),
+                                    overflow: Saturate,
+                                },
+                            },
                         ),
-                    },
-                }"#]];
+                        Assign(
+                            "x",
+                            BinOp {
+                                lhs: Num(
+                                    3,
+                                    NumT(
+                                        3..4,
+                                    ),
+                                ),
+                                op: Add,
+                                rhs: Cast {
+                                    inner: Num(
+                                        4,
+                                        NumT(
+                                            4..5,
+                                        ),
+                                    ),
+                                    typ: NumT(
+                                        0..3,
+                                    ),
+                                    overflow: Fail,
+                                },
+                            },
+                        ),
+                        If {
+                            cond: BinOp {
+                                lhs: Var(
+                                    "x",
+                                ),
+                                op: Lt,
+                                rhs: Num(
+                                    3,
+                                    NumT(
+                                        3..4,
+                                    ),
+                                ),
+                            },
+                            true_branch: [
+                                Assign(
+                                    "y",
+                                    Sym(
+                                        'a',
+                                    ),
+                                ),
+                            ],
+                            false_branch: [
+                                Assign(
+                                    "x",
+                                    Match {
+                                        scrutinee: Var(
+                                            "y",
+                                        ),
+                                        cases: [
+                                            Case {
+                                                pattern: Sym(
+                                                    Symbol(
+                                                        'a',
+                                                    ),
+                                                ),
+                                                guard: Bool(
+                                                    true,
+                                                ),
+                                                result: Num(
+                                                    1,
+                                                    NumT(
+                                                        1..2,
+                                                    ),
+                                                ),
+                                            },
+                                            Case {
+                                                pattern: Var(
+                                                    "x",
+                                                ),
+                                                guard: Bool(
+                                                    true,
+                                                ),
+                                                result: Num(
+                                                    2,
+                                                    NumT(
+                                                        2..3,
+                                                    ),
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                ),
+                            ],
+                        },
+                    ],
+                ),
+                accept: BinOp {
+                    lhs: Var(
+                        "x",
+                    ),
+                    op: Eq,
+                    rhs: Num(
+                        3,
+                        NumT(
+                            3..4,
+                        ),
+                    ),
+                },
+            }"#]];
         expected.assert_eq(&format!("{:#?}", program));
     }
 }
