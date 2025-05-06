@@ -7,14 +7,6 @@ use thiserror::Error;
 pub enum TypeError {
     /// Type mismatch between expected and actual types
     #[error("Type mismatch")]
-use log::{debug, error, warn};
-use thiserror::Error;
-
-/// Errors that can occur during type checking
-#[derive(Error, Debug)]
-pub enum TypeError {
-    /// Type mismatch between expected and actual types
-    #[error("Type mismatch")]
     TypeMismatch,
     /// Variable not found in the environment
     #[error("Undefined variable: '{0}'")]
