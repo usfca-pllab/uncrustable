@@ -23,8 +23,10 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     // keep track of visited states and their environments
     // let mut state_lookup: Map<State, Env> = Map::new();
     let mut state_lookup: Map<State, Env> = Map::new();
-    //
+    // the transitions between states
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
+    //state names
+    let mut names: Map<State, String> = Map::new();
 
     let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new();
 
@@ -79,7 +81,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 s_edges.insert(*sym, s_new);
             } else {
                 s_edges.insert(*sym, s);
-            } 
+            }
             // delete the input var in the enum
         }
         trans.insert(s, s_edges);
@@ -94,6 +96,11 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             // assuming that all the accept statments of programs are bools
             accepting.insert(*st);
         }
+        // let mut name = "";
+        // let state_env = state_lookup.get(st).unwrap();
+        // let f = state_env.first_key_value().unwrap();
+        // name = &(f.0.to_string() + " = " + f.1.fmt());
+        
     }
     // TODO: Make state names
 
@@ -149,6 +156,46 @@ mod tests {
                     ends_with_zero = x == '0';
                 }
                 accept if ends_with_zero == true
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+
+        let result = enumerate(&program, "1").unwrap();
+        println!("res: {:?}", result);
+        println!("--------------");
+    }
+
+    #[test]
+    fn test_even() {
+        let input = r#"
+                alphabet: {'0','1','2','3'}
+                let is_even: bool;
+                on input x {
+                    is_even = x % 2 == 0;
+                }
+                accept if is_even == true
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+
+        let result = enumerate(&program, "1").unwrap();
+        println!("res: {:?}", result);
+        println!("--------------");
+    }
+
+    #[test]
+    fn test_div3() {
+        let input = r#"
+                alphabet: { '0', '1' }
+                fn char_to_bit(c: sym) -> int[2] = match c {
+                '0' -> 0 as int[2]
+                '1' -> 1 as int[2]
+                }
+                let rem: int[3];
+                on input bit {
+                    rem = 2 as int[3] * rem + char_to_bit(bit) as int[3];
+                }
+                accept if rem == 0 as int[3]
 		    "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
