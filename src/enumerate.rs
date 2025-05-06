@@ -41,12 +41,10 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
     // check acceptance for init env
 
     while workqueue.is_empty() == false {
-        println!("workqueue: {:?}", workqueue);
         let s = workqueue.pop().unwrap();
         let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
-            println!("sym: {:?}", sym);
             eval::eval_action(program, &mut env_clone, sym); // cloned env
             if let Some(_) = &program.action.0 {
                 env_clone.remove(&program.action.0.unwrap());
@@ -56,7 +54,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             if env_lookup.contains_key(&env_clone) {
                 new = false;
             }
-            println!("env_clone: {:#?}", env_clone);
             let t = env_lookup
                 .entry(env_clone.clone())
                 .or_insert_with(|| dfa::State::fresh());
@@ -68,10 +65,8 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             }
 
             s_edges.insert(*sym, t.clone());
-            println!("s_edges: {:#?}", s_edges);
         }
         trans.insert(s, s_edges);
-        println!("s_edges: {:#?}", trans);
     }
     for st in state_lookup.keys().clone() {
         let accept = eval::eval_expr(
@@ -88,7 +83,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         let f = state_env.first_key_value().unwrap();
         names.insert(*st, format!("{} = {}", f.0, f.1).to_string());
     }
-    println!("trans: {:?}", trans);
 
     let dfa = Dfa::try_new(
         Set::from(program.alphabet.clone()),
@@ -103,12 +97,9 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
 
 #[cfg(test)]
 mod tests {
-    use core::fmt;
-    use std::fmt::Debug;
 
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::*;
 
     #[test]
     // Simple Local Assignment
@@ -186,42 +177,4 @@ mod tests {
         println!("res: {:#?}", result);
         println!("--------------");
     }
-
 }
-
-// let mut new = true;
-// if env_lookup.contains_key(&env_clone) {
-//     new = false;
-// }
-
-// if new == true {
-//     let s_new = dfa::State::fresh();
-//     env_lookup.insert(env_clone.clone(), s_new);
-//     state_lookup.insert(s_new, env_clone.clone());
-//     workqueue.insert(workqueue.len(), s_new);
-//     s_edges.insert(*sym, s_new);
-// } else {
-//     // println!("not new: {:?}", env_clone);
-//     let env_pt;
-//     if let Some(_) = env_lookup.get(&env_clone) {
-//         println!("not new: {:?}", env_clone);
-//         env_pt = env_lookup.get(&env_clone).unwrap();
-//         println!("already was at state: {:?}", env_pt);
-//         s_edges.insert(*sym, *env_pt);
-//     } else {
-//         println!("this env: {:?}", env_clone);
-//         s_edges.insert(*sym, s);
-//     }
-
-//     // println!("inserted sym: {:?} and state: {:?}", sym, s);
-// }
-
-// if new == true {
-//     let s_new = dfa::State::fresh();
-//     env_lookup.insert(env_clone.clone(), s_new);
-//     state_lookup.insert(s_new, env_clone.clone());
-//     workqueue.insert(workqueue.len(), s_new);
-//     s_edges.insert(*sym, s_new);
-// } else {
-//     s_edges.insert(*sym, s);
-// }
