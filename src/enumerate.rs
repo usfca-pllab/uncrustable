@@ -103,6 +103,9 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
 
 #[cfg(test)]
 mod tests {
+    use core::fmt;
+    use std::fmt::Debug;
+
     use super::*;
     use crate::parse::parse;
     use crate::syntax::*;
@@ -162,7 +165,7 @@ mod tests {
         println!("program: {:?}", program);
 
         let result = enumerate(&program, "01").unwrap();
-        println!("res: {:#?}", result);
+        println!("res: {}", result);
         println!("--------------");
     }
 

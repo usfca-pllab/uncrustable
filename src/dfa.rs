@@ -41,7 +41,7 @@ flowchart TD
 */
 
 // Pretty Print for DFA
-impl fmt::Display for Dfa<char> {
+impl fmt::Display for Dfa<Symbol> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "flowchart TD")?; // Mermaid header
 
