@@ -164,13 +164,13 @@ mod tests {
     fn test_div3() {
         let input = r#"
                 alphabet: { '0', '1' }
-                fn char_to_bit(c: sym) -> int[3] = match c {
-                '0' -> 0 as int[3]
-                '1' -> 1 as int[3]
+                fn char_to_bit(c: sym) -> int[0..3] = match c {
+                '0' -> 0
+                '1' -> 1
                 }
-                let rem: int[3];
+                let rem: int[0..3];
                 on input bit {
-                    rem = (2 as int[3] * rem as int[3]) + (char_to_bit(bit) as int[3]);
+                    rem = (2 as int[0..3] * rem as int[0..3]) + (char_to_bit(bit) as int[0..3]);
                 }
                 accept if rem == 0
 		    "#;
