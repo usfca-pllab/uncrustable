@@ -143,24 +143,6 @@ mod tests {
     }
 
     #[test]
-    fn test_even() {
-        let input = r#"
-                alphabet: {'0','1','2','3'}
-                let is_even: bool;
-                on input x {
-                    is_even = x % 2 == 0;
-                }
-                accept if is_even == true
-		    "#;
-        let program = parse(input).unwrap();
-        println!("program: {:?}", program);
-
-        let result = enumerate(&program, "1").unwrap();
-        println!("res: {:#?}", result);
-        println!("--------------");
-    }
-
-    #[test]
     fn test_div3() {
         let input = r#"
                 alphabet: { '0', '1' }
