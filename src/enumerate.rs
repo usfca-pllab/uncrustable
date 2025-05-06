@@ -57,7 +57,9 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
                 new = false;
             }
             println!("env_clone: {:#?}", env_clone);
-            let t = env_lookup.entry(env_clone.clone()).or_insert_with(|| { dfa::State::fresh() } );
+            let t = env_lookup
+                .entry(env_clone.clone())
+                .or_insert_with(|| dfa::State::fresh());
             if new == true {
                 // let s_new = t;
                 // env_lookup.insert(env_clone.clone(), t);
@@ -163,43 +165,60 @@ mod tests {
         println!("res: {:#?}", result);
         println!("--------------");
     }
+
+    #[test]
+    fn test_odd() {
+        let input = r#"
+                alphabet: { '0', '1' }
+                let length_parity: int[2];
+                on input {
+                    length_parity = length_parity + 1 as int[2];
+                }
+                accept if length_parity == 1 as int[2]
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+
+        let result = enumerate(&program, "01").unwrap();
+        println!("res: {:#?}", result);
+        println!("--------------");
+    }
+
 }
 
+// let mut new = true;
+// if env_lookup.contains_key(&env_clone) {
+//     new = false;
+// }
 
+// if new == true {
+//     let s_new = dfa::State::fresh();
+//     env_lookup.insert(env_clone.clone(), s_new);
+//     state_lookup.insert(s_new, env_clone.clone());
+//     workqueue.insert(workqueue.len(), s_new);
+//     s_edges.insert(*sym, s_new);
+// } else {
+//     // println!("not new: {:?}", env_clone);
+//     let env_pt;
+//     if let Some(_) = env_lookup.get(&env_clone) {
+//         println!("not new: {:?}", env_clone);
+//         env_pt = env_lookup.get(&env_clone).unwrap();
+//         println!("already was at state: {:?}", env_pt);
+//         s_edges.insert(*sym, *env_pt);
+//     } else {
+//         println!("this env: {:?}", env_clone);
+//         s_edges.insert(*sym, s);
+//     }
 
-            // let mut new = true;
-            // if env_lookup.contains_key(&env_clone) {
-            //     new = false;
-            // }
+//     // println!("inserted sym: {:?} and state: {:?}", sym, s);
+// }
 
-            // if new == true {
-            //     let s_new = dfa::State::fresh();
-            //     env_lookup.insert(env_clone.clone(), s_new);
-            //     state_lookup.insert(s_new, env_clone.clone());
-            //     workqueue.insert(workqueue.len(), s_new);
-            //     s_edges.insert(*sym, s_new);
-            // } else {
-            //     // println!("not new: {:?}", env_clone);
-            //     let env_pt;
-            //     if let Some(_) = env_lookup.get(&env_clone) {
-            //         println!("not new: {:?}", env_clone);
-            //         env_pt = env_lookup.get(&env_clone).unwrap();
-            //         println!("already was at state: {:?}", env_pt);
-            //         s_edges.insert(*sym, *env_pt);
-            //     } else {
-            //         println!("this env: {:?}", env_clone);
-            //         s_edges.insert(*sym, s);
-            //     }
-
-            //     // println!("inserted sym: {:?} and state: {:?}", sym, s);
-            // }
-
-            // if new == true {
-            //     let s_new = dfa::State::fresh();
-            //     env_lookup.insert(env_clone.clone(), s_new);
-            //     state_lookup.insert(s_new, env_clone.clone());
-            //     workqueue.insert(workqueue.len(), s_new);
-            //     s_edges.insert(*sym, s_new);
-            // } else {
-            //     s_edges.insert(*sym, s);
-            // }
+// if new == true {
+//     let s_new = dfa::State::fresh();
+//     env_lookup.insert(env_clone.clone(), s_new);
+//     state_lookup.insert(s_new, env_clone.clone());
+//     workqueue.insert(workqueue.len(), s_new);
+//     s_edges.insert(*sym, s_new);
+// } else {
+//     s_edges.insert(*sym, s);
+// }
