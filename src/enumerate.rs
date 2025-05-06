@@ -37,6 +37,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
     //add inital state
     let init_s = dfa::State::fresh();
     state_lookup.insert(init_s, init_e.clone());
+    env_lookup.insert(init_e.clone(), init_s);
 
     let mut workqueue: Vec<State> = Vec::new();
     workqueue.insert(0, init_s);
@@ -57,7 +58,11 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             };
 
             eval_action(program, &mut env_clone); // cloned env
-            // env_clone.remove(program.action.0);
+            if let Some(id) = &program.action.0 {
+                env_clone.remove(&program.action.0.unwrap());
+            }
+            println!("curent state: {:?}", s);
+            println!("current env: {:?}", env_clone);
             // do an if let to remove like above ^
             //see if new env
             let mut new = true;
