@@ -46,14 +46,8 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
-            // TODO: move to eval_action
-            if let Some(id) = &program.action.0 {
-                // apparently this is in eval_action
-                env_clone.insert(id.clone(), Value::Sym(*sym));
-            };
-
             eval::eval_action(program, &mut env_clone, sym); // cloned env
-            if let Some(id) = &program.action.0 {
+            if let Some(_) = &program.action.0 {
                 env_clone.remove(&program.action.0.unwrap());
             }
 
@@ -69,7 +63,19 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
                 workqueue.insert(workqueue.len(), s_new);
                 s_edges.insert(*sym, s_new);
             } else {
-                s_edges.insert(*sym, s);
+                // println!("not new: {:?}", env_clone);
+                let env_pt;
+                if let Some(_) = env_lookup.get(&env_clone) {
+                    println!("not new: {:?}", env_clone);
+                    env_pt = env_lookup.get(&env_clone).unwrap();
+                    println!("already was at state: {:?}", env_pt);
+                    s_edges.insert(*sym, *env_pt);
+                } else {
+                    println!("this env: {:?}", env_clone);
+                    s_edges.insert(*sym, s);
+                }
+
+                // println!("inserted sym: {:?} and state: {:?}", sym, s);
             }
         }
         trans.insert(s, s_edges);
@@ -179,7 +185,7 @@ mod tests {
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
-        let result = enumerate(&program, "1").unwrap();
+        let result = enumerate(&program, "01").unwrap();
         println!("res: {:?}", result);
         println!("--------------");
     }

@@ -3,10 +3,10 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
+use std::fmt;
 use std::fmt::Display;
 use std::ops::Range;
 use thiserror::Error;
-use std::fmt;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -74,7 +74,6 @@ impl fmt::Display for Value {
     }
 }
 
-
 impl Ord for Value {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
@@ -108,7 +107,7 @@ pub fn init_env(program: &Program) -> Env {
     env
 }
 
-pub fn eval_action(program: &Program, env: &mut Env, sym:  &Symbol) -> Result<(), RuntimeError> {
+pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(), RuntimeError> {
     // Insert each symbol into the environment
     if let Some(id) = &program.action.0 {
         env.insert(id.clone(), Value::Sym(*sym));
@@ -121,7 +120,6 @@ pub fn eval_action(program: &Program, env: &mut Env, sym:  &Symbol) -> Result<()
 
     Ok(())
 }
-
 
 fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
@@ -198,7 +196,7 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
                         // println!("r: {:?}", r);
                         if r == 0 {
                             println!("r: {:?}", r);
-                            return Err(RuntimeError::DivisionbyZero)
+                            return Err(RuntimeError::DivisionbyZero);
                         } else {
                             println!("casting: {:?}", r);
                             cast(l / r, l_range, Overflow::Wraparound)
@@ -805,5 +803,27 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_div3() {
+        let input = r#"
+                alphabet: { '0', '1' }
+                fn char_to_bit(c: sym) -> int[2] = match c {
+                '0' -> 0 as int[2]
+                '1' -> 1 as int[2]
+                }
+                let rem: int[3];
+                on input bit {
+                    rem = 2 as int[3] * rem + char_to_bit(bit) as int[3];
+                }
+                accept if rem == 0 as int[3]
+		    "#;
+        let program = parse(input).unwrap();
+        println!("program: {:?}", program);
+
+        let result = eval(&program, "11").unwrap();
+        println!("res: {:?}", result);
+        println!("--------------");
     }
 }
