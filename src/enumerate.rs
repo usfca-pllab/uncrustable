@@ -166,9 +166,9 @@ mod tests {
                 alphabet: { '0', '1' }
                 let length_parity: int[2];
                 on input {
-                    length_parity = length_parity + 1 as int[2];
+                    length_parity = length_parity + 1;
                 }
-                accept if length_parity == 1 as int[2]
+                accept if length_parity == 1
 		    "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
