@@ -57,7 +57,8 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
             };
 
             eval_action(program, &mut env_clone); // cloned env
-
+            // env_clone.remove(program.action.0);
+            // do an if let to remove like above ^
             //see if new env
             let mut new = true;
             if env_lookup.contains_key(&env_clone) {
@@ -73,7 +74,8 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<(), RuntimeError> {
                 s_edges.insert(*sym, s_new);
             } else {
                 s_edges.insert(*sym, s);
-            }
+            } 
+            // delete the input var in the enum
         }
         trans.insert(s, s_edges);
     }
