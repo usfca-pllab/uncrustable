@@ -174,7 +174,28 @@ mod tests {
         println!("program: {:?}", program);
 
         let result = enumerate(&program, "01").unwrap();
-        println!("res: {:#?}", result);
+        println!("res: {}", result);
         println!("--------------");
+    }
+
+    #[test]
+    // Boolean BinOp - And / Or
+    fn test_binop_4() {
+        let input = r#"
+	        alphabet: {'d', 'a'}
+	        let z: bool;
+	        let w: bool;
+	        on input y {
+                z = true;
+                w = match y {
+                    'd' -> true && false
+                    y if true -> true || false
+                };
+	        }
+	        accept if w == false
+	    "#;
+        let program = parse(input).unwrap();
+        let dfa = enumerate(&program, input).unwrap();
+        println!("res: {}", dfa);
     }
 }
