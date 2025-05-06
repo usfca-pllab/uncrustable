@@ -1,8 +1,12 @@
 use crate::syntax::*;
+use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::collections::HashMap as Map;
+use std::fmt::Display;
 use std::ops::Range;
 use thiserror::Error;
+use std::fmt;
 
 // Errors that can occur during type checking
 #[derive(Error, Debug)]
@@ -26,17 +30,61 @@ pub enum RuntimeError {
 }
 
 // abstraction for values making up expressions
-#[derive(Debug, Clone, PartialEq)]
-enum Value {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Value {
     Bool(bool),
     Num(i64, Range<i64>),
     Sym(Symbol),
 }
 
-// map of variable names to values
-type Env = Map<Id, Value>;
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use Value::*;
+        Some(match (self, other) {
+            // Bool comparison: false < true (default Rust behavior)
+            (Bool(a), Bool(b)) => a.cmp(b),
 
-fn init_env(program: &Program) -> Env {
+            // Bool < Num < Sym
+            (Bool(_), Num(_, _)) | (Bool(_), Sym(_)) => Ordering::Less,
+            (Num(_, _), Bool(_)) | (Sym(_), Bool(_)) => Ordering::Greater,
+
+            // Num comparison: by value, then range.start, then range.end
+            (Num(a_val, a_rng), Num(b_val, b_rng)) => a_val
+                .cmp(b_val)
+                .then(a_rng.start.cmp(&b_rng.start))
+                .then(a_rng.end.cmp(&b_rng.end)),
+
+            // Num < Sym
+            (Num(_, _), Sym(_)) => Ordering::Less,
+            (Sym(_), Num(_, _)) => Ordering::Greater,
+
+            // Sym comparison
+            (Sym(a), Sym(b)) => a.cmp(b),
+        })
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Bool(b) => write!(f, "{}", b),
+            Value::Num(n, range) => write!(f, "{} in [{}..{})", n, range.start, range.end),
+            Value::Sym(sym) => write!(f, "{}", sym),
+        }
+    }
+}
+
+
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+// map of variable names to values
+type Env = BTreeMap<Id, Value>;
+
+pub fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
     let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
     let first_symbol = Value::Sym(alph.iter().next().unwrap().clone());
@@ -60,22 +108,29 @@ fn init_env(program: &Program) -> Env {
     env
 }
 
+pub fn eval_action(program: &Program, env: &mut Env, sym:  &Symbol) -> Result<(), RuntimeError> {
+    // Insert each symbol into the environment
+    if let Some(id) = &program.action.0 {
+        env.insert(id.clone(), Value::Sym(*sym));
+    }
+
+    // Evaluate each statement in the action
+    for stmt in &program.action.1 {
+        eval_stmt(stmt, env, program)?; // propagate errors
+    }
+
+    Ok(())
+}
+
+
 fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     // create initial state
     let mut env = init_env(program);
     for stmt in &program.start {
         eval_stmt(stmt, &mut env, &program)?;
-    }
 
     for sym in input.chars() {
-        // insert each symbol into the enviornment
-        if let Some(id) = &program.action.0 {
-            env.insert(id.clone(), Value::Sym(Symbol(sym)));
-        };
-        // evaluate action
-        for stmt in &program.action.1 {
-            eval_stmt(stmt, &mut env, &program)?;
-        }
+        eval_action(program, &mut env, &Symbol(sym))?;
     }
 
     // evaluate accept
@@ -121,7 +176,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
 }
 
 // eval. expr.
-fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
+pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
@@ -140,9 +195,12 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
                     BOp::Sub => cast(l - r, l_range, Overflow::Wraparound),
                     BOp::Mul => cast(l * r, l_range, Overflow::Wraparound),
                     BOp::Div => {
+                        // println!("r: {:?}", r);
                         if r == 0 {
-                            Err(RuntimeError::DivisionbyZero)
+                            println!("r: {:?}", r);
+                            return Err(RuntimeError::DivisionbyZero)
                         } else {
+                            println!("casting: {:?}", r);
                             cast(l / r, l_range, Overflow::Wraparound)
                         }
                     }
@@ -253,7 +311,7 @@ fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Runtime
 }
 
 // eval. stmt.
-fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
+pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
@@ -726,16 +784,16 @@ mod tests {
     fn test_div_0() {
         let input = r#"
 			alphabet: {'a'}
-			let x: int[4];
+			let x: int[2..4];
 			on input y {
 				x = 3 / 0; 
 			}
-			accept if x == 3
+			accept if x == 2
 		"#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
-        let retval = eval(&program, input);
+        let retval = eval(&program, "a");
 
         if retval.is_ok() {
             panic!("Expected DivisionbyZero error but got: {:?}", retval);
