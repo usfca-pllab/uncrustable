@@ -237,6 +237,11 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     let (input_var, action_block) = &program.action;
     let mut action_env = ctx.env.clone();
     if let Some(var) = input_var {
+        // Check if the input variable shadows any existing variable
+        if ctx.env.contains_key(var) {
+            error!("Input variable '{}' shadows an existing variable", var);
+            return Err(TypeError::UndefinedVariable(*var));
+        }
         action_env.insert(*var, Type::SymT);
     }
     typeck_block(
@@ -296,6 +301,44 @@ mod tests {
         };
         let another_undefined_expr = Expr::Var(id("another_flag"));
         assert!(typeck_expr(&another_undefined_expr, &ctx).is_err());
+    }
+
+    #[test]
+    fn variable_shadowing() {
+        // Test that input variables can't shadow existing variables
+        let program_with_shadowing = r#"
+            alphabet: {'a', 'b'}
+            let c: bool;  // Define 'c' as a program variable
+            on input c {  // Try to use 'c' as an input variable too
+                c = true;
+            }
+            accept if c
+        "#;
+
+        let program: Program = parse(program_with_shadowing).unwrap();
+        let result = typecheck_program(&program);
+
+        // Verify that typechecking fails due to variable shadowing
+        assert!(result.is_err());
+        match result {
+            Err(TypeError::UndefinedVariable(var_id)) => {
+                assert_eq!(var_id, id("c")); // Verify the specific variable that caused the error
+            }
+            _ => panic!("Expected UndefinedVariable error for shadowing, got: {:?}", result),
+        }
+
+        // Test with non-shadowing variables (should pass)
+        let program_without_shadowing = r#"
+            alphabet: {'a', 'b'}
+            let flag: bool;
+            on input c {  // Different name than any program variable
+                flag = true;
+            }
+            accept if flag
+        "#;
+
+        let valid_program: Program = parse(program_without_shadowing).unwrap();
+        assert!(typecheck_program(&valid_program).is_ok());
     }
 
     #[test]
