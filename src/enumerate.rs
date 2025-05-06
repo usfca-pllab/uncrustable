@@ -46,6 +46,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
+            println!("sym: {:?}", sym);
             eval::eval_action(program, &mut env_clone, sym); // cloned env
             if let Some(_) = &program.action.0 {
                 env_clone.remove(&program.action.0.unwrap());
@@ -55,30 +56,20 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             if env_lookup.contains_key(&env_clone) {
                 new = false;
             }
-
+            println!("env_clone: {:#?}", env_clone);
+            let t = env_lookup.entry(env_clone.clone()).or_insert_with(|| { dfa::State::fresh() } );
             if new == true {
-                let s_new = dfa::State::fresh();
-                env_lookup.insert(env_clone.clone(), s_new);
-                state_lookup.insert(s_new, env_clone.clone());
-                workqueue.insert(workqueue.len(), s_new);
-                s_edges.insert(*sym, s_new);
-            } else {
-                // println!("not new: {:?}", env_clone);
-                let env_pt;
-                if let Some(_) = env_lookup.get(&env_clone) {
-                    println!("not new: {:?}", env_clone);
-                    env_pt = env_lookup.get(&env_clone).unwrap();
-                    println!("already was at state: {:?}", env_pt);
-                    s_edges.insert(*sym, *env_pt);
-                } else {
-                    println!("this env: {:?}", env_clone);
-                    s_edges.insert(*sym, s);
-                }
-
-                // println!("inserted sym: {:?} and state: {:?}", sym, s);
+                // let s_new = t;
+                // env_lookup.insert(env_clone.clone(), t);
+                state_lookup.insert(*t, env_clone.clone());
+                workqueue.insert(workqueue.len(), t.clone());
             }
+
+            s_edges.insert(*sym, t.clone());
+            println!("s_edges: {:#?}", s_edges);
         }
         trans.insert(s, s_edges);
+        println!("s_edges: {:#?}", trans);
     }
     for st in state_lookup.keys().clone() {
         let accept = eval::eval_expr(
@@ -95,6 +86,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         let f = state_env.first_key_value().unwrap();
         names.insert(*st, format!("{} = {}", f.0, f.1).to_string());
     }
+    println!("trans: {:?}", trans);
 
     let dfa = Dfa::try_new(
         Set::from(program.alphabet.clone()),
@@ -128,7 +120,7 @@ mod tests {
         println!("program: {:?}", program);
 
         let result = enumerate(&program, input).unwrap();
-        println!("res: {:?}", result);
+        println!("res: {:#?}", result);
         println!("--------------");
     }
 
@@ -146,7 +138,7 @@ mod tests {
         println!("program: {:?}", program);
 
         let result = enumerate(&program, "1").unwrap();
-        println!("res: {:?}", result);
+        println!("res: {:#?}", result);
         println!("--------------");
     }
 
@@ -164,7 +156,7 @@ mod tests {
         println!("program: {:?}", program);
 
         let result = enumerate(&program, "1").unwrap();
-        println!("res: {:?}", result);
+        println!("res: {:#?}", result);
         println!("--------------");
     }
 
@@ -172,21 +164,60 @@ mod tests {
     fn test_div3() {
         let input = r#"
                 alphabet: { '0', '1' }
-                fn char_to_bit(c: sym) -> int[2] = match c {
-                '0' -> 0 as int[2]
-                '1' -> 1 as int[2]
+                fn char_to_bit(c: sym) -> int[3] = match c {
+                '0' -> 0 as int[3]
+                '1' -> 1 as int[3]
                 }
                 let rem: int[3];
                 on input bit {
-                    rem = 2 as int[3] * rem + char_to_bit(bit) as int[3];
+                    rem = (2 as int[3] * rem as int[3]) + (char_to_bit(bit) as int[3]);
                 }
-                accept if rem == 0 as int[3]
+                accept if rem == 0
 		    "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
         let result = enumerate(&program, "01").unwrap();
-        println!("res: {:?}", result);
+        println!("res: {:#?}", result);
         println!("--------------");
     }
 }
+
+
+
+            // let mut new = true;
+            // if env_lookup.contains_key(&env_clone) {
+            //     new = false;
+            // }
+
+            // if new == true {
+            //     let s_new = dfa::State::fresh();
+            //     env_lookup.insert(env_clone.clone(), s_new);
+            //     state_lookup.insert(s_new, env_clone.clone());
+            //     workqueue.insert(workqueue.len(), s_new);
+            //     s_edges.insert(*sym, s_new);
+            // } else {
+            //     // println!("not new: {:?}", env_clone);
+            //     let env_pt;
+            //     if let Some(_) = env_lookup.get(&env_clone) {
+            //         println!("not new: {:?}", env_clone);
+            //         env_pt = env_lookup.get(&env_clone).unwrap();
+            //         println!("already was at state: {:?}", env_pt);
+            //         s_edges.insert(*sym, *env_pt);
+            //     } else {
+            //         println!("this env: {:?}", env_clone);
+            //         s_edges.insert(*sym, s);
+            //     }
+
+            //     // println!("inserted sym: {:?} and state: {:?}", sym, s);
+            // }
+
+            // if new == true {
+            //     let s_new = dfa::State::fresh();
+            //     env_lookup.insert(env_clone.clone(), s_new);
+            //     state_lookup.insert(s_new, env_clone.clone());
+            //     workqueue.insert(workqueue.len(), s_new);
+            //     s_edges.insert(*sym, s_new);
+            // } else {
+            //     s_edges.insert(*sym, s);
+            // }

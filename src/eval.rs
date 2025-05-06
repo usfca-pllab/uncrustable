@@ -126,6 +126,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     let mut env = init_env(program);
     for stmt in &program.start {
         eval_stmt(stmt, &mut env, &program)?;
+    }
 
     for sym in input.chars() {
         eval_action(program, &mut env, &Symbol(sym))?;
@@ -193,12 +194,9 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
                     BOp::Sub => cast(l - r, l_range, Overflow::Wraparound),
                     BOp::Mul => cast(l * r, l_range, Overflow::Wraparound),
                     BOp::Div => {
-                        // println!("r: {:?}", r);
                         if r == 0 {
-                            println!("r: {:?}", r);
                             return Err(RuntimeError::DivisionbyZero);
                         } else {
-                            println!("casting: {:?}", r);
                             cast(l / r, l_range, Overflow::Wraparound)
                         }
                     }
@@ -826,4 +824,5 @@ mod tests {
         println!("res: {:?}", result);
         println!("--------------");
     }
+
 }
