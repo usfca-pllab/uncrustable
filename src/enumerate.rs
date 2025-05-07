@@ -62,7 +62,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
     for st in state_lookup.keys().clone() {
         let accept = eval::eval_expr(
             &program.accept,
-            &state_lookup.get(&st).unwrap().clone(),
+            &state_lookup.get(&st).unwrap(),
             &program,
         )?;
         if accept == Value::Bool(true) {
