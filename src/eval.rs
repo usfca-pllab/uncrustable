@@ -79,33 +79,6 @@ impl Ord for Value {
     }
 }
 
-// map of variable names to values
-type Env = BTreeMap<Id, Value>;
-
-pub fn init_env(program: &Program) -> Env {
-    let mut env = Env::new();
-    let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
-    let first_symbol = Value::Sym(alph.iter().next().unwrap().clone());
-
-    // insert locals into env
-    for (id, typ) in &program.locals {
-        let value = match typ {
-            // defaults for now are zero values
-            Type::BoolT => Value::Bool(false),
-
-            //  default to be beginning of range
-            Type::NumT(range) => Value::Num(range.start, range.clone()),
-
-            //  default to empty char
-            Type::SymT => first_symbol.clone(),
-        };
-
-        env.insert(id.clone(), value);
-    }
-
-    env
-}
-
 pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(), RuntimeError> {
     // Insert each symbol into the environment
     if let Some(id) = &program.action.0 {
@@ -121,7 +94,7 @@ pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(),
 }
 
 // map of variable names to values
-type Env = Map<Id, Value>;
+type Env = BTreeMap<Id, Value>;
 
 pub fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
