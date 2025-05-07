@@ -2,9 +2,7 @@ use crate::syntax::*;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::collections::HashMap as Map;
 use std::fmt;
-use std::fmt::Display;
 use std::ops::Range;
 use thiserror::Error;
 
@@ -356,7 +354,6 @@ pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::*;
 
     #[test]
     // Simple Local Assignment
@@ -370,7 +367,6 @@ mod tests {
 		        accept if x == 3
 		    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 3..4)));
@@ -387,7 +383,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
@@ -486,7 +481,6 @@ mod tests {
 
         let input = "";
         let (_result, env) = eval(&program, input).unwrap();
-        println!("{:?}", program);
         assert_eq!(env.get(&id("y")), Some(&Value::Num(2, -5..5)));
         assert_eq!(env.get(&id("w")), Some(&Value::Bool(false)));
     }
@@ -584,7 +578,6 @@ mod tests {
             accept if z == true
         "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
         let input = "";
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -605,7 +598,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
@@ -629,7 +621,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(2, 2..3)));
@@ -652,7 +643,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(1, 1..2)));
@@ -675,7 +665,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(2, 2..3)));
@@ -698,7 +687,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(1, 1..2)));
@@ -725,7 +713,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(2, 2..3)));
@@ -743,7 +730,6 @@ mod tests {
 		        accept if x == 3
 		    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = evaluate(&program, input);
         match result {
@@ -766,7 +752,6 @@ mod tests {
 	        accept if x == 3
 	    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = evaluate(&program, input);
         match result {
@@ -787,7 +772,6 @@ mod tests {
 			accept if x == 2
 		"#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let retval = eval(&program, "a");
 
@@ -819,7 +803,6 @@ mod tests {
             accept if rem == 0
         "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = eval(&program, "1").unwrap();
         println!("res: {:?}", result);
