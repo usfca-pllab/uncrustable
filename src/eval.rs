@@ -806,21 +806,22 @@ mod tests {
     #[test]
     fn test_div3() {
         let input = r#"
-                alphabet: { '0', '1' }
-                fn char_to_bit(c: sym) -> int[2] = match c {
-                '0' -> 0 as int[2]
-                '1' -> 1 as int[2]
-                }
-                let rem: int[3];
-                on input bit {
-                    rem = 2 as int[3] * rem + char_to_bit(bit) as int[3];
-                }
-                accept if rem == 0 as int[3]
-		    "#;
+            alphabet: { '0', '1' }
+            fn char_to_bit(c: sym) -> int[0..3] = match c {
+                '0' -> 0
+                '1' -> 1
+            }
+            let rem: int[0..3];
+            rem = 1;
+            on input bit {
+                rem = (2 as int[0..3] * rem as int[0..3]) + (char_to_bit(bit) as int[0..3]);
+            }
+            accept if rem == 0
+        "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
 
-        let result = eval(&program, "11").unwrap();
+        let result = eval(&program, "1").unwrap();
         println!("res: {:?}", result);
         println!("--------------");
     }

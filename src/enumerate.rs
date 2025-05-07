@@ -42,31 +42,37 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
 
     while workqueue.is_empty() == false {
         let s = workqueue.pop().unwrap();
+        println!("s: {:?}", s);
         let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
-            eval::eval_action(program, &mut env_clone, sym); // cloned env
+            
+            eval::eval_action(program, &mut env_clone, sym)?; // cloned env
+
             if let Some(_) = &program.action.0 {
                 env_clone.remove(&program.action.0.unwrap());
             }
+            println!("sym: {:?} and env_clone: {:?}", sym, env_clone);
 
             let mut new = true;
             if env_lookup.contains_key(&env_clone) {
                 new = false;
             }
+            
             let t = env_lookup
                 .entry(env_clone.clone())
                 .or_insert_with(|| dfa::State::fresh());
+            println!("curr st: {:?} sym: {:?} and env_clone: {:?} and found st: {:?}", s, sym, env_clone.clone(), t);
+            s_edges.insert(*sym, t.clone());
             if new == true {
-                // let s_new = t;
-                // env_lookup.insert(env_clone.clone(), t);
                 state_lookup.insert(*t, env_clone.clone());
                 workqueue.insert(workqueue.len(), t.clone());
             }
-
-            s_edges.insert(*sym, t.clone());
+            // trans.insert(s, s_edges.clone());
+            println!("s_edges: {:?}", s_edges);
         }
         trans.insert(s, s_edges);
+        println!("trans: {:?}\n", trans);
     }
     for st in state_lookup.keys().clone() {
         let accept = eval::eval_expr(
@@ -143,8 +149,8 @@ mod tests {
         let input = r#"
                 alphabet: { '0', '1' }
                 fn char_to_bit(c: sym) -> int[0..3] = match c {
-                '0' -> 0
-                '1' -> 1
+                    '0' -> 0
+                    '1' -> 1
                 }
                 let rem: int[0..3];
                 on input bit {
@@ -156,7 +162,7 @@ mod tests {
         println!("program: {:?}", program);
 
         let result = enumerate(&program, "01").unwrap();
-        println!("res: {}", result);
+        println!("res: {:#?}", result);
         println!("--------------");
     }
 
