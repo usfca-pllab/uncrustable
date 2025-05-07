@@ -47,14 +47,14 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
                 new = false;
             }
 
-            let t = env_lookup
+            let t = *env_lookup
                 .entry(env_clone.clone())
                 .or_insert_with(|| dfa::State::fresh());
 
-            s_edges.insert(*sym, t.clone());
+            s_edges.insert(*sym, t);
             if new {
-                state_lookup.insert(*t, env_clone.clone());
-                worklist.insert(worklist.len(), t.clone());
+                state_lookup.insert(t, env_clone.clone());
+                worklist.insert(worklist.len(), t);
             }
         }
         trans.insert(s, s_edges);
