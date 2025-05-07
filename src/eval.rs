@@ -113,9 +113,15 @@ pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(),
         env.insert(id.clone(), Value::Sym(*sym));
     }
 
+    // if let Some(_) = &program.action.0 {
+    //     env.remove(&program.action.0.unwrap());
+    // }
+
     // Evaluate each statement in the action
     for stmt in &program.action.1 {
+        println!("env before eval_stmt: {:?}", env);
         eval_stmt(stmt, env, program)?; // propagate errors
+        println!("env after eval_stmt: {:?}", env);
     }
 
     Ok(())
@@ -130,6 +136,8 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
 
     for sym in input.chars() {
         eval_action(program, &mut env, &Symbol(sym))?;
+        println!("HEREEEEE");
+        println!("curr env: {:#?}", env);
     }
 
     // evaluate accept
