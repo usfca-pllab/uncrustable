@@ -52,7 +52,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
                 .or_insert_with(|| dfa::State::fresh());
 
             s_edges.insert(*sym, t.clone());
-            if new == true {
+            if new {
                 state_lookup.insert(*t, env_clone.clone());
                 worklist.insert(worklist.len(), t.clone());
             }
@@ -61,7 +61,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
     }
     for st in state_lookup.keys().clone() {
         let accept = eval::eval_expr(
-            &program.accept.clone(),
+            &program.accept,
             &state_lookup.get(&st).unwrap().clone(),
             &program,
         )?;
