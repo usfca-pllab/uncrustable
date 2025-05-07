@@ -22,7 +22,7 @@ pub enum TypeError {
 /// Helper function to create a type mismatch error
 fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
     debug!("In {expr:#?}");
-    error!("Type mismatch: expected {expected:?}, found {actual:?}");
+    // error!("Type mismatch: expected {expected:?}, found {actual:?}");
     TypeError::TypeMismatch
 }
 
@@ -44,7 +44,7 @@ pub struct TypeCtx<'prog> {
 }
 
 /// Type check an expression in a given type context
-fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
+pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
     match expr {
         Expr::Var(id) => ctx
             .env
@@ -165,7 +165,7 @@ fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
 }
 
 /// Typecheck a statement in a given environment
-fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
+pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             let var_type = ctx
@@ -198,7 +198,7 @@ fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 }
 
 /// Typecheck a block of statements in the given environment using typeck_stmt
-fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
+pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
     // type check each stmt in the vector sequence is ok
     for stmt in block {
         typeck_stmt(stmt, ctx)?;
@@ -207,7 +207,7 @@ fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
 }
 
 ///Typecheck a function using the given environment and function environment
-fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
+pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let mut fun_env = ctx.env.clone();
 
     for (param, param_type) in &fun.params {
