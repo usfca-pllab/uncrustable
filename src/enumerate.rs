@@ -10,27 +10,18 @@ use std::collections::BTreeMap;
 
 type Env = BTreeMap<Id, Value>;
 
-/**
- *
- */
+/// Populates the DFA struct
 pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
-    // keep track of visited states and their environments
-    // let mut state_lookup: Map<State, Env> = Map::new();
     let mut state_lookup: Map<State, Env> = Map::new();
-    // the transitions between states
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
-    //state names
     let mut names: Map<State, String> = Map::new();
-
     let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new();
 
-    //get initial state
     let mut init_e = eval::init_env(program);
     for stmt in &program.start {
         eval::eval_stmt(stmt, &mut init_e, &program)?;
     }
 
-    //add inital state
     let init_s = dfa::State::fresh();
     state_lookup.insert(init_s, init_e.clone());
     env_lookup.insert(init_e.clone(), init_s);
@@ -38,7 +29,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
     let mut workqueue: Vec<State> = Vec::new();
     workqueue.insert(0, init_s);
     let mut accepting: Set<State> = Set::new();
-    // check acceptance for init env
 
     while workqueue.is_empty() == false {
         let s = workqueue.pop().unwrap();
