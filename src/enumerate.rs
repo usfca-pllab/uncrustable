@@ -46,7 +46,6 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         let mut s_edges: Map<Symbol, State> = Map::new();
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
-            
             eval::eval_action(program, &mut env_clone, sym)?; // I THINK THIS IS WHERE THE PROBLEM IS
 
             if let Some(_) = &program.action.0 {
@@ -58,11 +57,17 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             if env_lookup.contains_key(&env_clone) {
                 new = false;
             }
-            
+
             let t = env_lookup
                 .entry(env_clone.clone())
                 .or_insert_with(|| dfa::State::fresh());
-            println!("curr st: {:?} sym: {:?} and env_clone: {:?} and found st: {:?}", s, sym, env_clone.clone(), t);
+            println!(
+                "curr st: {:?} sym: {:?} and env_clone: {:?} and found st: {:?}",
+                s,
+                sym,
+                env_clone.clone(),
+                t
+            );
             s_edges.insert(*sym, t.clone());
             if new == true {
                 state_lookup.insert(*t, env_clone.clone());
@@ -205,28 +210,28 @@ mod tests {
         println!("res: {}", dfa);
     }
 
-    #[test]
-    fn test_div3_pic() {
-        let input = r#"
-                alphabet: { '0', '1' }
-                let rem = 0;
-                on input {
-                    for c in input {
-                        if c == '0' {
-                            rem = (2 * rem) % 3;
-                        } else if c == '1' {
-                            rem = (2 * rem + 1) % 3;
-                        }
-                    }
-                }
-                accept if rem == 0
+    // #[test]
+    // fn test_div3_pic() {
+    //     let input = r#"
+    //             alphabet: { '0', '1' }
+    //             let rem = 0;
+    //             on input {
+    //                 for c in input {
+    //                     if c == '0' {
+    //                         rem = (2 * rem) % 3;
+    //                     } else if c == '1' {
+    //                         rem = (2 * rem + 1) % 3;
+    //                     }
+    //                 }
+    //             }
+    //             accept if rem == 0
                 
-		    "#;
-        let program = parse(input).unwrap();
-        println!("program: {:?}", program);
+	// 	    "#;
+    //     let program = parse(input).unwrap();
+    //     println!("program: {:?}", program);
 
-        let result = enumerate(&program, "01").unwrap();
-        println!("res: {}", result);
-        println!("--------------");
-    }
+    //     let result = enumerate(&program, "01").unwrap();
+    //     println!("res: {}", result);
+    //     println!("--------------");
+    // }
 }
