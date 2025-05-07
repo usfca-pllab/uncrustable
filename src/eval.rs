@@ -36,7 +36,6 @@ pub enum Value {
     Sym(Symbol),
 }
 
-
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         use Value::*;
@@ -838,5 +837,4 @@ mod tests {
         println!("res: {:?}", result);
         println!("--------------");
     }
-
 }
