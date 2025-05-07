@@ -28,12 +28,14 @@ pub enum RuntimeError {
 }
 
 // abstraction for values making up expressions
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Bool(bool),
     Num(i64, Range<i64>),
     Sym(Symbol),
 }
+
 
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -117,6 +119,33 @@ pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(),
     }
 
     Ok(())
+}
+
+// map of variable names to values
+type Env = Map<Id, Value>;
+
+pub fn init_env(program: &Program) -> Env {
+    let mut env = Env::new();
+    let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
+    let first_symbol = Value::Sym(alph.iter().next().unwrap().clone());
+
+    // insert locals into env
+    for (id, typ) in &program.locals {
+        let value = match typ {
+            // defaults for now are zero values
+            Type::BoolT => Value::Bool(false),
+
+            //  default to be beginning of range
+            Type::NumT(range) => Value::Num(range.start, range.clone()),
+
+            //  default to empty char
+            Type::SymT => first_symbol.clone(),
+        };
+
+        env.insert(id.clone(), value);
+    }
+
+    env
 }
 
 fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
@@ -481,6 +510,7 @@ mod tests {
 
         let input = "";
         let (_result, env) = eval(&program, input).unwrap();
+
         assert_eq!(env.get(&id("y")), Some(&Value::Num(2, -5..5)));
         assert_eq!(env.get(&id("w")), Some(&Value::Bool(false)));
     }
@@ -808,4 +838,5 @@ mod tests {
         println!("res: {:?}", result);
         println!("--------------");
     }
+
 }
