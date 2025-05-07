@@ -60,7 +60,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             let t = env_lookup
                 .entry(env_clone.clone())
                 .or_insert_with(|| dfa::State::fresh());
-           
+
             s_edges.insert(*sym, t.clone());
             if new == true {
                 state_lookup.insert(*t, env_clone.clone());
