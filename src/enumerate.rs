@@ -42,17 +42,15 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
 
     while workqueue.is_empty() == false {
         let s = workqueue.pop().unwrap();
-        println!("s: {:?}", s);
         let mut s_edges: Map<Symbol, State> = Map::new();
         let curr_env = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
             let mut env_clone = curr_env.clone();
-            eval::eval_action(program, &mut env_clone, sym)?; // I THINK THIS IS WHERE THE PROBLEM IS
+            eval::eval_action(program, &mut env_clone, sym)?;
 
             if let Some(_) = &program.action.0 {
                 env_clone.remove(&program.action.0.unwrap());
             }
-            println!("sym: {:?} and env_clone: {:?}", sym, env_clone);
 
             let mut new = true;
             if env_lookup.contains_key(&env_clone) {
@@ -62,23 +60,14 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             let t = env_lookup
                 .entry(env_clone.clone())
                 .or_insert_with(|| dfa::State::fresh());
-            println!(
-                "curr st: {:?} sym: {:?} and env_clone: {:?} and found st: {:?}",
-                s,
-                sym,
-                env_clone.clone(),
-                t
-            );
+           
             s_edges.insert(*sym, t.clone());
             if new == true {
                 state_lookup.insert(*t, env_clone.clone());
                 workqueue.insert(workqueue.len(), t.clone());
             }
-            // trans.insert(s, s_edges.clone());
-            println!("s_edges: {:?}", s_edges);
         }
         trans.insert(s, s_edges);
-        println!("trans: {:?}\n", trans);
     }
     for st in state_lookup.keys().clone() {
         let accept = eval::eval_expr(

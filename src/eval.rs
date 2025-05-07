@@ -115,9 +115,7 @@ pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(),
 
     // Evaluate each statement in the action
     for stmt in &program.action.1 {
-        println!("env before eval_stmt: {:?}", env);
         eval_stmt(stmt, env, program)?; // propagate errors
-        println!("env after eval_stmt: {:?}", env);
     }
 
     Ok(())
@@ -132,8 +130,6 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
 
     for sym in input.chars() {
         eval_action(program, &mut env, &Symbol(sym))?;
-        println!("HEREEEEE");
-        println!("curr env: {:#?}", env);
     }
 
     // evaluate accept
@@ -315,7 +311,6 @@ pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value,
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
-            println!("value after assign: {:?}", value);
             env.insert(id.clone(), value.clone());
             Ok(value)
         }
