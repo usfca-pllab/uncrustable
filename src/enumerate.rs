@@ -26,12 +26,12 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
     state_lookup.insert(init_s, init_e.clone());
     env_lookup.insert(init_e.clone(), init_s);
 
-    let mut workqueue: Vec<State> = Vec::new();
-    workqueue.insert(0, init_s);
+    let mut worklist: Vec<State> = Vec::new();
+    worklist.insert(0, init_s);
     let mut accepting: Set<State> = Set::new();
 
-    while workqueue.is_empty() == false {
-        let s = workqueue.pop().unwrap();
+    while worklist.is_empty() == false {
+        let s = worklist.pop().unwrap();
         let mut s_edges: Map<Symbol, State> = Map::new();
         let curr_env = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
@@ -54,7 +54,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
             s_edges.insert(*sym, t.clone());
             if new == true {
                 state_lookup.insert(*t, env_clone.clone());
-                workqueue.insert(workqueue.len(), t.clone());
+                worklist.insert(worklist.len(), t.clone());
             }
         }
         trans.insert(s, s_edges);
