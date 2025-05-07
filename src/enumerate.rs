@@ -60,11 +60,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         trans.insert(s, s_edges);
     }
     for st in state_lookup.keys().clone() {
-        let accept = eval::eval_expr(
-            &program.accept,
-            &state_lookup.get(&st).unwrap(),
-            &program,
-        )?;
+        let accept = eval::eval_expr(&program.accept, &state_lookup.get(&st).unwrap(), &program)?;
         if accept == Value::Bool(true) {
             // assuming that all the accept statments of programs are bools
             accepting.insert(*st);
