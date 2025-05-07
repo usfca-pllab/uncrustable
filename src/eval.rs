@@ -113,10 +113,6 @@ pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(),
         env.insert(id.clone(), Value::Sym(*sym));
     }
 
-    // if let Some(_) = &program.action.0 {
-    //     env.remove(&program.action.0.unwrap());
-    // }
-
     // Evaluate each statement in the action
     for stmt in &program.action.1 {
         println!("env before eval_stmt: {:?}", env);
@@ -319,6 +315,7 @@ pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value,
     match stmt {
         Stmt::Assign(id, expr) => {
             let value = eval_expr(expr, env, &program)?;
+            println!("value after assign: {:?}", value);
             env.insert(id.clone(), value.clone());
             Ok(value)
         }

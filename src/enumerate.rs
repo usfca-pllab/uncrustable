@@ -44,8 +44,9 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         let s = workqueue.pop().unwrap();
         println!("s: {:?}", s);
         let mut s_edges: Map<Symbol, State> = Map::new();
-        let mut env_clone = state_lookup.get(&s).unwrap().clone();
+        let curr_env = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
+            let mut env_clone = curr_env.clone();
             eval::eval_action(program, &mut env_clone, sym)?; // I THINK THIS IS WHERE THE PROBLEM IS
 
             if let Some(_) = &program.action.0 {
