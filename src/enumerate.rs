@@ -158,6 +158,7 @@ mod tests {
 
         let result = enumerate(&program, "01").unwrap();
         println!("res: {:#?}", result);
+        println!("res: {}", result);
         println!("--------------");
     }
 
