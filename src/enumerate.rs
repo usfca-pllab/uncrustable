@@ -47,7 +47,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         let mut env_clone = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
             
-            eval::eval_action(program, &mut env_clone, sym)?; // cloned env
+            eval::eval_action(program, &mut env_clone, sym)?; // I THINK THIS IS WHERE THE PROBLEM IS
 
             if let Some(_) = &program.action.0 {
                 env_clone.remove(&program.action.0.unwrap());
