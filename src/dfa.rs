@@ -28,7 +28,6 @@ impl State {
     pub fn new(s: u32) -> State {
         State(s)
     }
-
 }
 
 /*

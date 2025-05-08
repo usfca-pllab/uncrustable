@@ -10,11 +10,6 @@ use std::collections::BTreeMap;
 
 type Env = BTreeMap<Id, Value>;
 
-/// Populates the DFA struct
-pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
-/**
- *
- */
 pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<char>, RuntimeError> {
     // keep track of visited states and their environments
     // let mut state_lookup: Map<State, Env> = Map::new();
@@ -50,14 +45,10 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<char>, RuntimeEr
 
             let mut new = false;
 
-            let t = *env_lookup
-                .entry(env_clone.clone())
-                .or_insert_with(
-                    || 
-                    {   
-                        new = true;
-                        dfa::State::fresh()
-                    });
+            let t = *env_lookup.entry(env_clone.clone()).or_insert_with(|| {
+                new = true;
+                dfa::State::fresh()
+            });
 
             s_edges.insert(*sym, t);
             if new {
@@ -69,11 +60,7 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<char>, RuntimeEr
     }
     for st in state_lookup.keys().clone() {
         let state_env = state_lookup.get(st).unwrap();
-        let accept = eval::eval_expr(
-            &program.accept.clone(),
-            &state_env.clone(),
-            &program,
-        )?;
+        let accept = eval::eval_expr(&program.accept.clone(), &state_env.clone(), &program)?;
         if accept == Value::Bool(true) {
             // assuming that all the accept statments of programs are bools
             accepting.insert(*st);
@@ -121,14 +108,12 @@ mod tests {
 
         let result = enumerate(&program, input).unwrap();
         println!("res: {:#?}", result);
-        
+
         // assert_eq!("accepting: {}");
-        
 
         assert!(result.compare(dfa).is_none());
 
         println!("--------------");
-
     }
 
     #[test]
