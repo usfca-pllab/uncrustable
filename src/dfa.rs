@@ -51,8 +51,6 @@ impl fmt::Display for Dfa<Symbol> {
             } else {
                 write!(f, "  {}((\"{}\"))", state_id, label)
             }
-
-            // writeln!(f, "{}", layer)
         })?;
 
         // transitions
@@ -279,8 +277,6 @@ mod tests {
         let output = format!("{}", dfa);
         assert_eq!(expected_output, output);
     }
-
-      
 
     #[test]
     fn test_new_valid() {

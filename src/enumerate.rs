@@ -110,8 +110,14 @@ mod tests {
         let dfa: Dfa<Symbol> = Dfa::try_new(
             BTreeSet::from([Symbol('a')]),
             BTreeMap::from([
-                (State::new(0), BTreeMap::from([(Symbol('a'), State::new(1))])),
-                (State::new(1), BTreeMap::from([(Symbol('a'), State::new(1))])),
+                (
+                    State::new(0),
+                    BTreeMap::from([(Symbol('a'), State::new(1))]),
+                ),
+                (
+                    State::new(1),
+                    BTreeMap::from([(Symbol('a'), State::new(1))]),
+                ),
             ]),
             State::new(0),
             BTreeSet::from([State::new(0), State::new(1)]),
