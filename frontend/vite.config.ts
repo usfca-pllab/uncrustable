@@ -8,5 +8,6 @@ export default defineConfig({
   plugins: [
     react(),
     wasm()
-  ]
+  ],
+  base: './', // Set base URL for GitHub Pages deployment
 });
