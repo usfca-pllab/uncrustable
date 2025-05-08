@@ -6,32 +6,40 @@ use std::fmt;
 use std::ops::Range;
 use thiserror::Error;
 
-// Errors that can occur during type checking
+/// Errors that can occur during type checking
 #[derive(Error, Debug)]
 pub enum RuntimeError {
+    /// Invalid expression that cannot be evaluated
     #[error("Invalid expression")]
     InvalidExpression,
+    /// Found a non-bool statement
     #[error("Invalid statement")]
     InvalidStatement,
+    /// Found division by zero
     #[error("Division by zero")]
     DivisionbyZero,
+    /// Found non-valid type
     #[error("Type error")]
     TypeError,
-    #[error("Invalid pperand")]
+    /// Found non-valid operand that cannot be evaluated
+    #[error("Invalid operand")]
     InvalidOperand,
+    /// Found modulus by zero
     #[error("Modulus by zero")]
     ModulusByZero,
+    /// Num out of expected range, unable to cast
     #[error("Cast fail: out of expected range")]
     OutOfRange,
-    #[error("Call fail: incorrect args")]
-    IncorrectArgs,
 }
 
-// abstraction for values making up expressions
+/// abstraction for values making up expressions
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
+    /// bool Value
     Bool(bool),
+    /// num Value includes i64 and range
     Num(i64, Range<i64>),
+    /// sym Value of Symbol type
     Sym(Symbol),
 }
 
@@ -78,6 +86,7 @@ impl Ord for Value {
     }
 }
 
+/// evaluate one action in a program
 pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(), RuntimeError> {
     if let Some(id) = &program.action.0 {
         env.insert(id.clone(), Value::Sym(*sym));
@@ -94,6 +103,7 @@ pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(),
 // map of variable names to values
 type Env = BTreeMap<Id, Value>;
 
+/// set up initial eval env
 pub fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
     let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
@@ -171,7 +181,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
     return val;
 }
 
-// eval. expr.
+/// evaluate expression for given program, return value
 pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
@@ -303,7 +313,7 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
     }
 }
 
-// eval. stmt.
+/// evaluate statement for a given program
 pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
@@ -339,8 +349,8 @@ pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value,
     }
 }
 
+/// evaluate a program, return result of evaluation
 pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
-    // do a match then return
     match eval(program, input) {
         Ok((result, _)) => Ok(result),
         Err(e) => Err(e),

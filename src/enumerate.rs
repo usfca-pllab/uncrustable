@@ -10,9 +10,8 @@ use std::collections::BTreeMap;
 
 type Env = BTreeMap<Id, Value>;
 
-pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
-    // keep track of visited states and their environments
-    // let mut state_lookup: Map<State, Env> = Map::new();
+/// process a program and create Dfa
+pub fn enumerate(program: &Program) -> Result<Dfa<Symbol>, RuntimeError> {
     let mut state_lookup: Map<State, Env> = Map::new();
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
     let mut names: Map<State, String> = Map::new();
@@ -105,15 +104,15 @@ mod tests {
             "#;
         let program = parse(input).unwrap();
 
-        let result = enumerate(&program, input).unwrap();
+        let result = enumerate(&program).unwrap();
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('a')]), // alphabet
+            Set::from([Symbol('a')]),
             Map::from([
                 (State::new(0), Map::from([(Symbol('a'), State::new(1))])),
                 (State::new(1), Map::from([(Symbol('a'), State::new(1))])),
             ]),
-            State::new(0),                             // start state
-            Set::from([State::new(0), State::new(1)]), // accepting states
+            State::new(0),
+            Set::from([State::new(0), State::new(1)]),
             Map::from([
                 (State::new(1), "x = 3 as [3..4]".to_string()),
                 (State::new(0), "x = 0 as [0..4]".to_string()),
@@ -136,10 +135,10 @@ mod tests {
             "#;
         let program = parse(input).unwrap();
 
-        let result = enumerate(&program, "1").unwrap();
+        let result = enumerate(&program).unwrap();
 
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('0'), Symbol('1')]), // alphabet
+            Set::from([Symbol('0'), Symbol('1')]),
             Map::from([
                 (
                     State::new(1),
@@ -150,8 +149,8 @@ mod tests {
                     Map::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(0))]),
                 ),
             ]),
-            State::new(0),              // start state
-            Set::from([State::new(1)]), // accepting states
+            State::new(0),
+            Set::from([State::new(1)]),
             Map::from([
                 (State::new(1), "ends_with_zero = true".to_string()),
                 (State::new(0), "ends_with_zero = false".to_string()),
@@ -178,10 +177,10 @@ mod tests {
             "#;
         let program = parse(input).unwrap();
 
-        let result = enumerate(&program, "01").unwrap();
+        let result = enumerate(&program).unwrap();
 
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('0'), Symbol('1')]), // alphabet
+            Set::from([Symbol('0'), Symbol('1')]),
             Map::from([
                 (
                     State::new(1),
@@ -196,8 +195,8 @@ mod tests {
                     Map::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(2))]),
                 ),
             ]),
-            State::new(0),              // start state
-            Set::from([State::new(0)]), // accepting states
+            State::new(0),
+            Set::from([State::new(0)]),
             Map::from([
                 (State::new(0), "rem = 0 as [0..3]".to_string()),
                 (State::new(1), "rem = 1 as [0..3]".to_string()),
@@ -226,10 +225,10 @@ mod tests {
             accept if w == false
         "#;
         let program = parse(input).unwrap();
-        let result = enumerate(&program, input).unwrap();
+        let result = enumerate(&program).unwrap();
 
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('d'), Symbol('a')]), // alphabet
+            Set::from([Symbol('d'), Symbol('a')]),
             Map::from([
                 (
                     State::new(1),
@@ -244,8 +243,8 @@ mod tests {
                     Map::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
                 ),
             ]),
-            State::new(0),                             // start state
-            Set::from([State::new(0), State::new(1)]), // accepting states
+            State::new(0),
+            Set::from([State::new(0), State::new(1)]),
             Map::from([
                 (State::new(0), "w = false, z = false".to_string()),
                 (State::new(1), "w = false, z = true".to_string()),
