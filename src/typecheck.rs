@@ -20,9 +20,8 @@ pub enum TypeError {
 }
 
 /// Helper function to create a type mismatch error
-fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
+fn type_mismatch(expr: &Expr) -> TypeError {
     debug!("In {expr:#?}");
-    error!("Type mismatch: expected {expected:?}, found {actual:?}");
     TypeError::TypeMismatch
 }
 
@@ -31,7 +30,7 @@ fn expect_equal(actual: &Type, expected: &Type, expr: &Expr) -> Result<(), TypeE
     if actual == expected {
         Ok(())
     } else {
-        Err(type_mismatch(actual, expected, expr))
+        Err(type_mismatch(expr))
     }
 }
 
@@ -44,7 +43,7 @@ pub struct TypeCtx<'prog> {
 }
 
 /// Type check an expression in a given type context
-fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
+pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
     match expr {
         Expr::Var(id) => ctx
             .env
@@ -110,7 +109,7 @@ fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             // Verify that argument types match parameter types
             let param_types: Vec<Type> = function.params.iter().map(|(_, t)| t.clone()).collect();
             if arg_types != param_types {
-                return Err(type_mismatch(&arg_types[0], &param_types[0], expr));
+                return Err(type_mismatch(expr));
             }
             Ok(function.ret_typ.clone())
         }
@@ -165,7 +164,7 @@ fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
 }
 
 /// Typecheck a statement in a given environment
-fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
+pub fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
             let var_type = ctx
@@ -198,7 +197,7 @@ fn typeck_stmt(stmt: &Stmt, ctx: &TypeCtx) -> Result<(), TypeError> {
 }
 
 /// Typecheck a block of statements in the given environment using typeck_stmt
-fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
+pub fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
     // type check each stmt in the vector sequence is ok
     for stmt in block {
         typeck_stmt(stmt, ctx)?;
@@ -207,7 +206,7 @@ fn typeck_block(block: &Block, ctx: &TypeCtx) -> Result<(), TypeError> {
 }
 
 ///Typecheck a function using the given environment and function environment
-fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
+pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     let mut fun_env = ctx.env.clone();
 
     for (param, param_type) in &fun.params {
@@ -237,6 +236,10 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     let (input_var, action_block) = &program.action;
     let mut action_env = ctx.env.clone();
     if let Some(var) = input_var {
+        // Check if the input variable shadows any existing variable
+        if ctx.env.contains_key(var) {
+            return Err(TypeError::UndefinedVariable(*var));
+        }
         action_env.insert(*var, Type::SymT);
     }
     typeck_block(
@@ -296,6 +299,47 @@ mod tests {
         };
         let another_undefined_expr = Expr::Var(id("another_flag"));
         assert!(typeck_expr(&another_undefined_expr, &ctx).is_err());
+    }
+
+    #[test]
+    fn variable_shadowing() {
+        // Test that input variables can't shadow existing variables
+        let program_with_shadowing = r#"
+            alphabet: {'a', 'b'}
+            let c: bool;  // Define 'c' as a program variable
+            on input c {  // Try to use 'c' as an input variable too
+                c = true;
+            }
+            accept if c
+        "#;
+
+        let program: Program = parse(program_with_shadowing).unwrap();
+        let result = typecheck_program(&program);
+
+        // Verify that typechecking fails due to variable shadowing
+        assert!(result.is_err());
+        match result {
+            Err(TypeError::UndefinedVariable(var_id)) => {
+                assert_eq!(var_id, id("c")); // Verify the specific variable that caused the error
+            }
+            _ => panic!(
+                "Expected UndefinedVariable error for shadowing, got: {:?}",
+                result
+            ),
+        }
+
+        // Test with non-shadowing variables (should pass)
+        let program_without_shadowing = r#"
+            alphabet: {'a', 'b'}
+            let flag: bool;
+            on input c {  // Different name than any program variable
+                flag = true;
+            }
+            accept if flag
+        "#;
+
+        let valid_program: Program = parse(program_without_shadowing).unwrap();
+        assert!(typecheck_program(&valid_program).is_ok());
     }
 
     #[test]
