@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   release:              # Trigger on release creation
     types: [published]
+  workflow_dispatch:    # Allow manual triggering
 
 permissions:
   contents: read
@@ -14,40 +15,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build-wasm:
+    uses: ./.github/workflows/wasm.yml
+
   build:
     runs-on: ubuntu-latest
+    needs: build-wasm
     steps:
       - uses: actions/checkout@v4
 
-      # Set up Rust toolchain for WASM compilation
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+      # Download WASM artifacts from the build-wasm job
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v3
         with:
-          profile: minimal
-          toolchain: stable
-          target: wasm32-unknown-unknown
-          override: true
-
-      # Clean Rust dependencies
-      - name: Clean Rust dependencies
-        run: |
-          cargo clean
-          rm -rf target/
-
-      # Install wasm-pack
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      # Build Rust WASM with clean flag
-      - name: Build WASM
-        run: wasm-pack build --target web
+          name: wasm-pkg
+          path: pkg
 
       # Setup Node.js
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          # Disable cache to ensure clean install
           cache: 'npm'
           cache-dependency-path: 'web/package-lock.json'
 
