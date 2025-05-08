@@ -160,8 +160,6 @@ mod tests {
         .unwrap();
 
         assert_eq!(result.compare(&dfa), None);
-
-        println!("--------------");
     }
 
     #[test]
