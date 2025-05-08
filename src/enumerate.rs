@@ -104,16 +104,24 @@ mod tests {
 		        accept if x == 2 as int[0..2]
 		    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = enumerate(&program, input).unwrap();
-        println!("res: {:#?}", result);
+        let dfa: Dfa<Symbol> = Dfa::try_new(
+            Set::from([Symbol('a')]), // alphabet
+            Map::from([
+                (State::new(0), Map::from([(Symbol('a'), State::new(1))])),
+                (State::new(1), Map::from([(Symbol('a'), State::new(1))])),
+            ]),
+            State::new(0),                             // start state
+            Set::from([State::new(0), State::new(1)]), // accepting states
+            Map::from([
+                (State::new(1), "x = 3 as [3..4]".to_string()),
+                (State::new(0), "x = 0 as [0..4]".to_string()),
+            ]),
+        )
+        .unwrap();
 
-        // assert_eq!("accepting: {}");
-
-        assert!(result.compare(&result).is_none());
-
-        println!("--------------");
+        assert_eq!(result.compare(&dfa), None);
     }
 
     #[test]
@@ -127,11 +135,32 @@ mod tests {
                 accept if ends_with_zero == true
 		    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = enumerate(&program, "1").unwrap();
-        
-        println!("res: {:#?}", result);
+
+        let dfa: Dfa<Symbol> = Dfa::try_new(
+            Set::from([Symbol('0'), Symbol('1')]), // alphabet
+            Map::from([
+                (
+                    State::new(1),
+                    Map::from([(Symbol('1'), State::new(0)), (Symbol('0'), State::new(1))]),
+                ),
+                (
+                    State::new(0),
+                    Map::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(0))]),
+                ),
+            ]),
+            State::new(0),              // start state
+            Set::from([State::new(1)]), // accepting states
+            Map::from([
+                (State::new(1), "ends_with_zero = true".to_string()),
+                (State::new(0), "ends_with_zero = false".to_string()),
+            ]),
+        )
+        .unwrap();
+
+        assert_eq!(result.compare(&dfa), None);
+
         println!("--------------");
     }
 
@@ -150,30 +179,36 @@ mod tests {
                 accept if rem == 0
 		    "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = enumerate(&program, "01").unwrap();
-        println!("res: {:#?}", result);
-        println!("res: {}", result);
-        println!("--------------");
-    }
 
-    #[test]
-    fn test_odd() {
-        let input = r#"
-                alphabet: { '0', '1' }
-                let length_parity: int[2];
-                on input {
-                    length_parity = length_parity + 1;
-                }
-                accept if length_parity == 1
-		    "#;
-        let program = parse(input).unwrap();
-        println!("program: {:?}", program);
+        let dfa: Dfa<Symbol> = Dfa::try_new(
+            Set::from([Symbol('0'), Symbol('1')]), // alphabet
+            Map::from([
+                (
+                    State::new(1),
+                    Map::from([(Symbol('1'), State::new(0)), (Symbol('0'), State::new(2))]),
+                ),
+                (
+                    State::new(0),
+                    Map::from([(Symbol('0'), State::new(0)), (Symbol('1'), State::new(1))]),
+                ),
+                (
+                    State::new(2),
+                    Map::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(2))]),
+                ),
+            ]),
+            State::new(0),              // start state
+            Set::from([State::new(0)]), // accepting states
+            Map::from([
+                (State::new(0), "rem = 0 as [0..3]".to_string()),
+                (State::new(1), "rem = 1 as [0..3]".to_string()),
+                (State::new(2), "rem = 2 as [0..3]".to_string()),
+            ]),
+        )
+        .unwrap();
 
-        let result = enumerate(&program, "01").unwrap();
-        println!("res: {}", result);
-        println!("--------------");
+        assert_eq!(result.compare(&dfa), None);
     }
 
     #[test]
@@ -193,7 +228,34 @@ mod tests {
 	        accept if w == false
 	    "#;
         let program = parse(input).unwrap();
-        let dfa = enumerate(&program, input).unwrap();
-        println!("res: {}", dfa);
+        let result = enumerate(&program, input).unwrap();
+
+        let dfa: Dfa<Symbol> = Dfa::try_new(
+            Set::from([Symbol('d'), Symbol('a')]), // alphabet
+            Map::from([
+                (
+                    State::new(1),
+                    Map::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
+                ),
+                (
+                    State::new(0),
+                    Map::from([(Symbol('a'), State::new(2)), (Symbol('d'), State::new(1))]),
+                ),
+                (
+                    State::new(2),
+                    Map::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
+                ),
+            ]),
+            State::new(0),                             // start state
+            Set::from([State::new(0), State::new(1)]), // accepting states
+            Map::from([
+                (State::new(0), "w = false, z = false".to_string()),
+                (State::new(1), "w = false, z = true".to_string()),
+                (State::new(2), "w = true, z = true".to_string()),
+            ]),
+        )
+        .unwrap();
+
+        assert_eq!(result.compare(&dfa), None);
     }
 }
