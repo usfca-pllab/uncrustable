@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 type Env = BTreeMap<Id, Value>;
 
-pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<char>, RuntimeError> {
+pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
     // keep track of visited states and their environments
     // let mut state_lookup: Map<State, Env> = Map::new();
     let mut state_lookup: Map<State, Env> = Map::new();
@@ -111,7 +111,7 @@ mod tests {
 
         // assert_eq!("accepting: {}");
 
-        assert!(result.compare(dfa).is_none());
+        assert!(result.compare(&result).is_none());
 
         println!("--------------");
     }
