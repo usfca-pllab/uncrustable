@@ -1,41 +1,109 @@
 use crate::syntax::*;
+use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::collections::HashMap as Map;
+use std::fmt;
 use std::ops::Range;
 use thiserror::Error;
 
-// Errors that can occur during type checking
+/// Errors that can occur during type checking
 #[derive(Error, Debug)]
 pub enum RuntimeError {
+    /// Invalid expression that cannot be evaluated
     #[error("Invalid expression")]
     InvalidExpression,
+    /// Found a non-bool statement
     #[error("Invalid statement")]
     InvalidStatement,
+    /// Found division by zero
     #[error("Division by zero")]
     DivisionbyZero,
+    /// Found non-valid type
     #[error("Type error")]
     TypeError,
-    #[error("Invalid pperand")]
+    /// Found non-valid operand that cannot be evaluated
+    #[error("Invalid operand")]
     InvalidOperand,
+    /// Found modulus by zero
     #[error("Modulus by zero")]
     ModulusByZero,
+    /// Num out of expected range, unable to cast
     #[error("Cast fail: out of expected range")]
     OutOfRange,
-    #[error("Call fail: incorrect args")]
-    IncorrectArgs,
 }
 
-// abstraction for values making up expressions
-#[derive(Debug, Clone, PartialEq)]
+/// abstraction for values making up expressions
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
+    /// bool Value
     Bool(bool),
+    /// num Value includes i64 and range
     Num(i64, Range<i64>),
+    /// sym Value of Symbol type
     Sym(Symbol),
 }
 
-// map of variable names to values
-type Env = Map<Id, Value>;
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use Value::*;
+        Some(match (self, other) {
+            // Bool comparison: false < true (default Rust behavior)
+            (Bool(a), Bool(b)) => a.cmp(b),
 
+            // Bool < Num < Sym
+            (Bool(_), Num(_, _)) | (Bool(_), Sym(_)) => Ordering::Less,
+            (Num(_, _), Bool(_)) | (Sym(_), Bool(_)) => Ordering::Greater,
+
+            // Num comparison: by value, then range.start, then range.end
+            (Num(a_val, a_rng), Num(b_val, b_rng)) => a_val
+                .cmp(b_val)
+                .then(a_rng.start.cmp(&b_rng.start))
+                .then(a_rng.end.cmp(&b_rng.end)),
+
+            // Num < Sym
+            (Num(_, _), Sym(_)) => Ordering::Less,
+            (Sym(_), Num(_, _)) => Ordering::Greater,
+
+            // Sym comparison
+            (Sym(a), Sym(b)) => a.cmp(b),
+        })
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Bool(b) => write!(f, "{}", b),
+            Value::Num(n, range) => write!(f, "{} as [{}..{}]", n, range.start, range.end),
+            Value::Sym(sym) => write!(f, "{}", sym),
+        }
+    }
+}
+
+impl Ord for Value {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+/// evaluate one action in a program
+pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(), RuntimeError> {
+    if let Some(id) = &program.action.0 {
+        env.insert(id.clone(), Value::Sym(*sym));
+    }
+
+    // Evaluate each statement in the action
+    for stmt in &program.action.1 {
+        eval_stmt(stmt, env, program)?;
+    }
+
+    Ok(())
+}
+
+// map of variable names to values
+type Env = BTreeMap<Id, Value>;
+
+/// set up initial eval env
 pub fn init_env(program: &Program) -> Env {
     let mut env = Env::new();
     let alph: BTreeSet<Symbol> = program.alphabet.iter().cloned().collect();
@@ -68,14 +136,7 @@ fn eval(program: &Program, input: &str) -> Result<(bool, Env), RuntimeError> {
     }
 
     for sym in input.chars() {
-        // insert each symbol into the enviornment
-        if let Some(id) = &program.action.0 {
-            env.insert(id.clone(), Value::Sym(Symbol(sym)));
-        };
-        // evaluate action
-        for stmt in &program.action.1 {
-            eval_stmt(stmt, &mut env, &program)?;
-        }
+        eval_action(program, &mut env, &Symbol(sym))?;
     }
 
     // evaluate accept
@@ -120,7 +181,7 @@ fn cast(v: i64, range: Range<i64>, overflow: Overflow) -> Result<Value, RuntimeE
     return val;
 }
 
-// eval. expr.
+/// evaluate expression for given program, return value
 pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, RuntimeError> {
     match expr {
         Expr::Num(n, Type::NumT(range)) => cast(*n, range.clone(), Overflow::Wraparound),
@@ -141,7 +202,7 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
                     BOp::Mul => cast(l * r, l_range, Overflow::Wraparound),
                     BOp::Div => {
                         if r == 0 {
-                            Err(RuntimeError::DivisionbyZero)
+                            return Err(RuntimeError::DivisionbyZero);
                         } else {
                             cast(l / r, l_range, Overflow::Wraparound)
                         }
@@ -252,7 +313,7 @@ pub fn eval_expr(expr: &Expr, env: &Env, program: &Program) -> Result<Value, Run
     }
 }
 
-// eval. stmt.
+/// evaluate statement for a given program
 pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value, RuntimeError> {
     match stmt {
         Stmt::Assign(id, expr) => {
@@ -288,8 +349,8 @@ pub fn eval_stmt(stmt: &Stmt, env: &mut Env, program: &Program) -> Result<Value,
     }
 }
 
+/// evaluate a program, return result of evaluation
 pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
-    // do a match then return
     match eval(program, input) {
         Ok((result, _)) => Ok(result),
         Err(e) => Err(e),
@@ -302,21 +363,19 @@ pub fn evaluate(program: &Program, input: &str) -> Result<bool, RuntimeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::*;
 
     #[test]
     // Simple Local Assignment
     fn test_assign() {
         let input = r#"
-		        alphabet: {'a'}
-		        let x: int[4];
-		        on input y {
-					x = 3;   
-		        }
-		        accept if x == 3
-		    "#;
+                alphabet: {'a'}
+                let x: int[4];
+                on input y {
+                    x = 3;   
+                }
+                accept if x == 3
+            "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 3..4)));
@@ -325,15 +384,14 @@ mod tests {
     #[test]
     fn test_binop_1() {
         let input = r#"
-	        alphabet: {'a'}
-	        on input y {
-				x = 2 as int[4] wraparound + 1 as int[4] wraparound;
-				z = 2 as int[4] wraparound - 1 as int[4] wraparound;
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            on input y {
+                x = 2 as int[4] wraparound + 1 as int[4] wraparound;
+                z = 2 as int[4] wraparound - 1 as int[4] wraparound;
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
@@ -344,19 +402,19 @@ mod tests {
     // Boolean BinOp - Relational Operators
     fn test_binop_2() {
         let input = r#"
-	        alphabet: {'e'}
-	        on input y {
-	            v = 10 < 3;
-	            x = 3 < 9;
-	            y = 2 < 2;
-	            z = 2 <= 2;
-	            a = 1 <= 2;
-	            b = 5 <= 2;
-	            w = 4 == 1;
-	            c = 4 == 4;
-	        }
-	        accept if v == false
-	    "#;
+            alphabet: {'e'}
+            on input y {
+                v = 10 < 3;
+                x = 3 < 9;
+                y = 2 < 2;
+                z = 2 <= 2;
+                a = 1 <= 2;
+                b = 5 <= 2;
+                w = 4 == 1;
+                c = 4 == 4;
+            }
+            accept if v == false
+        "#;
         let program = parse(input).unwrap();
         let (_result, env) = eval(&program, input).unwrap();
 
@@ -374,17 +432,17 @@ mod tests {
     // Numerical BinOp - Remainder, Shifts (Left and Right)
     fn test_binop_3() {
         let input = r#"
-	        alphabet: {'e'}
-	        let v: int[10];
-	        let z: int[10];
-	        let w: int[10];
-	        on input y {
-	            v = 9 as int[10] wraparound % 3 as int[10] wraparound;
-	            z = 2 as int[10] wraparound << 1 as int[10] wraparound;
-	            w = 4 as int[10] wraparound >> 1 as int[10] wraparound;
-	        }
-	        accept if v == 1
-	    "#;
+            alphabet: {'e'}
+            let v: int[10];
+            let z: int[10];
+            let w: int[10];
+            on input y {
+                v = 9 as int[10] wraparound % 3 as int[10] wraparound;
+                z = 2 as int[10] wraparound << 1 as int[10] wraparound;
+                w = 4 as int[10] wraparound >> 1 as int[10] wraparound;
+            }
+            accept if v == 1
+        "#;
         let program = parse(input).unwrap();
         let (_result, env) = eval(&program, input).unwrap();
 
@@ -397,15 +455,15 @@ mod tests {
     // Boolean BinOp - And / Or
     fn test_binop_4() {
         let input = r#"
-	        alphabet: {'d'}
-	        let z: bool;
-	        let w: bool;
-	        on input y {
-	            z = true && false;
-	            w = true || false;
-	        }
-	        accept if z == false
-	    "#;
+            alphabet: {'d'}
+            let z: bool;
+            let w: bool;
+            on input y {
+                z = true && false;
+                w = true || false;
+            }
+            accept if z == false
+        "#;
         let program = parse(input).unwrap();
         let (_result, env) = eval(&program, input).unwrap();
 
@@ -417,22 +475,22 @@ mod tests {
     // Unary Operations - Negate and Not
     fn test_unop() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let w: bool;
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let w: bool;
             y = (2 as int[-5..5] saturate);
-	        w = !true;
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            w = !true;
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
 
         let program = parse(input).unwrap();
 
         let input = "";
         let (_result, env) = eval(&program, input).unwrap();
-        println!("{:?}", program);
+
         assert_eq!(env.get(&id("y")), Some(&Value::Num(2, -5..5)));
         assert_eq!(env.get(&id("w")), Some(&Value::Bool(false)));
     }
@@ -441,17 +499,17 @@ mod tests {
     // Cast, wraparound
     fn test_cast_wraparound() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let a: int[6..10];
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let a: int[6..10];
             let w: bool;
             y = (2 as int[3..5] wraparound);
-	        a = (7 as int[0..1] wraparound);
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            a = (7 as int[0..1] wraparound);
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
         let program = parse(input).unwrap();
         let input = "";
 
@@ -465,17 +523,17 @@ mod tests {
     // Cast, saturate
     fn test_cast_saturate() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let a: int[6..10];
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let a: int[6..10];
             let w: bool;
             y = (2 as int[3..5] saturate);
-	        a = (7 as int[0..1] saturate);
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            a = (7 as int[0..1] saturate);
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
         let program = parse(input).unwrap();
         let input = "";
 
@@ -489,17 +547,17 @@ mod tests {
     // Cast, fail
     fn test_cast_fail() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let a: int[6..10];
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let a: int[6..10];
             let w: bool;
             y = (2 as int[3..5] fail);
-	        a = (7 as int[0..1] fail);
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            a = (7 as int[0..1] fail);
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
         let program = parse(input).unwrap();
         let input = "";
 
@@ -530,7 +588,6 @@ mod tests {
             accept if z == true
         "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
         let input = "";
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -542,16 +599,15 @@ mod tests {
     // Call
     fn test_call() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
-	        let x: int[4];
-	        on input y {
-	                x = add(1 as int[0..4], 2 as int[0..4]);
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
+            let x: int[4];
+            on input y {
+                    x = add(1 as int[0..4], 2 as int[0..4]);
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(3, 0..4)));
@@ -561,21 +617,20 @@ mod tests {
     // If
     fn test_if() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
-	        let x: int[3];
-	        on input y {
-				x = add(1, 2);
-				if x == 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+            let x: int[3];
+            on input y {
+                x = add(1, 2);
+                if x == 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(2, 2..3)));
@@ -585,20 +640,19 @@ mod tests {
     // If
     fn test_if2() {
         let input = r#"
-	        alphabet: {'a'}
-	        let x: int[3];
-	        on input y {
-				x = 3;
-				if x < 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            let x: int[3];
+            on input y {
+                x = 3;
+                if x < 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(1, 1..2)));
@@ -608,20 +662,19 @@ mod tests {
     // If
     fn test_if3() {
         let input = r#"
-	        alphabet: {'a'}
-	        let x: int[3];
-	        on input y {
-				x = 6;
-				if x < 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            let x: int[3];
+            on input y {
+                x = 6;
+                if x < 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(2, 2..3)));
@@ -631,20 +684,19 @@ mod tests {
     // If
     fn test_if4() {
         let input = r#"
-	        alphabet: {'a'}
-	        let x: int[3];
-	        on input y {
-				x = 4;
-				if x <= 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            let x: int[3];
+            on input y {
+                x = 4;
+                if x <= 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("y")), Some(&Value::Num(1, 1..2)));
@@ -653,25 +705,24 @@ mod tests {
     #[test]
     fn test_match2() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
-	        let x: int[3];
-	        on input y {
-	                x = 3 + - 4 as int[3] wraparound;
-	                x = 3 + 4 as int[3] wraparound;
-	                if x < 3 {
-	                    y = 'a';
-	                } else {
-	                    x = match y {
-	                            'a' -> 1
-	                            x if true -> 2
-	                    };
-	                }
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+            let x: int[3];
+            on input y {
+                    x = 3 + - 4 as int[3] wraparound;
+                    x = 3 + 4 as int[3] wraparound;
+                    if x < 3 {
+                        y = 'a';
+                    } else {
+                        x = match y {
+                                'a' -> 1
+                                x if true -> 2
+                        };
+                    }
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let (_result, env) = eval(&program, input).unwrap();
         assert_eq!(env.get(&id("x")), Some(&Value::Num(2, 2..3)));
@@ -681,15 +732,14 @@ mod tests {
     // public call 1
     fn test_pub_1() {
         let input = r#"
-		        alphabet: {'a'}
-		        let x: int[4];
-		        on input y {
-					x = 3;   
-		        }
-		        accept if x == 3
-		    "#;
+                alphabet: {'a'}
+                let x: int[4];
+                on input y {
+                    x = 3;   
+                }
+                accept if x == 3
+            "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = evaluate(&program, input);
         match result {
@@ -703,16 +753,15 @@ mod tests {
     // public call 2
     fn test_pub_2() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
-	        let x: int[4];
-	        on input y {
-	                x = add(1 as int[0..4], 2 as int[0..4]);
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
+            let x: int[4];
+            on input y {
+                    x = add(1 as int[0..4], 2 as int[0..4]);
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
         let result = evaluate(&program, input);
         match result {
@@ -725,17 +774,16 @@ mod tests {
     #[test]
     fn test_div_0() {
         let input = r#"
-			alphabet: {'a'}
-			let x: int[4];
-			on input y {
-				x = 3 / 0; 
-			}
-			accept if x == 3
-		"#;
+            alphabet: {'a'}
+            let x: int[2..4];
+            on input y {
+                x = 3 / 0; 
+            }
+            accept if x == 2
+        "#;
         let program = parse(input).unwrap();
-        println!("program: {:?}", program);
 
-        let retval = eval(&program, input);
+        let retval = eval(&program, "a");
 
         if retval.is_ok() {
             panic!("Expected DivisionbyZero error but got: {:?}", retval);
@@ -746,6 +794,31 @@ mod tests {
                     panic!("Expected DivisionbyZero error but got: {:?}", retval);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_div3() {
+        let input = r#"
+            alphabet: { '0', '1' }
+            fn char_to_bit(c: sym) -> int[0..3] = match c {
+                '0' -> 0
+                '1' -> 1
+            }
+            let rem: int[0..3];
+            rem = 1;
+            on input bit {
+                rem = (2 as int[0..3] * rem as int[0..3]) + (char_to_bit(bit) as int[0..3]);
+            }
+            accept if rem == 0
+        "#;
+        let program = parse(input).unwrap();
+
+        let result = evaluate(&program, "1");
+        match result {
+            Ok(true) => {}
+            Ok(false) => panic!("Expected Ok(true), but got Ok(false)"),
+            Err(e) => panic!("Expected Ok(true), but got Err({:?})", e),
         }
     }
 }
