@@ -6,8 +6,8 @@ use log::{error, info, warn};
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
-#[derive(Parser, Debug)]
 
+#[derive(Parser, Debug)]
 struct Args {
     /// The input program to read
     input: String,

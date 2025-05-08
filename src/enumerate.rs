@@ -7,14 +7,15 @@ use crate::eval::RuntimeError;
 use crate::eval::Value;
 use crate::syntax::*;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 type Env = BTreeMap<Id, Value>;
 
 /// process a program and create Dfa
 pub fn enumerate(program: &Program) -> Result<Dfa<Symbol>, RuntimeError> {
     let mut state_lookup: Map<State, Env> = Map::new();
-    let mut trans: Map<State, Map<Symbol, State>> = Map::new();
-    let mut names: Map<State, String> = Map::new();
+    let mut trans: BTreeMap<State, BTreeMap<Symbol, State>> = BTreeMap::new();
+    let mut names: BTreeMap<State, String> = BTreeMap::new();
     let mut env_lookup: BTreeMap<Env, State> = BTreeMap::new();
 
     let mut init_e = eval::init_env(program);
@@ -32,7 +33,7 @@ pub fn enumerate(program: &Program) -> Result<Dfa<Symbol>, RuntimeError> {
 
     while worklist.is_empty() == false {
         let s = worklist.pop().unwrap();
-        let mut s_edges: Map<Symbol, State> = Map::new();
+        let mut s_edges = BTreeMap::new();
         let curr_env = state_lookup.get(&s).unwrap().clone();
         for sym in &program.alphabet {
             let mut env_clone = curr_env.clone();
@@ -73,12 +74,13 @@ pub fn enumerate(program: &Program) -> Result<Dfa<Symbol>, RuntimeError> {
                 .join(", "),
         );
     }
+    // let alph = BTreeSet::from_iter(program.alphabet);
 
     let dfa = Dfa::try_new(
-        Set::from(program.alphabet.clone()),
+        BTreeSet::from_iter(program.alphabet.clone()),
         trans,
         init_s,
-        Set::from(accepting),
+        BTreeSet::from_iter(accepting),
         names,
     )
     .unwrap();
@@ -106,14 +108,14 @@ mod tests {
 
         let result = enumerate(&program).unwrap();
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('a')]),
-            Map::from([
-                (State::new(0), Map::from([(Symbol('a'), State::new(1))])),
-                (State::new(1), Map::from([(Symbol('a'), State::new(1))])),
+            BTreeSet::from([Symbol('a')]),
+            BTreeMap::from([
+                (State::new(0), BTreeMap::from([(Symbol('a'), State::new(1))])),
+                (State::new(1), BTreeMap::from([(Symbol('a'), State::new(1))])),
             ]),
             State::new(0),
-            Set::from([State::new(0), State::new(1)]),
-            Map::from([
+            BTreeSet::from([State::new(0), State::new(1)]),
+            BTreeMap::from([
                 (State::new(1), "x = 3 as [3..4]".to_string()),
                 (State::new(0), "x = 0 as [0..4]".to_string()),
             ]),
@@ -138,20 +140,20 @@ mod tests {
         let result = enumerate(&program).unwrap();
 
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('0'), Symbol('1')]),
-            Map::from([
+            BTreeSet::from([Symbol('0'), Symbol('1')]),
+            BTreeMap::from([
                 (
                     State::new(1),
-                    Map::from([(Symbol('1'), State::new(0)), (Symbol('0'), State::new(1))]),
+                    BTreeMap::from([(Symbol('1'), State::new(0)), (Symbol('0'), State::new(1))]),
                 ),
                 (
                     State::new(0),
-                    Map::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(0))]),
+                    BTreeMap::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(0))]),
                 ),
             ]),
             State::new(0),
-            Set::from([State::new(1)]),
-            Map::from([
+            BTreeSet::from([State::new(1)]),
+            BTreeMap::from([
                 (State::new(1), "ends_with_zero = true".to_string()),
                 (State::new(0), "ends_with_zero = false".to_string()),
             ]),
@@ -180,24 +182,24 @@ mod tests {
         let result = enumerate(&program).unwrap();
 
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('0'), Symbol('1')]),
-            Map::from([
+            BTreeSet::from([Symbol('0'), Symbol('1')]),
+            BTreeMap::from([
                 (
                     State::new(1),
-                    Map::from([(Symbol('1'), State::new(0)), (Symbol('0'), State::new(2))]),
+                    BTreeMap::from([(Symbol('1'), State::new(0)), (Symbol('0'), State::new(2))]),
                 ),
                 (
                     State::new(0),
-                    Map::from([(Symbol('0'), State::new(0)), (Symbol('1'), State::new(1))]),
+                    BTreeMap::from([(Symbol('0'), State::new(0)), (Symbol('1'), State::new(1))]),
                 ),
                 (
                     State::new(2),
-                    Map::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(2))]),
+                    BTreeMap::from([(Symbol('0'), State::new(1)), (Symbol('1'), State::new(2))]),
                 ),
             ]),
             State::new(0),
-            Set::from([State::new(0)]),
-            Map::from([
+            BTreeSet::from([State::new(0)]),
+            BTreeMap::from([
                 (State::new(0), "rem = 0 as [0..3]".to_string()),
                 (State::new(1), "rem = 1 as [0..3]".to_string()),
                 (State::new(2), "rem = 2 as [0..3]".to_string()),
@@ -228,24 +230,24 @@ mod tests {
         let result = enumerate(&program).unwrap();
 
         let dfa: Dfa<Symbol> = Dfa::try_new(
-            Set::from([Symbol('d'), Symbol('a')]),
-            Map::from([
+            BTreeSet::from([Symbol('d'), Symbol('a')]),
+            BTreeMap::from([
                 (
                     State::new(1),
-                    Map::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
+                    BTreeMap::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
                 ),
                 (
                     State::new(0),
-                    Map::from([(Symbol('a'), State::new(2)), (Symbol('d'), State::new(1))]),
+                    BTreeMap::from([(Symbol('a'), State::new(2)), (Symbol('d'), State::new(1))]),
                 ),
                 (
                     State::new(2),
-                    Map::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
+                    BTreeMap::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
                 ),
             ]),
             State::new(0),
-            Set::from([State::new(0), State::new(1)]),
-            Map::from([
+            BTreeSet::from([State::new(0), State::new(1)]),
+            BTreeMap::from([
                 (State::new(0), "w = false, z = false".to_string()),
                 (State::new(1), "w = false, z = true".to_string()),
                 (State::new(2), "w = true, z = true".to_string()),
