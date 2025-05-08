@@ -804,8 +804,11 @@ mod tests {
         "#;
         let program = parse(input).unwrap();
 
-        let result = eval(&program, "1").unwrap();
-        println!("res: {:?}", result);
-        println!("--------------");
+        let result = evaluate(&program, "1");
+        match result {
+            Ok(true) => {}
+            Ok(false) => panic!("Expected Ok(true), but got Ok(false)"),
+            Err(e) => panic!("Expected Ok(true), but got Err({:?})", e),
+        }
     }
 }
