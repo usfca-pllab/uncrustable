@@ -358,13 +358,13 @@ mod tests {
     // Simple Local Assignment
     fn test_assign() {
         let input = r#"
-		        alphabet: {'a'}
-		        let x: int[4];
-		        on input y {
-					x = 3;   
-		        }
-		        accept if x == 3
-		    "#;
+                alphabet: {'a'}
+                let x: int[4];
+                on input y {
+                    x = 3;   
+                }
+                accept if x == 3
+            "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -374,13 +374,13 @@ mod tests {
     #[test]
     fn test_binop_1() {
         let input = r#"
-	        alphabet: {'a'}
-	        on input y {
-				x = 2 as int[4] wraparound + 1 as int[4] wraparound;
-				z = 2 as int[4] wraparound - 1 as int[4] wraparound;
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            on input y {
+                x = 2 as int[4] wraparound + 1 as int[4] wraparound;
+                z = 2 as int[4] wraparound - 1 as int[4] wraparound;
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -392,19 +392,19 @@ mod tests {
     // Boolean BinOp - Relational Operators
     fn test_binop_2() {
         let input = r#"
-	        alphabet: {'e'}
-	        on input y {
-	            v = 10 < 3;
-	            x = 3 < 9;
-	            y = 2 < 2;
-	            z = 2 <= 2;
-	            a = 1 <= 2;
-	            b = 5 <= 2;
-	            w = 4 == 1;
-	            c = 4 == 4;
-	        }
-	        accept if v == false
-	    "#;
+            alphabet: {'e'}
+            on input y {
+                v = 10 < 3;
+                x = 3 < 9;
+                y = 2 < 2;
+                z = 2 <= 2;
+                a = 1 <= 2;
+                b = 5 <= 2;
+                w = 4 == 1;
+                c = 4 == 4;
+            }
+            accept if v == false
+        "#;
         let program = parse(input).unwrap();
         let (_result, env) = eval(&program, input).unwrap();
 
@@ -422,17 +422,17 @@ mod tests {
     // Numerical BinOp - Remainder, Shifts (Left and Right)
     fn test_binop_3() {
         let input = r#"
-	        alphabet: {'e'}
-	        let v: int[10];
-	        let z: int[10];
-	        let w: int[10];
-	        on input y {
-	            v = 9 as int[10] wraparound % 3 as int[10] wraparound;
-	            z = 2 as int[10] wraparound << 1 as int[10] wraparound;
-	            w = 4 as int[10] wraparound >> 1 as int[10] wraparound;
-	        }
-	        accept if v == 1
-	    "#;
+            alphabet: {'e'}
+            let v: int[10];
+            let z: int[10];
+            let w: int[10];
+            on input y {
+                v = 9 as int[10] wraparound % 3 as int[10] wraparound;
+                z = 2 as int[10] wraparound << 1 as int[10] wraparound;
+                w = 4 as int[10] wraparound >> 1 as int[10] wraparound;
+            }
+            accept if v == 1
+        "#;
         let program = parse(input).unwrap();
         let (_result, env) = eval(&program, input).unwrap();
 
@@ -445,15 +445,15 @@ mod tests {
     // Boolean BinOp - And / Or
     fn test_binop_4() {
         let input = r#"
-	        alphabet: {'d'}
-	        let z: bool;
-	        let w: bool;
-	        on input y {
-	            z = true && false;
-	            w = true || false;
-	        }
-	        accept if z == false
-	    "#;
+            alphabet: {'d'}
+            let z: bool;
+            let w: bool;
+            on input y {
+                z = true && false;
+                w = true || false;
+            }
+            accept if z == false
+        "#;
         let program = parse(input).unwrap();
         let (_result, env) = eval(&program, input).unwrap();
 
@@ -465,16 +465,16 @@ mod tests {
     // Unary Operations - Negate and Not
     fn test_unop() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let w: bool;
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let w: bool;
             y = (2 as int[-5..5] saturate);
-	        w = !true;
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            w = !true;
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
 
         let program = parse(input).unwrap();
 
@@ -489,17 +489,17 @@ mod tests {
     // Cast, wraparound
     fn test_cast_wraparound() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let a: int[6..10];
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let a: int[6..10];
             let w: bool;
             y = (2 as int[3..5] wraparound);
-	        a = (7 as int[0..1] wraparound);
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            a = (7 as int[0..1] wraparound);
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
         let program = parse(input).unwrap();
         let input = "";
 
@@ -513,17 +513,17 @@ mod tests {
     // Cast, saturate
     fn test_cast_saturate() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let a: int[6..10];
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let a: int[6..10];
             let w: bool;
             y = (2 as int[3..5] saturate);
-	        a = (7 as int[0..1] saturate);
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            a = (7 as int[0..1] saturate);
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
         let program = parse(input).unwrap();
         let input = "";
 
@@ -537,17 +537,17 @@ mod tests {
     // Cast, fail
     fn test_cast_fail() {
         let input = r#"
-	        alphabet: {'a'}
-	        let y: int[-5..5];
-	        let a: int[6..10];
+            alphabet: {'a'}
+            let y: int[-5..5];
+            let a: int[6..10];
             let w: bool;
             y = (2 as int[3..5] fail);
-	        a = (7 as int[0..1] fail);
-	        on input a {
-	            w = false;
-	        }
-	        accept if w == false
-	    "#;
+            a = (7 as int[0..1] fail);
+            on input a {
+                w = false;
+            }
+            accept if w == false
+        "#;
         let program = parse(input).unwrap();
         let input = "";
 
@@ -589,14 +589,14 @@ mod tests {
     // Call
     fn test_call() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
-	        let x: int[4];
-	        on input y {
-	                x = add(1 as int[0..4], 2 as int[0..4]);
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
+            let x: int[4];
+            on input y {
+                    x = add(1 as int[0..4], 2 as int[0..4]);
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -607,19 +607,19 @@ mod tests {
     // If
     fn test_if() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
-	        let x: int[3];
-	        on input y {
-				x = add(1, 2);
-				if x == 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+            let x: int[3];
+            on input y {
+                x = add(1, 2);
+                if x == 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -630,18 +630,18 @@ mod tests {
     // If
     fn test_if2() {
         let input = r#"
-	        alphabet: {'a'}
-	        let x: int[3];
-	        on input y {
-				x = 3;
-				if x < 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            let x: int[3];
+            on input y {
+                x = 3;
+                if x < 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -652,18 +652,18 @@ mod tests {
     // If
     fn test_if3() {
         let input = r#"
-	        alphabet: {'a'}
-	        let x: int[3];
-	        on input y {
-				x = 6;
-				if x < 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            let x: int[3];
+            on input y {
+                x = 6;
+                if x < 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -674,18 +674,18 @@ mod tests {
     // If
     fn test_if4() {
         let input = r#"
-	        alphabet: {'a'}
-	        let x: int[3];
-	        on input y {
-				x = 4;
-				if x <= 4 {
-					y = 1;				
-				} else {
-					y = 2;
-				}    
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            let x: int[3];
+            on input y {
+                x = 4;
+                if x <= 4 {
+                    y = 1;				
+                } else {
+                    y = 2;
+                }    
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -695,23 +695,23 @@ mod tests {
     #[test]
     fn test_match2() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
-	        let x: int[3];
-	        on input y {
-	                x = 3 + - 4 as int[3] wraparound;
-	                x = 3 + 4 as int[3] wraparound;
-	                if x < 3 {
-	                    y = 'a';
-	                } else {
-	                    x = match y {
-	                            'a' -> 1
-	                            x if true -> 2
-	                    };
-	                }
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[3], b: int[0..3]) -> int[0..3] = a + b
+            let x: int[3];
+            on input y {
+                    x = 3 + - 4 as int[3] wraparound;
+                    x = 3 + 4 as int[3] wraparound;
+                    if x < 3 {
+                        y = 'a';
+                    } else {
+                        x = match y {
+                                'a' -> 1
+                                x if true -> 2
+                        };
+                    }
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let (_result, env) = eval(&program, input).unwrap();
@@ -722,13 +722,13 @@ mod tests {
     // public call 1
     fn test_pub_1() {
         let input = r#"
-		        alphabet: {'a'}
-		        let x: int[4];
-		        on input y {
-					x = 3;   
-		        }
-		        accept if x == 3
-		    "#;
+                alphabet: {'a'}
+                let x: int[4];
+                on input y {
+                    x = 3;   
+                }
+                accept if x == 3
+            "#;
         let program = parse(input).unwrap();
 
         let result = evaluate(&program, input);
@@ -743,14 +743,14 @@ mod tests {
     // public call 2
     fn test_pub_2() {
         let input = r#"
-	        alphabet: {'a'}
-	        fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
-	        let x: int[4];
-	        on input y {
-	                x = add(1 as int[0..4], 2 as int[0..4]);
-	        }
-	        accept if x == 3
-	    "#;
+            alphabet: {'a'}
+            fn add(a: int[0..4], b: int[0..4]) -> int[0..4] = a + b
+            let x: int[4];
+            on input y {
+                    x = add(1 as int[0..4], 2 as int[0..4]);
+            }
+            accept if x == 3
+        "#;
         let program = parse(input).unwrap();
 
         let result = evaluate(&program, input);
@@ -764,13 +764,13 @@ mod tests {
     #[test]
     fn test_div_0() {
         let input = r#"
-			alphabet: {'a'}
-			let x: int[2..4];
-			on input y {
-				x = 3 / 0; 
-			}
-			accept if x == 2
-		"#;
+            alphabet: {'a'}
+            let x: int[2..4];
+            on input y {
+                x = 3 / 0; 
+            }
+            accept if x == 2
+        "#;
         let program = parse(input).unwrap();
 
         let retval = eval(&program, "a");

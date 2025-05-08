@@ -96,13 +96,13 @@ mod tests {
     // Simple Local Assignment
     fn test_assign() {
         let input = r#"
-		        alphabet: {'a'}
-		        let x: int[4];
-		        on input y {
-					x = 3 as int[0..3];   
-		        }
-		        accept if x == 2 as int[0..2]
-		    "#;
+                alphabet: {'a'}
+                let x: int[4];
+                on input y {
+                    x = 3 as int[0..3];   
+                }
+                accept if x == 2 as int[0..2]
+            "#;
         let program = parse(input).unwrap();
 
         let result = enumerate(&program, input).unwrap();
@@ -133,7 +133,7 @@ mod tests {
                     ends_with_zero = x == '0';
                 }
                 accept if ends_with_zero == true
-		    "#;
+            "#;
         let program = parse(input).unwrap();
 
         let result = enumerate(&program, "1").unwrap();
@@ -175,7 +175,7 @@ mod tests {
                     rem = (2 as int[0..3] * rem as int[0..3]) + (char_to_bit(bit) as int[0..3]);
                 }
                 accept if rem == 0
-		    "#;
+            "#;
         let program = parse(input).unwrap();
 
         let result = enumerate(&program, "01").unwrap();
@@ -213,18 +213,18 @@ mod tests {
     // Boolean BinOp - And / Or
     fn test_binop_4() {
         let input = r#"
-	        alphabet: {'d', 'a'}
-	        let z: bool;
-	        let w: bool;
-	        on input y {
+            alphabet: {'d', 'a'}
+            let z: bool;
+            let w: bool;
+            on input y {
                 z = true;
                 w = match y {
                     'd' -> true && false
                     y if true -> true || false
                 };
-	        }
-	        accept if w == false
-	    "#;
+            }
+            accept if w == false
+        "#;
         let program = parse(input).unwrap();
         let result = enumerate(&program, input).unwrap();
 
