@@ -20,9 +20,8 @@ pub enum TypeError {
 }
 
 /// Helper function to create a type mismatch error
-fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
+fn type_mismatch(expr: &Expr) -> TypeError {
     debug!("In {expr:#?}");
-    // error!("Type mismatch: expected {expected:?}, found {actual:?}");
     TypeError::TypeMismatch
 }
 
@@ -31,7 +30,7 @@ fn expect_equal(actual: &Type, expected: &Type, expr: &Expr) -> Result<(), TypeE
     if actual == expected {
         Ok(())
     } else {
-        Err(type_mismatch(actual, expected, expr))
+        Err(type_mismatch(expr))
     }
 }
 
@@ -110,7 +109,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             // Verify that argument types match parameter types
             let param_types: Vec<Type> = function.params.iter().map(|(_, t)| t.clone()).collect();
             if arg_types != param_types {
-                return Err(type_mismatch(&arg_types[0], &param_types[0], expr));
+                return Err(type_mismatch(expr));
             }
             Ok(function.ret_typ.clone())
         }
@@ -239,7 +238,6 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     if let Some(var) = input_var {
         // Check if the input variable shadows any existing variable
         if ctx.env.contains_key(var) {
-            error!("Input variable '{}' shadows an existing variable", var);
             return Err(TypeError::UndefinedVariable(*var));
         }
         action_env.insert(*var, Type::SymT);
