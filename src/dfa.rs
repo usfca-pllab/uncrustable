@@ -22,6 +22,13 @@ impl State {
         static NEXT_STATE: AtomicU32 = AtomicU32::new(0);
         State(NEXT_STATE.fetch_add(1, Ordering::SeqCst))
     }
+
+    /// public State generation only for test cases
+    #[cfg(test)]
+    pub fn new(s: u32) -> State {
+        State(s)
+    }
+
 }
 
 /*

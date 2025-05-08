@@ -12,6 +12,12 @@ type Env = BTreeMap<Id, Value>;
 
 /// Populates the DFA struct
 pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, RuntimeError> {
+/**
+ *
+ */
+pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<char>, RuntimeError> {
+    // keep track of visited states and their environments
+    // let mut state_lookup: Map<State, Env> = Map::new();
     let mut state_lookup: Map<State, Env> = Map::new();
     let mut trans: Map<State, Map<Symbol, State>> = Map::new();
     let mut names: Map<State, String> = Map::new();
@@ -42,14 +48,16 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
                 env_clone.remove(&program.action.0.unwrap());
             }
 
-            let mut new = true;
-            if env_lookup.contains_key(&env_clone) {
-                new = false;
-            }
+            let mut new = false;
 
             let t = *env_lookup
                 .entry(env_clone.clone())
-                .or_insert_with(|| dfa::State::fresh());
+                .or_insert_with(
+                    || 
+                    {   
+                        new = true;
+                        dfa::State::fresh()
+                    });
 
             s_edges.insert(*sym, t);
             if new {
@@ -60,15 +68,24 @@ pub fn enumerate(program: &Program, _input: &str) -> Result<Dfa<Symbol>, Runtime
         trans.insert(s, s_edges);
     }
     for st in state_lookup.keys().clone() {
-        let accept = eval::eval_expr(&program.accept, &state_lookup.get(&st).unwrap(), &program)?;
+        let state_env = state_lookup.get(st).unwrap();
+        let accept = eval::eval_expr(
+            &program.accept.clone(),
+            &state_env.clone(),
+            &program,
+        )?;
         if accept == Value::Bool(true) {
             // assuming that all the accept statments of programs are bools
             accepting.insert(*st);
         }
-
-        let state_env = state_lookup.get(st).unwrap();
-        let f = state_env.first_key_value().unwrap();
-        names.insert(*st, format!("{} = {}", f.0, f.1).to_string());
+        names.insert(
+            *st,
+            state_env
+                .iter()
+                .map(|(x, v)| format!("{x} = {v}"))
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
     }
 
     let dfa = Dfa::try_new(
@@ -104,7 +121,14 @@ mod tests {
 
         let result = enumerate(&program, input).unwrap();
         println!("res: {:#?}", result);
+        
+        // assert_eq!("accepting: {}");
+        
+
+        assert!(result.compare(dfa).is_none());
+
         println!("--------------");
+
     }
 
     #[test]

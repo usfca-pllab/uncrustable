@@ -28,7 +28,6 @@ pub enum RuntimeError {
 }
 
 // abstraction for values making up expressions
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     Bool(bool),
@@ -67,7 +66,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Bool(b) => write!(f, "{}", b),
-            Value::Num(n, range) => write!(f, "{} in [{}..{})", n, range.start, range.end),
+            Value::Num(n, range) => write!(f, "{} as [{}..{}]", n, range.start, range.end),
             Value::Sym(sym) => write!(f, "{}", sym),
         }
     }
@@ -80,14 +79,13 @@ impl Ord for Value {
 }
 
 pub fn eval_action(program: &Program, env: &mut Env, sym: &Symbol) -> Result<(), RuntimeError> {
-    // Insert each symbol into the environment
     if let Some(id) = &program.action.0 {
         env.insert(id.clone(), Value::Sym(*sym));
     }
 
     // Evaluate each statement in the action
     for stmt in &program.action.1 {
-        eval_stmt(stmt, env, program)?; // propagate errors
+        eval_stmt(stmt, env, program)?;
     }
 
     Ok(())
