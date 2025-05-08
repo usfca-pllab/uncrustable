@@ -33,11 +33,9 @@ fn main() {
         match typecheck::typecheck_program(&program) {
             Ok(_) => {
                 println!("Typecheck successful");
-                info!("Typecheck successful");
             }
             Err(error) => {
                 println!("TypeCheck Error: {error}");
-                warn!("Error with typecheck: {}", error);
             }
         }
     }
@@ -47,12 +45,14 @@ fn main() {
     if args.evaluate {
         match eval::evaluate(&program, &input) {
             Ok(_) => {
-                println!("Evaluation successful");
-                info!("Evaluation successful"); // todo, same as above
+                if true {
+                    println!("program accepts the input");
+                } else {
+                    println!("program rejects the input");
+                }
             }
             Err(error) => {
                 println!("Evaluation Error: {error}");
-                warn!("Error with Evaluation: {}", error); // todo, same as above
             }
         }
     }

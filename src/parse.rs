@@ -139,6 +139,8 @@ fn parse_char(lex: &mut logos::Lexer<Token>) -> Option<char> {
 // Recursive Descent Parser
 //---------------------------------------------------------------------
 
+type Precedence = u32;
+
 struct Parser {
     tokens: Vec<Token>,
     pos: usize,
@@ -462,17 +464,32 @@ impl Parser {
     //   unary_expr ::= unop unary_expr | primary
     //   primary ::= id | char | num | true | false | match ... | function call | ( expr )
     fn parse_expr(&mut self) -> Result<Expr, String> {
-        self.parse_binary_expr()
+        self.parse_binary_expr(0)
     }
 
-    fn parse_binary_expr(&mut self) -> Result<Expr, String> {
-        let mut left = self.parse_cast_expr()?;
-        while let Some(op) = self.parse_binop()? {
-            let right = self.parse_cast_expr()?;
-            left = Expr::BinOp {
-                lhs: Box::new(left),
-                op,
-                rhs: Box::new(right),
+    fn parse_binary_expr(&mut self, level: u32) -> Result<Expr, String> {
+        if level > 4 {
+            return self.parse_cast_expr();
+        }
+        let mut left = self.parse_binary_expr(level + 1)?;
+        while let Some((op, prec, flipped)) = self.peek_binop() {
+            if prec != level {
+                break;
+            }
+            self.bump();
+            let right = self.parse_binary_expr(level + 1)?;
+            left = if flipped {
+                Expr::BinOp {
+                    lhs: Box::new(right),
+                    op,
+                    rhs: Box::new(left),
+                }
+            } else {
+                Expr::BinOp {
+                    lhs: Box::new(left),
+                    op,
+                    rhs: Box::new(right),
+                }
             };
         }
         Ok(left)
@@ -605,76 +622,31 @@ impl Parser {
         }
     }
 
-    // Parses a binary operator into a BOp.
-    fn parse_binop(&mut self) -> Result<Option<BOp>, String> {
+    // Parses a binary operator into a BOp, does not advance the position.
+    fn peek_binop(&mut self) -> Option<(BOp, Precedence, bool)> {
         if let Some(tok) = self.current() {
             let op = match tok {
-                Token::Plus => {
-                    self.bump();
-                    Some(BOp::Add)
-                }
-                Token::Minus => {
-                    self.bump();
-                    Some(BOp::Sub)
-                }
-                Token::Star => {
-                    self.bump();
-                    Some(BOp::Mul)
-                }
-                Token::Slash => {
-                    self.bump();
-                    Some(BOp::Div)
-                }
-                Token::Percent => {
-                    self.bump();
-                    Some(BOp::Rem)
-                }
-                Token::Shl => {
-                    self.bump();
-                    Some(BOp::Shl)
-                }
-                Token::Shr => {
-                    self.bump();
-                    Some(BOp::Shr)
-                }
-                Token::Lt => {
-                    self.bump();
-                    Some(BOp::Lt)
-                }
-                Token::Lte => {
-                    self.bump();
-                    Some(BOp::Lte)
-                }
-                Token::Eq => {
-                    self.bump();
-                    Some(BOp::Eq)
-                }
-                Token::Ne => {
-                    self.bump();
-                    Some(BOp::Ne)
-                }
-                Token::And => {
-                    self.bump();
-                    Some(BOp::And)
-                }
-                Token::Or => {
-                    self.bump();
-                    Some(BOp::Or)
-                }
+                Token::Plus => Some((BOp::Add, 3, false)),
+                Token::Minus => Some((BOp::Sub, 3, false)),
+                Token::Star => Some((BOp::Mul, 4, false)),
+                Token::Slash => Some((BOp::Div, 4, false)),
+                Token::Percent => Some((BOp::Rem, 4, false)),
+                Token::Shl => Some((BOp::Shl, 2, false)),
+                Token::Shr => Some((BOp::Shr, 2, false)),
+                Token::Lt => Some((BOp::Lt, 1, false)),
+                Token::Lte => Some((BOp::Lte, 1, false)),
+                Token::Eq => Some((BOp::Eq, 1, false)),
+                Token::Ne => Some((BOp::Ne, 1, false)),
+                Token::And => Some((BOp::And, 0, false)),
+                Token::Or => Some((BOp::Or, 0, false)),
                 // For greater-than operators, you could transform them as needed.
-                Token::Gt => {
-                    self.bump();
-                    Some(BOp::Lt)
-                }
-                Token::Gte => {
-                    self.bump();
-                    Some(BOp::Lte)
-                }
+                Token::Gt => Some((BOp::Lt, 1, true)),
+                Token::Gte => Some((BOp::Lte, 1, true)),
                 _ => None,
             };
-            Ok(op)
+            op
         } else {
-            Ok(None)
+            None
         }
     }
 
@@ -757,6 +729,192 @@ mod tests {
         assert_eq!(program.start, vec![]);
         assert_eq!(program.action, (None, vec![]));
         assert_eq!(program.accept, Expr::Bool(true));
+    }
+
+    #[test]
+    fn basic_precedence() {
+        let input = r#"
+                alphabet: {'a'}
+                fn add(a: int[3], b: int[0..3]) -> int[0..3] = 2 as int[3] * a + f(b) as int[3]
+                let x: int[3];
+                on input y {
+                }
+                accept if true
+                "#;
+        let program = parse(input).unwrap();
+        let expected = expect![[r#"
+            Program {
+                alphabet: {
+                    Symbol(
+                        'a',
+                    ),
+                },
+                helpers: {
+                    "add": Function {
+                        params: [
+                            (
+                                "a",
+                                NumT(
+                                    0..3,
+                                ),
+                            ),
+                            (
+                                "b",
+                                NumT(
+                                    0..3,
+                                ),
+                            ),
+                        ],
+                        ret_typ: NumT(
+                            0..3,
+                        ),
+                        body: BinOp {
+                            lhs: BinOp {
+                                lhs: Cast {
+                                    inner: Num(
+                                        2,
+                                        NumT(
+                                            2..3,
+                                        ),
+                                    ),
+                                    typ: NumT(
+                                        0..3,
+                                    ),
+                                    overflow: Wraparound,
+                                },
+                                op: Mul,
+                                rhs: Var(
+                                    "a",
+                                ),
+                            },
+                            op: Add,
+                            rhs: Cast {
+                                inner: Call {
+                                    callee: "f",
+                                    args: [
+                                        Var(
+                                            "b",
+                                        ),
+                                    ],
+                                },
+                                typ: NumT(
+                                    0..3,
+                                ),
+                                overflow: Wraparound,
+                            },
+                        },
+                    },
+                },
+                locals: {
+                    "x": NumT(
+                        0..3,
+                    ),
+                },
+                start: [],
+                action: (
+                    Some(
+                        "y",
+                    ),
+                    [],
+                ),
+                accept: Bool(
+                    true,
+                ),
+            }"#]];
+        expected.assert_eq(&format!("{:#?}", program));
+    }
+
+    #[test]
+    fn basic_precedence2() {
+        let input = r#"
+                alphabet: {'a'}
+                fn add(a: int[3], b: int[0..3]) -> int[0..3] = 2 as int[3] + a * f(b) as int[3]
+                let x: int[3];
+                on input y {
+                }
+                accept if true
+                "#;
+        let program = parse(input).unwrap();
+        let expected = expect![[r#"
+            Program {
+                alphabet: {
+                    Symbol(
+                        'a',
+                    ),
+                },
+                helpers: {
+                    "add": Function {
+                        params: [
+                            (
+                                "a",
+                                NumT(
+                                    0..3,
+                                ),
+                            ),
+                            (
+                                "b",
+                                NumT(
+                                    0..3,
+                                ),
+                            ),
+                        ],
+                        ret_typ: NumT(
+                            0..3,
+                        ),
+                        body: BinOp {
+                            lhs: Cast {
+                                inner: Num(
+                                    2,
+                                    NumT(
+                                        2..3,
+                                    ),
+                                ),
+                                typ: NumT(
+                                    0..3,
+                                ),
+                                overflow: Wraparound,
+                            },
+                            op: Add,
+                            rhs: BinOp {
+                                lhs: Var(
+                                    "a",
+                                ),
+                                op: Mul,
+                                rhs: Cast {
+                                    inner: Call {
+                                        callee: "f",
+                                        args: [
+                                            Var(
+                                                "b",
+                                            ),
+                                        ],
+                                    },
+                                    typ: NumT(
+                                        0..3,
+                                    ),
+                                    overflow: Wraparound,
+                                },
+                            },
+                        },
+                    },
+                },
+                locals: {
+                    "x": NumT(
+                        0..3,
+                    ),
+                },
+                start: [],
+                action: (
+                    Some(
+                        "y",
+                    ),
+                    [],
+                ),
+                accept: Bool(
+                    true,
+                ),
+            }"#]];
+        expected.assert_eq(&format!("{:#?}", program));
     }
 
     #[test]
