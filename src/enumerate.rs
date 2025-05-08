@@ -99,9 +99,9 @@ mod tests {
 		        alphabet: {'a'}
 		        let x: int[4];
 		        on input y {
-					x = 3;   
+					x = 3 as int[0..3];   
 		        }
-		        accept if x == 2
+		        accept if x == 2 as int[0..2]
 		    "#;
         let program = parse(input).unwrap();
         println!("program: {:?}", program);
