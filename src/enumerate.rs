@@ -130,6 +130,7 @@ mod tests {
         println!("program: {:?}", program);
 
         let result = enumerate(&program, "1").unwrap();
+        
         println!("res: {:#?}", result);
         println!("--------------");
     }
