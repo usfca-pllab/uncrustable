@@ -1,0 +1,88 @@
+name: Deploy to GitHub Pages
+
+on:
+  release:              # Trigger on release creation
+    types: [published]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Set up Rust toolchain for WASM compilation
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+      # Clean Rust dependencies
+      - name: Clean Rust dependencies
+        run: |
+          cargo clean
+          rm -rf target/
+
+      # Install wasm-pack
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      # Build Rust WASM with clean flag
+      - name: Build WASM
+        run: wasm-pack build --target web
+
+      # Setup Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          # Disable cache to ensure clean install
+          cache: 'npm'
+          cache-dependency-path: 'web/package-lock.json'
+
+      # Clean npm cache and install frontend dependencies
+      - name: Clean and install dependencies
+        working-directory: ./web
+        run: |
+          npm ci --force-clean
+
+      # Setup GitHub Pages
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      # Build frontend
+      - name: Build
+        working-directory: ./web
+        run: npm run build
+
+      # Create .nojekyll file to prevent Jekyll processing
+      - name: Create .nojekyll file
+        run: touch dist/.nojekyll
+
+      # Upload artifact
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
