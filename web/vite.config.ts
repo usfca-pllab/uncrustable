@@ -10,4 +10,8 @@ export default defineConfig({
     wasm()
   ],
   base: './', // Set base URL for GitHub Pages deployment
+  build: {
+    outDir: '../dist', // Output to /docs folder for GitHub Pages
+    emptyOutDir: true,
+  },
 });
