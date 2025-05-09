@@ -4,7 +4,6 @@ use std::collections::BTreeMap;
 pub use std::collections::{HashMap as Map, HashSet as Set};
 use std::fmt::Debug;
 use std::hash::Hash;
-
 pub mod parser;
 
 /// DFA states.  Never create a state object yourself, always use
