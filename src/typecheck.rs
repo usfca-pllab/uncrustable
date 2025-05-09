@@ -17,6 +17,9 @@ pub enum TypeError {
     /// Symbol not in alphabet
     #[error("Symbol '{0}' is not in the alphabet")]
     SymbolNotInAlphabet(char),
+    /// Shadowed variable
+    #[error("Variable '{0}' is shadows another variable")]
+    ShadowedVariable(Id)
 }
 
 /// Helper function to create a type mismatch error
@@ -238,7 +241,7 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     if let Some(var) = input_var {
         // Check if the input variable shadows any existing variable
         if ctx.env.contains_key(var) {
-            return Err(TypeError::UndefinedVariable(*var));
+            return Err(TypeError::ShadowedVariable(*var));
         }
         action_env.insert(*var, Type::SymT);
     }
