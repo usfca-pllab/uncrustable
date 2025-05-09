@@ -1,11 +1,15 @@
 //! Deterministic Finite Automata
 
 use crate::syntax::Symbol;
+use crate::syntax::Symbol;
 use std::collections::BTreeMap;
+pub use std::collections::{BTreeMap as Map, BTreeSet as Set};
+use std::fmt;
 pub use std::collections::{BTreeMap as Map, BTreeSet as Set};
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::io::Write;
 use std::io::Write;
 pub mod parser;
 
@@ -13,6 +17,9 @@ pub mod parser;
 /// `State::fresh`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct State(u32);
+use std::sync::atomic::{AtomicU32, Ordering};
+/// Next available state, do not use directly.
+static NEXT_STATE: AtomicU32 = AtomicU32::new(0);
 use std::sync::atomic::{AtomicU32, Ordering};
 /// Next available state, do not use directly.
 static NEXT_STATE: AtomicU32 = AtomicU32::new(0);
@@ -94,6 +101,7 @@ pub struct Dfa<Symbol: Hash + Eq> {
     pub state_names: Map<State, String>,
 }
 
+impl<Symbol: Hash + Eq + Ord> Dfa<Symbol> {
 impl<Symbol: Hash + Eq + Ord> Dfa<Symbol> {
     /// Check if this DFA is valid
     pub fn validate(&self) -> Result<(), Vec<DfaValidationError<Symbol>>>
