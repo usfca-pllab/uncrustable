@@ -322,11 +322,11 @@ mod tests {
         // Verify that typechecking fails due to variable shadowing
         assert!(result.is_err());
         match result {
-            Err(TypeError::UndefinedVariable(var_id)) => {
+            Err(TypeError::ShadowedVariable(var_id)) => {
                 assert_eq!(var_id, id("c")); // Verify the specific variable that caused the error
             }
             _ => panic!(
-                "Expected UndefinedVariable error for shadowing, got: {:?}",
+                "Expected ShadowedVariable error for shadowing, got: {:?}",
                 result
             ),
         }
