@@ -49,7 +49,7 @@ impl fmt::Display for Dfa<Symbol> {
             if self.accepting.contains(state) {
                 writeln!(f, "  {}(((\"{}\")))", state_id, label) // double circle for accepting
             } else {
-                write!(f, "  {}((\"{}\"))", state_id, label)
+                writeln!(f, "  {}((\"{}\"))", state_id, label)
             }
         })?;
 
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn test_display() {
         State::reset();
-        let expected_output = "flowchart TD\n  q0(((\"w = false, z = false\")))  q1(((\"w = false, z = true\")))  q2((\"w = true, z = true\"))  q0 --a--> q2\n  q0 --d--> q1\n  q1 --a--> q2\n  q1 --d--> q1\n  q2 --a--> q2\n  q2 --d--> q1\n";
+        let expected_output = "flowchart TD\n  q0(((\"w = false, z = false\")))\n  q1(((\"w = false, z = true\")))\n  q2((\"w = true, z = true\"))\n  q0 --a--> q2\n  q0 --d--> q1\n  q1 --a--> q2\n  q1 --d--> q1\n  q2 --a--> q2\n  q2 --d--> q1\n";
         let dfa: Dfa<Symbol> = Dfa::try_new(
             Set::from([Symbol('d'), Symbol('a')]),
             Map::from([
