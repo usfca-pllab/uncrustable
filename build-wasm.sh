@@ -12,3 +12,9 @@ echo "Building WASM package..."
 wasm-pack build --target web --out-dir web/src/wasm/pkg
 
 echo "WASM build complete. Output is in web/src/wasm/pkg/"
+
+# Build the web app
+echo "Building web app..."
+cd web && npm run dev
+
+echo "App is running..."
