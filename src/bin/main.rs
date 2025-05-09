@@ -6,8 +6,8 @@ use log::{error, info, warn};
 use uncrustable::eval;
 use uncrustable::parse::parse;
 use uncrustable::typecheck;
-#[derive(Parser, Debug)]
 
+#[derive(Parser, Debug)]
 struct Args {
     /// The input program to read
     input: String,
@@ -26,7 +26,6 @@ fn main() {
     let args = Args::parse();
     let input = std::fs::read_to_string(&args.input).expect("Could not read file");
     let program = parse(&input).unwrap_or_else(|err| panic!("Syntax error: {err}"));
-    // println!("Parsed program {program:#?}");
 
     // type check
     if args.typecheck {
@@ -41,7 +40,6 @@ fn main() {
     }
 
     // evaluate
-    // Uncomment and debug when we merge the two branches
     if args.evaluate {
         match eval::evaluate(&program, &input) {
             Ok(_) => {
