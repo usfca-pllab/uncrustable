@@ -1,15 +1,11 @@
 //! Deterministic Finite Automata
 
 use crate::syntax::Symbol;
-use crate::syntax::Symbol;
 use std::collections::BTreeMap;
-pub use std::collections::{BTreeMap as Map, BTreeSet as Set};
-use std::fmt;
 pub use std::collections::{BTreeMap as Map, BTreeSet as Set};
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::io::Write;
 use std::io::Write;
 pub mod parser;
 
@@ -17,9 +13,6 @@ pub mod parser;
 /// `State::fresh`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct State(u32);
-use std::sync::atomic::{AtomicU32, Ordering};
-/// Next available state, do not use directly.
-static NEXT_STATE: AtomicU32 = AtomicU32::new(0);
 use std::sync::atomic::{AtomicU32, Ordering};
 /// Next available state, do not use directly.
 static NEXT_STATE: AtomicU32 = AtomicU32::new(0);
@@ -54,16 +47,16 @@ impl fmt::Display for Dfa<Symbol> {
             let label = self.state_names.get(state).cloned().unwrap();
             // let mut layer = String::new();
             if self.accepting.contains(state) {
-                write!(f, "  {}(((\"{}\")))", state_id, label) // double circle for accepting
+                write!(f, "    {}(((\"{}\")))\n", state_id, label) // double circle for accepting
             } else {
-                write!(f, "  {}((\"{}\"))", state_id, label)
+                write!(f, "    {}((\"{}\"))\n", state_id, label)
             }
         })?;
 
         // transitions
         self.trans.iter().try_for_each(|(from_state, trans_map)| {
             trans_map.iter().try_for_each(|(symbol, to_state)| {
-                writeln!(f, "  q{} --{}--> q{}", from_state.0, symbol, to_state.0)
+                writeln!(f, "    q{} --{}--> q{}", from_state.0, symbol, to_state.0)
             })
         })?;
 
@@ -101,7 +94,6 @@ pub struct Dfa<Symbol: Hash + Eq> {
     pub state_names: Map<State, String>,
 }
 
-impl<Symbol: Hash + Eq + Ord> Dfa<Symbol> {
 impl<Symbol: Hash + Eq + Ord> Dfa<Symbol> {
     /// Check if this DFA is valid
     pub fn validate(&self) -> Result<(), Vec<DfaValidationError<Symbol>>>
