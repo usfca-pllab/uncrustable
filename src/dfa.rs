@@ -47,9 +47,9 @@ impl fmt::Display for Dfa<Symbol> {
             let label = self.state_names.get(state).cloned().unwrap();
             // let mut layer = String::new();
             if self.accepting.contains(state) {
-                write!(f, "  {}(((\"{}\")))", state_id, label) // double circle for accepting
+                writeln!(f, "  {}(((\"{}\")))", state_id, label) // double circle for accepting
             } else {
-                write!(f, "  {}((\"{}\"))", state_id, label)
+                writeln!(f, "  {}((\"{}\"))", state_id, label)
             }
         })?;
 
