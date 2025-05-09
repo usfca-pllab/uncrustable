@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { generateDiagramFromProgram } from './services/AutomataBridge';
+import { renderMermaid } from './services/Bridge';
 import MermaidComponent from './components/Mermaid';
 import { useTheme } from './contexts/ThemeContext';
 import Header from './components/Header';
@@ -7,23 +7,27 @@ import Footer from './components/Footer';
 import EditorTabs from './components/EditorTabs';
 
 // Sample code for the automata language
-const DEFAULT_CODE = `// div3.un - Checks if a binary number is divisible by 3
-alphabet { '0', '1' }
+const DEFAULT_CODE = `// accept binary numbers that are divisible by 3
+alphabet: { '0', '1' }
 
-// Implement a DFA with three states tracking division by 3
-on input {
-  let remainder = 0;  // Start with remainder 0
+// an example helper function
+fn char_to_bit(c: sym) -> int[2] = match c {
+  '0' -> 0 as int[2]
+  '1' -> 1 as int[2]
+}
 
-  for c in input {
-    if c == '0' {
-      remainder = (2 * remainder) % 3;
-    } else if c == '1' {
-      remainder = (2 * remainder + 1) % 3;
-    }
-  }
+// calculate remainder mod 3 while reading each bit.
+let rem: int[3];
 
-  accept if remainder == 0;  // Accept if divisible by 3
-}`;
+on input bit {
+  // later on, we might consider coercing the result of the function call so
+  // that the "as int[3]" part is not necessary.  we need to do this for
+  // number literals anyway.
+  rem = 2 as int[3] * rem + char_to_bit(bit) as int[3];
+}
+
+accept if rem == 0 as int[3]
+`;
 
 function App() {
   useTheme();
@@ -43,11 +47,11 @@ function App() {
       setMermaidCode(value);
     }
   };
-  
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     // Check if it's a .un file
     if (!file.name.endsWith('.un')) {
       setError('Please upload a file with .un extension');
@@ -73,7 +77,7 @@ function App() {
     setError(null);
 
     try {
-      const diagram = await generateDiagramFromProgram(code);
+      const diagram: string = await renderMermaid(code);
       setMermaidCode(diagram);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -88,7 +92,7 @@ function App() {
 
       <div className="flex flex-1 gap-1 h-full p-1">
         <div className="w-1/2 flex flex-col gap-1 shadow theme-panel">
-          <h2 className="font-medium px-2 py-1 theme-text">Code Editor</h2>
+          <h2 className="font-medium px-2 py-1 theme-text">Editor</h2>
           <div className="flex-1">
             <EditorTabs
               automataCode={code}

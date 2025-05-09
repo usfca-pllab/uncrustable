@@ -5,7 +5,11 @@ const Header: React.FC = () => {
   return (
     <header className="flex justify-between items-center shadow-md theme-header">
       <div className="flex items-center px-4 py-3">
+<<<<<<< Updated upstream:frontend/src/components/Header.tsx
         <h1 className="text-2xl font-semibold theme-text">uncRUSTables</h1>
+=======
+        <h1 className="text-2xl font-semibold theme-header">uncRUSTables</h1>
+>>>>>>> Stashed changes:web/src/components/Header.tsx
       </div>
       <div className="flex items-center space-x-4 px-4 py-3">
         <a

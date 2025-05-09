@@ -37,7 +37,13 @@ body {
 }
 
 .theme-header {
+<<<<<<< Updated upstream:frontend/src/index.css
   background-color: theme('colors.github-light.header');
+=======
+  /* Changed to USF Colors */
+  background-color: #2e7d32;
+  color: #ffd700;
+>>>>>>> Stashed changes:web/src/index.css
 }
 
 .theme-btn-primary {
@@ -88,7 +94,12 @@ body {
 }
 
 .dark .theme-header {
+<<<<<<< Updated upstream:frontend/src/index.css
   background-color: theme('colors.github-dark.header');
+=======
+  background-color: #1b5e20;
+  color: #ffd700;
+>>>>>>> Stashed changes:web/src/index.css
 }
 
 .dark .theme-btn-primary {
