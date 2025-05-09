@@ -1,23 +1,66 @@
 //! Deterministic Finite Automata
 
+use crate::syntax::Symbol;
 use std::collections::BTreeMap;
-pub use std::collections::{HashMap as Map, HashSet as Set};
+pub use std::collections::{BTreeMap as Map, BTreeSet as Set};
+use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::io::Write;
 pub mod parser;
 
 /// DFA states.  Never create a state object yourself, always use
 /// `State::fresh`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct State(u32);
+use std::sync::atomic::{AtomicU32, Ordering};
+/// Next available state, do not use directly.
+static NEXT_STATE: AtomicU32 = AtomicU32::new(0);
 
 impl State {
     /// Generate a fresh state that hasn't been used before
     pub fn fresh() -> State {
-        use std::sync::atomic::{AtomicU32, Ordering};
-        /// Next available state, do not use directly.
-        static NEXT_STATE: AtomicU32 = AtomicU32::new(0);
         State(NEXT_STATE.fetch_add(1, Ordering::SeqCst))
+    }
+
+    /// reset State counter
+    #[cfg(test)]
+    pub fn reset() {
+        NEXT_STATE.store(0, Ordering::SeqCst)
+    }
+
+    /// public State generation only for test cases
+    #[cfg(test)]
+    pub fn new(s: u32) -> State {
+        State(s)
+    }
+}
+
+// Pretty Print for DFA
+impl fmt::Display for Dfa<Symbol> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "flowchart TD")?; // Mermaid header
+
+        //  nodes: iterate through all the states, mark accepting states
+        self.states.iter().try_for_each(|state| {
+            let state_id = format!("q{}", state.0);
+            let label = self.state_names.get(state).cloned().unwrap();
+            // let mut layer = String::new();
+            if self.accepting.contains(state) {
+                writeln!(f, "  {}(((\"{}\")))", state_id, label) // double circle for accepting
+            } else {
+                writeln!(f, "  {}((\"{}\"))", state_id, label)
+            }
+        })?;
+
+        // transitions
+        self.trans.iter().try_for_each(|(from_state, trans_map)| {
+            trans_map.iter().try_for_each(|(symbol, to_state)| {
+                writeln!(f, "  q{} --{}--> q{}", from_state.0, symbol, to_state.0)
+            })
+        })?;
+
+        Ok(())
     }
 }
 
@@ -51,7 +94,7 @@ pub struct Dfa<Symbol: Hash + Eq> {
     pub state_names: Map<State, String>,
 }
 
-impl<Symbol: Hash + Eq> Dfa<Symbol> {
+impl<Symbol: Hash + Eq + Ord> Dfa<Symbol> {
     /// Check if this DFA is valid
     pub fn validate(&self) -> Result<(), Vec<DfaValidationError<Symbol>>>
     where
@@ -200,6 +243,40 @@ impl<Symbol: Hash + Eq + Ord + Debug> Dfa<Symbol> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_display() {
+        State::reset();
+        let expected_output = "flowchart TD\n  q0(((\"w = false, z = false\")))\n  q1(((\"w = false, z = true\")))\n  q2((\"w = true, z = true\"))\n  q0 --a--> q2\n  q0 --d--> q1\n  q1 --a--> q2\n  q1 --d--> q1\n  q2 --a--> q2\n  q2 --d--> q1\n";
+        let dfa: Dfa<Symbol> = Dfa::try_new(
+            Set::from([Symbol('d'), Symbol('a')]),
+            Map::from([
+                (
+                    State::new(1),
+                    Map::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
+                ),
+                (
+                    State::new(0),
+                    Map::from([(Symbol('a'), State::new(2)), (Symbol('d'), State::new(1))]),
+                ),
+                (
+                    State::new(2),
+                    Map::from([(Symbol('d'), State::new(1)), (Symbol('a'), State::new(2))]),
+                ),
+            ]),
+            State::new(0),
+            Set::from([State::new(0), State::new(1)]),
+            Map::from([
+                (State::new(0), "w = false, z = false".to_string()),
+                (State::new(1), "w = false, z = true".to_string()),
+                (State::new(2), "w = true, z = true".to_string()),
+            ]),
+        )
+        .unwrap();
+
+        let output = format!("{}", dfa);
+        assert_eq!(expected_output, output);
+    }
 
     #[test]
     fn test_new_valid() {
