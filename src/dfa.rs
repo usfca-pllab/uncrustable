@@ -49,7 +49,7 @@ impl fmt::Display for Dfa<Symbol> {
             if self.accepting.contains(state) {
                 writeln!(f, "  {}(((\"{}\")))", state_id, label) // double circle for accepting
             } else {
-                writeln!(f, "  {}((\"{}\"))", state_id, label)
+                write!(f, "  {}((\"{}\"))", state_id, label)
             }
         })?;
 
