@@ -6,7 +6,6 @@ pub use std::collections::{BTreeMap as Map, BTreeSet as Set};
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::io::Write;
 pub mod parser;
 
 /// DFA states.  Never create a state object yourself, always use
@@ -47,16 +46,16 @@ impl fmt::Display for Dfa<Symbol> {
             let label = self.state_names.get(state).cloned().unwrap();
             // let mut layer = String::new();
             if self.accepting.contains(state) {
-                writeln!(f, "  {}(((\"{}\")))", state_id, label) // double circle for accepting
+                writeln!(f, "    {}(((\"{}\")))", state_id, label) // double circle for accepting
             } else {
-                writeln!(f, "  {}((\"{}\"))", state_id, label)
+                writeln!(f, "    {}((\"{}\"))", state_id, label)
             }
         })?;
 
         // transitions
         self.trans.iter().try_for_each(|(from_state, trans_map)| {
             trans_map.iter().try_for_each(|(symbol, to_state)| {
-                writeln!(f, "  q{} --{}--> q{}", from_state.0, symbol, to_state.0)
+                writeln!(f, "    q{} --{}--> q{}", from_state.0, symbol, to_state.0)
             })
         })?;
 
