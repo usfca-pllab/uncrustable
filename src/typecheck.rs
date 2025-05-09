@@ -19,7 +19,7 @@ pub enum TypeError {
     SymbolNotInAlphabet(char),
     /// Shadowed variable
     #[error("Variable '{0}' is shadows another variable")]
-    ShadowedVariable(Id)
+    ShadowedVariable(Id),
 }
 
 /// Helper function to create a type mismatch error
