@@ -3,7 +3,7 @@ use log::{debug, error, warn};
 use thiserror::Error;
 
 /// Errors that can occur during type checking
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum TypeError {
     /// Type mismatch between expected and actual types
     #[error("Type mismatch")]
@@ -17,10 +17,13 @@ pub enum TypeError {
     /// Symbol not in alphabet
     #[error("Symbol '{0}' is not in the alphabet")]
     SymbolNotInAlphabet(char),
+    /// Shadowed variable
+    #[error("Variable '{0}' is shadows another variable")]
+    ShadowedVariable(Id),
 }
 
 /// Helper function to create a type mismatch error
-fn type_mismatch(actual: &Type, expected: &Type, expr: &Expr) -> TypeError {
+fn type_mismatch(expr: &Expr) -> TypeError {
     debug!("In {expr:#?}");
     TypeError::TypeMismatch
 }
@@ -30,7 +33,7 @@ fn expect_equal(actual: &Type, expected: &Type, expr: &Expr) -> Result<(), TypeE
     if actual == expected {
         Ok(())
     } else {
-        Err(type_mismatch(actual, expected, expr))
+        Err(type_mismatch(expr))
     }
 }
 
@@ -109,7 +112,7 @@ pub fn typeck_expr(expr: &Expr, ctx: &TypeCtx) -> Result<Type, TypeError> {
             // Verify that argument types match parameter types
             let param_types: Vec<Type> = function.params.iter().map(|(_, t)| t.clone()).collect();
             if arg_types != param_types {
-                return Err(type_mismatch(&arg_types[0], &param_types[0], expr));
+                return Err(type_mismatch(expr));
             }
             Ok(function.ret_typ.clone())
         }
@@ -219,15 +222,7 @@ pub fn typeck_function(fun: &Function, ctx: &TypeCtx) -> Result<(), TypeError> {
     };
 
     let e = typeck_expr(&fun.body, &fun_ctx)?;
-
-    // check that body is the same type as the return type, otherwise return error
-    if e == fun.ret_typ {
-        Ok(())
-    } else {
-        let t = fun.ret_typ.clone();
-        debug!("In: typeck_function {fun:?}");
-        Err(TypeError::TypeMismatch)
-    }
+    expect_equal(&e, &fun.ret_typ, &fun.body)
 }
 
 /// Type check a program
@@ -244,6 +239,10 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     let (input_var, action_block) = &program.action;
     let mut action_env = ctx.env.clone();
     if let Some(var) = input_var {
+        // Check if the input variable shadows any existing variable
+        if ctx.env.contains_key(var) {
+            return Err(TypeError::ShadowedVariable(*var));
+        }
         action_env.insert(*var, Type::SymT);
     }
     typeck_block(
@@ -261,7 +260,6 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
 mod tests {
     use super::*;
     use crate::parse::parse;
-    use crate::syntax::*;
 
     #[test]
     fn variables() {
@@ -304,6 +302,38 @@ mod tests {
         };
         let another_undefined_expr = Expr::Var(id("another_flag"));
         assert!(typeck_expr(&another_undefined_expr, &ctx).is_err());
+    }
+
+    #[test]
+    fn variable_shadowing() {
+        // Test that input variables can't shadow existing variables
+        let program_with_shadowing = r#"
+            alphabet: {'a', 'b'}
+            let c: bool;  // Define 'c' as a program variable
+            on input c {  // Try to use 'c' as an input variable too
+                c = true;
+            }
+            accept if c
+        "#;
+
+        let program: Program = parse(program_with_shadowing).unwrap();
+        let result = typecheck_program(&program).unwrap_err();
+
+        // Simple assertion to check the error type and specific variable
+        assert_eq!(result, TypeError::ShadowedVariable(id("c")));
+
+        // Test with non-shadowing variables (should pass)
+        let program_without_shadowing = r#"
+            alphabet: {'a', 'b'}
+            let flag: bool;
+            on input c {  // Different name than any program variable
+                flag = true;
+            }
+            accept if flag
+        "#;
+
+        let valid_program: Program = parse(program_without_shadowing).unwrap();
+        assert!(typecheck_program(&valid_program).is_ok());
     }
 
     #[test]
