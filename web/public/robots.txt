@@ -1,6 +1,0 @@
-usfca-pllab
-automata
-dfa
-dfa-visualizer
-Unviversity of San Francisco
-USFCA Programming Languages Lab
