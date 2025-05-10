@@ -1,4 +1,7 @@
-import * as wasm from '../wasm/RustCore';
+import * as wasm from '../wasm/pkg/uncrustable';
+
+// Placeholder for initialization status
+let initialized = false;
 
 /**
  * Sends the automata program to the Rust WASM module for parsing,
