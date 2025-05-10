@@ -3,7 +3,7 @@ use log::{debug, error, warn};
 use thiserror::Error;
 
 /// Errors that can occur during type checking
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum TypeError {
     /// Type mismatch between expected and actual types
     #[error("Type mismatch")]
@@ -17,6 +17,9 @@ pub enum TypeError {
     /// Symbol not in alphabet
     #[error("Symbol '{0}' is not in the alphabet")]
     SymbolNotInAlphabet(char),
+    /// Shadowed variable
+    #[error("Variable '{0}' is shadows another variable")]
+    ShadowedVariable(Id),
 }
 
 /// Helper function to create a type mismatch error
@@ -238,7 +241,7 @@ pub fn typecheck_program(program: &Program) -> Result<(), TypeError> {
     if let Some(var) = input_var {
         // Check if the input variable shadows any existing variable
         if ctx.env.contains_key(var) {
-            return Err(TypeError::UndefinedVariable(*var));
+            return Err(TypeError::ShadowedVariable(*var));
         }
         action_env.insert(*var, Type::SymT);
     }
@@ -314,19 +317,10 @@ mod tests {
         "#;
 
         let program: Program = parse(program_with_shadowing).unwrap();
-        let result = typecheck_program(&program);
+        let result = typecheck_program(&program).unwrap_err();
 
-        // Verify that typechecking fails due to variable shadowing
-        assert!(result.is_err());
-        match result {
-            Err(TypeError::UndefinedVariable(var_id)) => {
-                assert_eq!(var_id, id("c")); // Verify the specific variable that caused the error
-            }
-            _ => panic!(
-                "Expected UndefinedVariable error for shadowing, got: {:?}",
-                result
-            ),
-        }
+        // Simple assertion to check the error type and specific variable
+        assert_eq!(result, TypeError::ShadowedVariable(id("c")));
 
         // Test with non-shadowing variables (should pass)
         let program_without_shadowing = r#"
