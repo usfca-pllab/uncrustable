@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { renderMermaid } from './services/Bridge';
+import { renderDiagram } from './services/Bridge';
 import MermaidComponent from './components/Mermaid';
 import { useTheme } from './contexts/ThemeContext';
 import Header from './components/Header';
@@ -77,10 +77,10 @@ function App() {
     setError(null);
 
     try {
-      const diagram: string = await renderMermaid(code);
+      const diagram: string = await renderDiagram(code);
       setMermaidCode(diagram);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(err as string);
     } finally {
       setIsLoading(false);
     }
