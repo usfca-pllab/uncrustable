@@ -41,11 +41,3 @@ jobs:
       # Build Rust WASM
       - name: Build WASM
         run: wasm-pack build --target web --out-dir web/src/wasm/pkg
-
-      # Upload WASM artifacts
-      - name: Upload WASM artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: pkg
-          path: web/src/wasm/pkg
-          retention-days: 1
