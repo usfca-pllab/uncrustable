@@ -35,6 +35,28 @@ program you could just enter the --typecheck flag.
 
 ## Understanding Output
 
+Output from the previous CLI example:
+```
+Typecheck successful
+program accepts the input
+flowchart TD
+  q0(("ends_with_zero = false"))
+  q1((("ends_with_zero = true")))
+  q0 --0--> q1
+  q0 --1--> q0
+  q1 --0--> q1
+  q1 --1--> q0
+```
+Program typechecks and is sucessful, evaluates and the input is accepted, and prints DFA.
+
+The two states with their names are printed first, to help with understanding what the 
+states represent.
+Following, the transitions the the states are printed:
+    q0 --0--> q1 : translates to when '0' is run on the program, the state changes from
+                    q0(("ends_with_zero = false")) to q1((("ends_with_zero = true")))
+
+
+
 
 
 
