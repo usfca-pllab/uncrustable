@@ -1,25 +1,52 @@
+/**
+ * Bridge module for interacting with WebAssembly Rust functions.
+ * Provides TypeScript wrappers around Rust-compiled WASM functions.
+ */
 import * as wasm from '../wasm/pkg/uncrustable';
 
-// Placeholder for initialization status
-let initialized = false;
+/**
+ * Tracks whether the WASM module has been initialized.
+ * @private
+ */
+let isInitialized = false;
 
 /**
- * Sends the automata program to the Rust WASM module for parsing,
- * typechecking, and generating a DFA.
- * Returns the generated DFA as a string
+ * Initializes the WASM module.
+ * This must be called before any other function.
+ *
+ * @returns A promise that resolves when initialization is complete
+ * @throws Error if initialization fails
  */
-export const renderMermaid = (program: string): Promise<string> => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      // Make sure WASM is initialized
-      await wasm.init();
+export async function initialize(): Promise<void> {
+  if (isInitialized) return;
 
-      // Use the generate_mermaid_diagram function directly
-      const mermaidDiagram = await wasm.generate_mermaid_diagram(program);
+  try {
+    // Initialize the WASM module
+    await wasm.default();
+    isInitialized = true;
+    console.log('WASM module initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize WASM module:', error);
+    throw error as string;
+  }
+}
 
-      resolve(mermaidDiagram);
-    } catch (error) {
-      reject(`Error processing automata program: ${error}`);
-    }
-  });
-};
+/**
+ * Generates a Mermaid diagram from an automata program.
+ *
+ * @param program - The automata program source code
+ * @returns A promise that resolves to the Mermaid diagram as a string
+ * @throws Error if diagram generation fails
+ */
+export async function renderDiagram(program: string): Promise<string> {
+  if (!isInitialized) await initialize();
+
+  try {
+    // Call the Rust function directly
+    console.log('rendering mermaid with render_mermaid...');
+    return wasm.render_mermaid(program);
+  } catch (error) {
+    console.error('Error in renderDiagram:', error);
+    throw error as string;
+  }
+}
