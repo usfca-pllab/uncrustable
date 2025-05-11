@@ -51,7 +51,9 @@ Program typechecks and is sucessful, evaluates and the input is accepted, and pr
 
 The two states with their names are printed first, to help with understanding what the 
 states represent.
+
 Following, the transitions the the states are printed:
+
 &nbsp;q0 --0--> q1 : translates to when '0' is run on the program, the state changes from
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;q0(("ends_with_zero = false")) to q1((("ends_with_zero = true")))
 
