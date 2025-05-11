@@ -33,5 +33,8 @@ and pretty-prints the DFA in the terminal.
 Not all flags need to be present, for example, if you wanted to just typecheck the 
 program you could just enter the --typecheck flag.
 
+## Understanding Output
+
+
 
 
