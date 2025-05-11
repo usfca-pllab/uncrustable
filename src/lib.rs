@@ -34,7 +34,7 @@ pub fn render_mermaid(code: &str) -> Result<String, JsValue> {
 
     match result {
         Ok(diagram) => Ok(format!("{}", diagram)),
-        Err(err) => Err(JsValue::from_str(&format!("Error: {}", err))),
+        Err(err) => Err(JsValue::from_str(&format!("{}", err))),
     }
 }
 
