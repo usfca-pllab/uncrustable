@@ -1,4 +1,4 @@
-# Automata Web Interface
+# Web Interface
 
 A modern web interface for visualizing automata programs as DFA diagrams. This application is built with React, TypeScript, Vite, and Monaco Editor.
 
@@ -44,7 +44,7 @@ A modern web interface for visualizing automata programs as DFA diagrams. This a
 To compile the Rust crate to WebAssembly and use it in the web interface:
 
 1. Install wasm-pack if you haven't already:
-   ```
+   ```zsh
    cargo install wasm-pack
    ```
 
@@ -59,45 +59,52 @@ To compile the Rust crate to WebAssembly and use it in the web interface:
 
 3. Create WebAssembly bindings in the Rust crate:
    ```rust
-   // In src/lib.rs or a new file src/wasm.rs
+   // In src/lib.rs
    use wasm_bindgen::prelude::*;
-   
+
    #[wasm_bindgen]
-   pub fn parse_program(code: &str) -> JsValue {
-       // Your parsing logic here
-   }
-   
-   #[wasm_bindgen]
-   pub fn generate_dfa(parsed: JsValue) -> JsValue {
+   pub fn render_dfa(parsed: JsValue) -> JsValue {
        // Your DFA generation logic here
    }
    ```
 
 4. Compile the Rust crate to WebAssembly:
-   ```
+   ```zsh
    wasm-pack build --target web
    ```
 
 5. Import the generated WebAssembly module in the web interface:
    ```typescript
-   // Update src/wasm/automata.ts to use the actual WASM module
-   import * as wasm from '../../../pkg/automata_project';
+   // In web/src/services/Bridge.ts
+   import * as wasm from '../../../pkg/uncrustable';
 
    export async function initAutomataWasm() {
      await wasm.default();
      return wasm;
    }
+
+   export async function renderDiagram(program: string): Promise<string> {
+      if (!isInitialized) await initialize();
+
+      try {
+         // Call the Rust function directly
+         console.log('rendering mermaid with render_mermaid...');
+         return wasm.render_mermaid(program);
+      } catch (error) {
+         console.error('Error in renderDiagram:', error);
+         throw error as string;
+      }
+   }
    ```
 
 ## Future Enhancements
 
-- Integration with Rust-compiled WebAssembly for automata parsing and DFA generation
-- Custom themes for the code editor and diagrams
-- Ability to save and load automata programs
+- Better error handling (e.g. let the user know where program encountered an error)
+- Improving mermaid render for text
 
 ## Project Structure
 
 - `/src` - Main source code
   - `/components` - React components for the UI
-  - `/services` - Services for Monaco editor configuration and automata processing
+  - `/services` - Bridge service for contacting with wasm
   - `/wasm` - WebAssembly bindings and integration
