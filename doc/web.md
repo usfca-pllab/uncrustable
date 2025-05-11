@@ -15,7 +15,7 @@ flowchart TD
         ReactApp[React App]
         MermaidComponent[Mermaid Component]
 
-        MonacoEditor --> |1 Send automata code| ReactApp
+        MonacoEditor --> |1 Send program| ReactApp
         MermaidComponent --> ReactApp
     end
 
@@ -74,7 +74,3 @@ flowchart TD
 5. Mermaid diagram code is returned to Bridge
 6. Bridge passes the Mermaid diagram code to the Mermaid component
 7. Mermaid component renders the diagram
-
-## Future Enhancements
-
-The current implementation uses a mock DFA generator in `Bridge.ts`. The planned WebAssembly integration will replace this with actual Rust-compiled WebAssembly code for automata parsing and DFA generation. This will involve completing the integration between the DFA module's print functionality and the WebAssembly boundary, allowing direct transfer of Mermaid diagram syntax to the frontend.
