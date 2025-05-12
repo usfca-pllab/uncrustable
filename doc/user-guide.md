@@ -143,7 +143,7 @@ rejects the input.
 ```
 Enumerator - visits all possible states, evaluating all possible outcomes for each 
 and populating the DFA struct, keeping track of the states, their names, all possible 
-transitions between the states, and the accepting states for the DFA.
+transitions between the states, and the accepting states for the DFA. It then prints the DFA in the pretty-print script format.
 ```
 --dfa
 ```
@@ -176,15 +176,11 @@ flowchart TD
 ```
 Program typechecks and is sucessful, evaluates and the input is accepted, and prints DFA.
 
-The two states with their names are printed first, to help with understanding what the 
-states represent.
+All states are printed with their names first, to help with understanding what the 
+states represent. The accepting state(s) is/are wrapped in tripple parentheses.
 
 Following, the transitions the the states are printed:
 
 q0 --0--> q1 : translates to when '0' is run on the program, the state changes from q0(("ends_with_zero = false")) to q1((("ends_with_zero = true")))
-
-
-
-
 
 
