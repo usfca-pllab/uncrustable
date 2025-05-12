@@ -2,6 +2,16 @@
 
 ## uncrustable Syntax
 
+### Supported Operations
+
+#### Binary Operations
+
+#### Unary Operations
+
+#### Matching
+
+#### Function calls
+
 ### Example 1: divisble by 3
 
 ```
@@ -16,7 +26,11 @@ on input bit {
 }
 accept if rem == 0 as int[0..3]
 ```
-In the uncrustable language, key aspects of dealing with numbers is including casting. All numbers must be cast to be within a specific range, which means sometimes the language beheaves differently than expected. If you do not provide a casting type (```saturate```, ```wraparound```, or ```fail```) the default type is ```wraparound```. All numeric operations (including matching on numbers, binary operations and returning numbers from functions) cast, even if no range was explicitly given. All casts are default to be ```[given_int...given_int + 1]``` exclusive.
+A unique feature of the uncrustable language is including casting. All numbers must be cast to be within a specific range, which means the language behaves differently than expected. All numeric operations (including matching on numbers, binary operations and returning numbers from functions) cast, even if no range was explicitly given. If no range was provided, ranges are default to be ```[num...num + 1]```. All ranges are exclusive.
+
+Ranges can be written like the following: ```int[3]``` (which will default to ```int[0..3]```) or ```int[0..3]```.
+
+If a casting type (```saturate```, ```wraparound```, or ```fail```) is not provided the default type is ```wraparound```. The casting types are as follows:
 
 ```saturate```: If the resulting number to be casted is below the given range, return the lowest value in the range. If the resulting number to be casted is above the given range, return the highest value in the range. If the resulting number to be casted is within the given range, return that value.
 
@@ -25,7 +39,7 @@ In the uncrustable language, key aspects of dealing with numbers is including ca
 
 ```fail```: If the number is out of the range, fail the program entirely with ```OutOfRange``` error.
 
-All well-written programs will include casting for each numerical value. Be sure to include a casting type if you would like a specific program behavior.
+All well-written programs will include casting for each numerical value. Be sure to include a casting type if there is a desired program behavior.
 
 ### Example 2: ends with zero
 
@@ -37,9 +51,13 @@ on input x {
 }
 accept if ends_with_zero == true
 ```
-This is an example of a valid program that checks if the current bit input is 0. All variables in an uncrustable program have scope within where it was initialized. The ```input``` bit is not accesible outside of the ```on``` call, and cannot be initialized outside of the call. Additionally, the ```input``` variable should not shadow any other variable initialization.
+This is an example of a valid program that checks if the current bit input is ```0```. All programs only read one input character at a time. So, if you have ```10``` as your input, it will process one bit at a time and still produce ```true```.
 
-### Example 3: matching and casting
+All variables in an uncrustable program have scope within where it was initialized. The ```input``` bit is not accesible outside of the ```on``` call, and cannot be initialized outside of the call. The ```input``` variable should not shadow any other variable in the program.
+
+When initializing a variable, be sure to include its type (```bool```, ```int[range]```, ```char```).
+
+### Example 3: matching
 
 ```
 alphabet: {'a'}
