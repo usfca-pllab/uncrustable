@@ -18,12 +18,14 @@ accept if rem == 0 as int[0..3]
 ```
 In the uncrustable language, key aspects of dealing with numbers is including casting. All numbers must be cast to be within a specific range, which means sometimes the language beheaves differently than expected. If you do not provide a casting type (```saturate```, ```wraparound```, or ```fail```) the default type is ```wraparound```. All numeric operations (including matching on numbers, binary operations and returning numbers from functions) cast, even if no range was explicitly given. All casts are default to be ```[given_int...given_int + 1]``` exclusive.
 
-`saturate`: If the resulting number to be casted is below the given range, return the lowest value in the range. If the resulting number to be casted is above the given range, return the highest value in the range. If the resulting number to be casted is within the given range, return that value.
+```saturate```: If the resulting number to be casted is below the given range, return the lowest value in the range. If the resulting number to be casted is above the given range, return the highest value in the range. If the resulting number to be casted is within the given range, return that value.
 
 ```wraparound```: Perform the following arithmetic operation on all values when casting regardless of being within the range
 ```cast(n, int[lower..upper], wraparound) = (n - lower) % (upper - lower) + lower```
 
-All well-written programs will include casting for each numerical value.
+```fail```: If the number is out of the range, fail the program entirely with ```OutOfRange``` error.
+
+All well-written programs will include casting for each numerical value. Be sure to include a casting type if you would like a specific program behavior.
 
 ### Example 2: ends with zero
 
@@ -35,7 +37,7 @@ on input x {
 }
 accept if ends_with_zero == true
 ```
-This is an example of a valid program that checks if the current bit input is 0. All variables in an uncrustable program have scope within where it was initialized. The ```input``` bit is not accesible outside of the ```on``` call, and cannot be initialized outside of the call.
+This is an example of a valid program that checks if the current bit input is 0. All variables in an uncrustable program have scope within where it was initialized. The ```input``` bit is not accesible outside of the ```on``` call, and cannot be initialized outside of the call. Additionally, the ```input``` variable should not shadow any other variable initialization.
 
 ### Example 3: matching and casting
 
