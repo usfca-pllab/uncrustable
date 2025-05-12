@@ -1,0 +1,43 @@
+name: Build WebAssembly
+
+on:
+  workflow_dispatch:  # Allow manual triggering
+  push:
+    paths:
+      - 'src/**'     # Run when Rust code changes
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+jobs:
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Set up Rust toolchain for WASM compilation
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+      # Clean Rust dependencies
+      - name: Clean Rust dependencies
+        run: |
+          cargo clean
+          rm -rf target/
+
+      # Install wasm-pack
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      # Build Rust WASM
+      - name: Build WASM
+        run: wasm-pack build --target web --out-dir web/src/wasm/pkg
