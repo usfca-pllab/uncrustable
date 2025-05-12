@@ -1,5 +1,57 @@
 # Uncrustables User Guide
 
+## uncrustable Syntax
+
+### Example 1: divisble by 3
+
+```
+alphabet: { '0', '1' }
+fn char_to_bit(c: sym) -> int[0..3] = match c {
+    '0' -> 0
+    '1' -> 1
+}
+let rem: int[0..3];
+on input bit {
+    rem = (2 as int[0..3] * rem as int[0..3]) + (char_to_bit(bit) as int[0..3]);
+}
+accept if rem == 0 as int[0..3]
+```
+In the uncrustable language, key aspects of dealing with numbers is including casting. All numbers must be cast to be within a specific range, which means sometimes the language beheaves differently than expected. If you do not provide a casting type (```saturate```, ```wraparound```, or ```fail```) the default type is ```wraparound```. 
+
+```saturate```
+
+### Example 2: ends with zero
+
+```
+alphabet: {'0','1'}
+let ends_with_zero: bool;
+on input x {
+    ends_with_zero = x == '0';
+}
+accept if ends_with_zero == true
+```
+
+### Example 3: matching and casting
+
+```
+alphabet: {'a'}
+let x: int[3];
+on input y {
+        x = 3 + 4 as int[3] saturate;
+        if x < 3 {
+            y = 'a';
+        } else {
+            x = match y {
+                    'a' -> 1
+                    x if true -> 2
+            };
+        }
+}
+accept if x == 1
+```
+In the above program
+
+
 ## Command Line Interface
 
 ### Components
