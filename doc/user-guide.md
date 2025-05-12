@@ -17,17 +17,17 @@ Numeral operations:
 ```<``` less than,
 ```<=``` less than or equal to,
 ```==``` equals,
-```!=``` does not equal,
+```!=``` does not equal
 
 Boolean operations:
 ```&&``` and,
 ```||``` or,
 ```==``` equals,
-```!=``` does not equal,
+```!=``` does not equal
 
 Symbolic operations:
 ```==``` equals,
-```!=``` does not equal,
+```!=``` does not equal
 
 #### Unary Operations
 ```-``` negate,
