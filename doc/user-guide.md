@@ -6,23 +6,71 @@
 
 #### Binary Operations
 
+Numeral operations:
+```+``` add
+```-``` subtract
+```*``` multiplication
+```/``` division
+```%``` modulus
+```<<``` bit shift left
+```>>``` bit shift right
+```<``` less than
+```<=``` less than or equal to
+```==``` equals
+```!=``` does not equal
+
+Boolean operations:
+```&&``` and
+```||``` or
+```==``` equals
+```!=``` does not equal
+
+Symbolic operations:
+```==``` equals
+```!=``` does not equal
+
 #### Unary Operations
+```-``` negate
+```!``` not
 
 #### Matching
 
+```
+let val = match var {
+  case -> ret
+  case if condition -> ret
+}
+```
+the ```if condition``` is optional
+
 #### Function calls
+
+```fn function_name({ argument name and type }) -> { return type } = { function body }```
+
+#### Casting
+```saturate```, ```wraparound```, or ```fail```
+
+#### Statements
+```
+if condition {
+  body
+}
+else {
+  body
+}
+```
 
 ### Example 1: divisble by 3
 
 ```
 alphabet: { '0', '1' }
 fn char_to_bit(c: sym) -> int[0..3] = match c {
-    '0' -> 0
-    '1' -> 1
+  '0' -> 0
+  '1' -> 1
 }
 let rem: int[0..3];
 on input bit {
-    rem = (2 as int[0..3] * rem as int[0..3]) + (char_to_bit(bit) as int[0..3]);
+  rem = (2 as int[0..3] * rem as int[0..3]) + (char_to_bit(bit) as int[0..3]);
 }
 accept if rem == 0 as int[0..3]
 ```
@@ -75,8 +123,7 @@ on input y {
 }
 accept if x == 1
 ```
-In the above program
-
+The above program demonstrates how to use ```if/else``` statements and ```match```.
 
 ## Command Line Interface
 
