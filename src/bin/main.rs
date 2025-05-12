@@ -19,7 +19,7 @@ struct Args {
 
     // The evaluate flag, can be used as --evaluate
     #[arg(short, long)]
-    evaluate: bool,
+    evaluate: Option<String>,
 
     // The evaluate flag, can be used as --dfa
     #[arg(short, long)]
@@ -48,8 +48,9 @@ fn main() {
 
     // evaluate
     // print verdict
-    if args.evaluate {
-        match eval::evaluate(&program, &input) {
+
+    match args.evaluate {
+        Some(x) => match eval::evaluate(&program, &x) {
             Ok(_) => {
                 if true {
                     println!("program accepts the input");
@@ -60,7 +61,8 @@ fn main() {
             Err(error) => {
                 println!("Evaluation Error: {error}");
             }
-        }
+        },
+        None => println!("No input for the program was given"),
     }
 
     // compile to DFA
