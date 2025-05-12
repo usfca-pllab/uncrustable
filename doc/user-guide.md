@@ -7,30 +7,30 @@
 #### Binary Operations
 
 Numeral operations:
-```+``` add
-```-``` subtract
-```*``` multiplication
-```/``` division
-```%``` modulus
-```<<``` bit shift left
-```>>``` bit shift right
-```<``` less than
-```<=``` less than or equal to
-```==``` equals
-```!=``` does not equal
+```+``` add,
+```-``` subtract,
+```*``` multiplication,
+```/``` division,
+```%``` modulus,
+```<<``` bit shift left,
+```>>``` bit shift right,
+```<``` less than,
+```<=``` less than or equal to,
+```==``` equals,
+```!=``` does not equal,
 
 Boolean operations:
-```&&``` and
-```||``` or
-```==``` equals
-```!=``` does not equal
+```&&``` and,
+```||``` or,
+```==``` equals,
+```!=``` does not equal,
 
 Symbolic operations:
-```==``` equals
-```!=``` does not equal
+```==``` equals,
+```!=``` does not equal,
 
 #### Unary Operations
-```-``` negate
+```-``` negate,
 ```!``` not
 
 #### Matching
@@ -43,12 +43,14 @@ let val = match var {
 ```
 the ```if condition``` is optional
 
-#### Function calls
+#### Function declaration
 
 ```fn function_name({ argument name and type }) -> { return type } = { function body }```
 
+Functions only exist within the scope of the program they are declared in.
+
 #### Casting
-```saturate```, ```wraparound```, or ```fail```
+```saturate```, ```wraparound```, or ```fail```. See the example below as to how to use them and behavior.
 
 #### Statements
 ```
@@ -60,7 +62,7 @@ else {
 }
 ```
 
-### Example 1: divisble by 3
+### Example 1: divisible by 3
 
 ```
 alphabet: { '0', '1' }
