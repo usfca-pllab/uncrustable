@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* Light Theme (Default) */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: theme('colors.github-light.bg');
+  color: theme('colors.github-light.text');
+}
+
+/* Dark Theme */
+.dark body {
+  background-color: theme('colors.github-dark.bg');
+  color: theme('colors.github-dark.text');
+}
+
+/* Theme utility classes - Light Theme (Default) */
+.theme-border {
+  border-color: theme('colors.github-light.border');
+}
+
+.theme-link {
+  color: theme('colors.github-light.link');
+}
+.theme-link:hover {
+  text-decoration: underline;
+}
+
+.theme-header {
+  /* Changed to USF Colors */
+  background-color: #2e7d32;
+  color: #ffd700;
+}
+
+.theme-btn-primary {
+  background-color: theme('colors.github-light.accent');
+  color: white;
+}
+.theme-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.theme-btn-danger {
+  background-color: theme('colors.github-light.danger');
+  color: white;
+}
+.theme-btn-danger:hover {
+  opacity: 0.9;
+}
+
+.theme-panel {
+  background-color: theme('colors.github-light.canvas.subtle');
+}
+
+.theme-bg {
+  background-color: theme('colors.github-light.bg');
+}
+
+.theme-text {
+  color: theme('colors.github-light.text');
+}
+
+.theme-text-muted {
+  color: theme('colors.github-light.fg.muted');
+}
+
+.theme-error-container {
+  color: theme('colors.github-light.danger');
+  border-color: theme('colors.github-light.danger');
+  background-color: theme('colors.github-light.canvas.default');
+}
+
+/* Theme utility classes - Dark Theme */
+.dark .theme-border {
+  border-color: theme('colors.github-dark.border');
+}
+
+.dark .theme-link {
+  color: theme('colors.github-dark.link');
+}
+
+.dark .theme-header {
+  background-color: #1b5e20;
+  color: #ffd700;
+}
+
+.dark .theme-btn-primary {
+  background-color: theme('colors.github-dark.accent');
+}
+
+.dark .theme-btn-danger {
+  background-color: theme('colors.github-dark.danger');
+}
+
+.dark .theme-panel {
+  background-color: theme('colors.github-dark.canvas.subtle');
+}
+
+.dark .theme-bg {
+  background-color: theme('colors.github-dark.bg');
+}
+
+.dark .theme-text {
+  color: theme('colors.github-dark.text');
+}
+
+.dark .theme-text-muted {
+  color: theme('colors.github-dark.fg.muted');
+}
+
+.dark .theme-error-container {
+  color: theme('colors.github-dark.danger');
+  border-color: theme('colors.github-dark.danger');
+  background-color: theme('colors.github-dark.canvas.inset');
+}
+
+/* Editor Tab Styles */
+@layer components {
+  /* Editor Tab Styles */
+  .editor-tab {
+    @apply cursor-pointer py-2 px-5 text-sm border-t border-l border-r rounded-t-md transition-all relative;
+    margin-bottom: -1px; /* Overlap with the bottom border of tab bar */
+  }
+
+  .editor-tab-active {
+    background-color: theme('colors.github-light.canvas.default');
+    color: theme('colors.github-light.text');
+    border-color: theme('colors.github-light.border');
+    @apply font-medium;
+    border-bottom: 1px solid theme('colors.github-light.canvas.default'); /* Hide bottom border */
+    z-index: 10; /* Ensure the active tab is on top */
+  }
+
+  .editor-tab-inactive {
+    background-color: theme('colors.github-light.canvas.subtle');
+    color: theme('colors.github-light.fg.muted');
+    border-color: theme('colors.github-light.border');
+    @apply hover:bg-opacity-90;
+    border-bottom: 1px solid theme('colors.github-light.border'); /* Show bottom border */
+  }
+
+  .dark .editor-tab-active {
+    background-color: theme('colors.github-dark.canvas.default');
+    color: theme('colors.github-dark.text');
+    border-color: theme('colors.github-dark.border');
+    border-bottom: 1px solid theme('colors.github-dark.canvas.default');
+  }
+
+  .dark .editor-tab-inactive {
+    background-color: theme('colors.github-dark.canvas.subtle');
+    color: theme('colors.github-dark.fg.muted');
+    border-color: theme('colors.github-dark.border');
+    @apply hover:bg-opacity-90;
+    border-bottom: 1px solid theme('colors.github-dark.border');
+  }
+
+  /* Tab bar styling */
+  .editor-tab-bar {
+    @apply flex items-center justify-between border-b bg-transparent;
+    border-color: theme('colors.github-light.border');
+  }
+
+  .dark .editor-tab-bar {
+    border-color: theme('colors.github-dark.border');
+  }
+
+  /* Button styling */
+  .editor-button {
+    @apply ml-auto mr-2 px-3 py-1 text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .editor-button-primary {
+    background-color: theme('colors.github-light.accent');
+    @apply text-white hover:opacity-90;
+  }
+
+  .editor-button-secondary {
+    background-color: transparent;
+    color: theme('colors.github-light.text');
+    border: 1px solid theme('colors.github-light.border');
+    @apply hover:bg-gray-100;
+  }
+
+  .dark .editor-button-primary {
+    background-color: theme('colors.github-dark.accent');
+  }
+
+  .dark .editor-button-secondary {
+    color: theme('colors.github-dark.text');
+    border-color: theme('colors.github-dark.border');
+    @apply hover:bg-opacity-10 hover:bg-white;
+  }
+}
+
+/* Enhanced Mermaid diagram styling */
+.mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
+  width: auto;
+  display: block;
+}
